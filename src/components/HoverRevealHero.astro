@@ -1,0 +1,156 @@
+---
+/**
+ * Hero de "Último número" con imagen flotante: en desktop la portada sigue al cursor
+ * dentro del bloque (con lerp/easing, position: fixed) mientras se pasa el mouse; en
+ * touch (matchMedia "(pointer: coarse)") no hay cursor que seguir, así que la imagen
+ * se comporta como un bloque estático que se revela/oculta al tocar el titular.
+ *
+ * Tokens del Design System Broadsheet actual (paper/ink/accent, font-headline =
+ * IM Fell DW Pica en mixed-case, sin uppercase ni bold forzado — la fuente no trae un
+ * corte bold real).
+ */
+interface Props {
+  vol?: string | number;
+  numero?: string | number;
+  titulo: string;
+  descripcion?: string;
+  imagen: string;
+  href?: string;
+}
+
+const { vol, numero, titulo, descripcion, imagen, href } = Astro.props;
+
+const etiqueta = [vol && `Vol ${vol}`, numero && `N° ${numero}`].filter(Boolean).join(' · ');
+---
+
+<section
+  id="hover-reveal-hero"
+  class="relative w-full cursor-pointer px-4 py-16 text-center select-none md:cursor-crosshair"
+>
+  <div class="font-mono text-xs uppercase tracking-widest text-accent-amber">
+    <span class="inline-block rounded-full border border-ink/15 px-3 py-1">
+      Último número{etiqueta && ` · ${etiqueta}`}
+    </span>
+  </div>
+
+  <h1
+    class="mx-auto mt-6 max-w-full font-headline leading-[0.85] tracking-tight text-ink text-[13vw] md:text-[9vw]"
+  >
+    {titulo}
+  </h1>
+
+  <img
+    id="hover-reveal-image"
+    src={imagen}
+    alt={titulo}
+    class="hover-reveal-image mx-auto border-2 border-ink shadow-2xl"
+  />
+
+  {
+    descripcion && (
+      <p class="mx-auto mt-8 max-w-2xl px-4 font-serif text-lg italic text-ink/70">
+        {descripcion}
+      </p>
+    )
+  }
+
+  {
+    href && (
+      <a
+        href={href}
+        class="relative z-10 mt-8 inline-block border border-ink px-6 py-3 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-accent hover:text-accent"
+      >
+        Ver número completo →
+      </a>
+    )
+  }
+</section>
+
+<style is:global>
+  /* Estado base: imagen "flotante" fija que sigue al cursor. Filtro de alto contraste +
+     mix-blend-mode multiply para que se sienta como una trama de prensa, no una foto
+     de stock pegada encima. */
+  #hover-reveal-hero .hover-reveal-image {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 360px;
+    object-fit: cover;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 50;
+    transition: opacity 0.3s ease;
+    filter: grayscale(100%) contrast(120%);
+    mix-blend-mode: multiply;
+  }
+
+  /* Táctil: dejar de perseguir al cursor (no existe) y pasar a bloque revelable
+     centrado bajo el titular. */
+  @media (pointer: coarse) {
+    #hover-reveal-hero .hover-reveal-image {
+      position: relative;
+      width: 100%;
+      max-width: 300px;
+      height: auto;
+      margin: 1.5rem auto 0;
+      transform: none !important;
+      display: none;
+    }
+
+    #hover-reveal-hero .hover-reveal-image.active {
+      display: block;
+      opacity: 1;
+    }
+  }
+</style>
+
+<script>
+  const container = document.getElementById('hover-reveal-hero');
+  const image = document.getElementById('hover-reveal-image');
+
+  if (container && image) {
+    const isTouchScreen = window.matchMedia('(pointer: coarse)').matches;
+
+    if (isTouchScreen) {
+      container.addEventListener('click', (event) => {
+        // Un link/botón adentro (ej. "Ver número completo") no debe togglear la imagen.
+        if ((event.target as HTMLElement).closest('a')) return;
+        image.classList.toggle('active');
+      });
+    } else {
+      let mouseX = 0;
+      let mouseY = 0;
+      let currentX = 0;
+      let currentY = 0;
+      let raf = 0;
+
+      container.addEventListener('mousemove', (event) => {
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+      });
+
+      container.addEventListener('mouseenter', () => {
+        image.style.opacity = '1';
+      });
+
+      container.addEventListener('mouseleave', () => {
+        image.style.opacity = '0';
+      });
+
+      const animateImage = () => {
+        const ease = 0.15;
+        currentX += (mouseX - currentX) * ease;
+        currentY += (mouseY - currentY) * ease;
+
+        const xPos = currentX - image.offsetWidth / 2;
+        const yPos = currentY - image.offsetHeight / 2;
+
+        image.style.transform = `translate3d(${xPos}px, ${yPos}px, 0) rotate(-2deg)`;
+        raf = requestAnimationFrame(animateImage);
+      };
+
+      raf = requestAnimationFrame(animateImage);
+    }
+  }
+</script>

@@ -1,0 +1,94 @@
+---
+import { getCollection, getEntry, render } from 'astro:content';
+import PostLayout from '../../layouts/PostLayout.astro';
+
+export async function getStaticPaths() {
+  const entradas = await getCollection('entradas');
+  return entradas.map((entrada) => ({
+    params: { slug: entrada.id },
+    props: { entrada },
+  }));
+}
+
+const { entrada } = Astro.props;
+const { Content } = await render(entrada);
+
+const autor = await getEntry('autores', entrada.data.autor);
+const categoria = await getEntry('categorias', entrada.data.categoria);
+
+const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+---
+
+<PostLayout title={entrada.data.titulo} description={entrada.data.extracto}>
+  <header class="not-prose mb-8 text-center">
+    {
+      categoria && (
+        <a
+          href={`/categoria/${categoria.id}`}
+          class="mb-4 inline-block font-mono text-xs uppercase tracking-widest text-accent no-underline hover:underline"
+        >
+          {categoria.data.nombre}
+        </a>
+      )
+    }
+    <h1 class="font-headline text-5xl leading-[0.9] md:text-6xl">
+      {entrada.data.titulo}
+    </h1>
+    <p class="mt-4 font-mono text-xs uppercase tracking-widest text-ink-muted">
+      Por{' '}
+      {autor && (
+        <a
+          href={`/autor/${autor.id}`}
+          data-pagefind-meta="author"
+          class="text-ink no-underline hover:text-accent"
+        >
+          {autor.data.nombre}
+        </a>
+      )}
+      {' '}&middot; {formattedDate}
+    </p>
+  </header>
+
+  {
+    entrada.data.portada && (
+      <div class="not-prose relative mb-10 aspect-[16/9] w-full overflow-hidden border border-ink">
+        <img
+          src={entrada.data.portada}
+          alt={entrada.data.titulo}
+          data-pagefind-meta="image[src]"
+          class="h-full w-full object-cover grayscale contrast-125"
+        />
+        <div class="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
+      </div>
+    )
+  }
+
+  <div class="drop-cap">
+    <Content />
+  </div>
+
+  {
+    entrada.data.galeria && entrada.data.galeria.length > 0 && (
+      <div class="not-prose mt-12">
+        <h2 class="mb-4 font-headline text-2xl">Galería</h2>
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
+          {entrada.data.galeria.map((imagen) => (
+            <div class="relative aspect-square overflow-hidden border border-ink">
+              <img
+                src={imagen}
+                alt={entrada.data.titulo}
+                class="h-full w-full object-cover grayscale contrast-125"
+              />
+              <div class="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+</PostLayout>

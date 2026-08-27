@@ -1,0 +1,6 @@
+{
+    "liveServer.settings.multiRootWorkspaceName": "mi blog literario",
+    "css.lint.unknownAtRules": "ignore",
+    "scss.lint.unknownAtRules": "ignore",
+    "less.lint.unknownAtRules": "ignore"
+}

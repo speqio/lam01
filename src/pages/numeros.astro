@@ -1,0 +1,63 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const numeros = await getCollection('numeros');
+const numerosOrdenados = numeros.sort(
+  (a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf()
+);
+---
+
+<BaseLayout
+  title="Números — Blog Literario"
+  description="Todas las ediciones publicadas de la revista, ordenadas de la más reciente a la más antigua."
+>
+  <header class="mb-12 text-center">
+    <p class="font-sans text-sm uppercase tracking-widest text-accent">Ediciones</p>
+    <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Números</h1>
+  </header>
+
+  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {
+      numerosOrdenados.map((numero) => (
+        <a
+          href={`/numero/${numero.id}`}
+          class="group flex flex-col overflow-hidden rounded-lg border border-ink/15 bg-paper shadow-sm transition-shadow hover:shadow-md"
+        >
+          <div class="aspect-[16/9] overflow-hidden bg-linen">
+            {numero.data.portada && (
+              <img
+                src={numero.data.portada}
+                alt={numero.data.titulo}
+                class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            )}
+          </div>
+          <div class="flex flex-1 flex-col gap-2 p-5">
+            <p class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+              {numero.data.fecha.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                timeZone: 'UTC',
+              })}
+            </p>
+            <h2 class="font-serif text-xl text-ink group-hover:text-accent">
+              {numero.data.titulo}
+            </h2>
+            {numero.data.descripcion && (
+              <p class="line-clamp-2 font-sans text-sm text-ink-muted">
+                {numero.data.descripcion}
+              </p>
+            )}
+          </div>
+        </a>
+      ))
+    }
+  </div>
+
+  {
+    numerosOrdenados.length === 0 && (
+      <p class="text-center font-sans text-ink-muted">Todavía no hay números publicados.</p>
+    )
+  }
+</BaseLayout>

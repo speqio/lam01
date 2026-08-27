@@ -1,0 +1,90 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const inputClass =
+  'w-full rounded-md border border-ink/15 bg-paper px-4 py-2.5 font-sans text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent';
+---
+
+<BaseLayout
+  title="Contacto — Blog Literario"
+  description="Escribenos: colaboraciones, propuestas de textos o consultas para la revista."
+>
+  <header class="mb-12 text-center">
+    <p class="font-sans text-sm uppercase tracking-widest text-accent">Contacto</p>
+    <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Escribenos</h1>
+    <p class="mx-auto mt-4 max-w-xl font-serif text-lg text-ink-muted">
+      Recibimos propuestas de colaboración, textos inéditos y consultas de lectores.
+    </p>
+  </header>
+
+  <div class="mx-auto grid max-w-4xl grid-cols-1 gap-12 md:grid-cols-5">
+    <div class="md:col-span-2">
+      <h2 class="mb-4 font-serif text-xl text-ink">Datos de la revista</h2>
+      <dl class="space-y-4 font-sans text-sm text-ink-muted">
+        <div>
+          <dt class="font-medium text-ink">Correo editorial</dt>
+          <dd class="mt-1">
+            <a href="mailto:redaccion@blogliterario.com" class="text-accent hover:underline">
+              redaccion@blogliterario.com
+            </a>
+          </dd>
+        </div>
+        <div>
+          <dt class="font-medium text-ink">Colaboraciones</dt>
+          <dd class="mt-1">
+            Envia tu texto en formato .doc o .pdf junto con una breve biografía.
+          </dd>
+        </div>
+        <div>
+          <dt class="font-medium text-ink">Redes</dt>
+          <dd class="mt-1 space-x-3">
+            <a href="#" class="text-accent hover:underline">Instagram</a>
+            <a href="#" class="text-accent hover:underline">X / Twitter</a>
+          </dd>
+        </div>
+      </dl>
+    </div>
+
+    <form class="space-y-5 md:col-span-3" method="post" action={`mailto:redaccion@blogliterario.com`}>
+      <div>
+        <label for="nombre" class="mb-1.5 block font-sans text-sm font-medium text-ink">
+          Nombre
+        </label>
+        <input type="text" id="nombre" name="nombre" required class={inputClass} />
+      </div>
+
+      <div>
+        <label for="email" class="mb-1.5 block font-sans text-sm font-medium text-ink">
+          Correo electrónico
+        </label>
+        <input type="email" id="email" name="email" required class={inputClass} />
+      </div>
+
+      <div>
+        <label for="asunto" class="mb-1.5 block font-sans text-sm font-medium text-ink">
+          Asunto
+        </label>
+        <select id="asunto" name="asunto" class={inputClass}>
+          <option>Propuesta de colaboración</option>
+          <option>Consulta de lector</option>
+          <option>Prensa</option>
+          <option>Otro</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="mensaje" class="mb-1.5 block font-sans text-sm font-medium text-ink">
+          Mensaje
+        </label>
+        <textarea id="mensaje" name="mensaje" rows="6" required class={inputClass} />
+      </div>
+
+      <button
+        type="submit"
+        class="w-full rounded-md bg-accent px-6 py-3 font-sans text-sm font-medium text-paper transition-colors hover:bg-accent/90 sm:w-auto"
+      >
+        Enviar mensaje
+      </button>
+    </form>
+  </div>
+</BaseLayout>

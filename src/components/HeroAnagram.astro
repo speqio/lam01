@@ -1,0 +1,198 @@
+---
+/**
+ * Efecto "anagrama tipográfico" para el hero de la home: un set de frases literarias
+ * se van reordenando letra por letra usando GSAP Flip — las letras que ya estaban en
+ * pantalla se mueven a su nueva posición (no se destruyen y recrean), y solo las que
+ * sobran/faltan hacen fade in/out. El emparejamiento "qué letra vieja se convierte en
+ * cuál letra nueva" lo resuelve @algorithm.ts/lcs (longest common subsequence) sobre
+ * los códigos ASCII de ambas palabras — el mismo mecanismo del CodePen original.
+ *
+ * Es un componente 100% Astro/vanilla JS (sin React): no hay estado de UI que React
+ * necesite manejar, es una animación DOM directa sobre un único <h1> — encaja mejor
+ * con un <script> nativo que con una isla.
+ */
+---
+
+<div class="w-full overflow-hidden py-6">
+  <h1
+    id="hero-anagram-title"
+    class="relative min-h-[4.5rem] w-full text-center leading-none text-ink text-[min(9vw,6.5rem)] sm:min-h-[7rem] lg:min-h-[8rem]"
+  ></h1>
+</div>
+
+<style is:global>
+  /* La fuente (IM Fell DW Pica) ya viene del stack global del sitio (font-sans), no
+     hace falta declararla acá — se auto-hospeda vía @fontsource, no por Google Fonts. */
+
+  /* Las letras se inyectan por JS (document.createElement), así que estas reglas no
+     pueden ir en el bloque de estilos con scope de Astro — no le llegaría el atributo
+     de scoping a nodos creados dinámicamente. Los nombres de clase son lo bastante
+     específicos como para no chocar con el resto del sitio. */
+  #hero-anagram-title .char {
+    position: relative;
+    display: inline-block;
+  }
+
+  #hero-anagram-title .out {
+    display: none;
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap';
+  import { Flip } from 'gsap/Flip';
+  import { lcs_dp } from '@algorithm.ts/lcs';
+
+  gsap.registerPlugin(Flip);
+
+  // Frases literarias con letras en común a propósito, para que el reordenamiento
+  // visual (en vez de un simple fundido) se note.
+  const options = [
+    'la antorcha magacin',
+    'pensamiento',
+    'arte',
+    'literatura',
+  ];
+
+  const title = document.getElementById('hero-anagram-title');
+
+  if (title) {
+    const nameMap: Record<string, string> = { ' ': 'space', '.': 'dot' };
+    const charMap: Record<string, string> = { ' ': '&nbsp;' };
+
+    let tl: gsap.core.Timeline | null = null;
+    let round = 0;
+    let step = 0;
+
+    const setTitle = (titleString: string) => {
+      title.setAttribute('aria-label', titleString);
+
+      const doTheFlip = () => {
+        round++;
+
+        const state = Flip.getState('#hero-anagram-title .char');
+
+        const counts: Record<string, number> = {};
+        const currentChars = [...title.querySelectorAll<HTMLElement>('.char')];
+        const lastWord = currentChars
+          .filter((d) => Number(d.dataset['round']) === round - 1)
+          .map((d) => {
+            const char = d.dataset['char'] ?? '';
+            return {
+              char,
+              ascii: char.charCodeAt(0),
+              id: d.dataset['flipId'],
+            };
+          });
+
+        currentChars.forEach((char) => {
+          char.classList.add('out');
+        });
+
+        tl = gsap.timeline();
+
+        tl.to(currentChars, {
+          opacity: 0,
+          stagger: 0.01,
+          y: -60,
+          scale: 0,
+          duration: 0.4,
+          rotation: 'random(-90, 90)',
+          ease: 'power2.in',
+        });
+
+        const newChars = titleString.split('');
+        const newWord = newChars.map((char) => {
+          const name = nameMap[char] || char;
+
+          if (!counts[name]) counts[name] = 1;
+          else counts[name]++;
+
+          return {
+            char,
+            name,
+            ascii: char.charCodeAt(0),
+            id: `${name}-${round}-${counts[name]}`,
+          };
+        });
+
+        const s1 = lastWord.map((d) => d.ascii);
+        const s2 = newWord.map((d) => d.ascii);
+
+        const lcsMap = lcs_dp(s1.length, s2.length, (x, y) => s1[x] === s2[y]);
+
+        newWord.forEach((wordChar, i) => {
+          let id = wordChar.id;
+          if (lcsMap.length && lcsMap[0][1] === i) {
+            const match = lcsMap.shift()!;
+            id = lastWord[match[0]].id ?? id;
+          }
+
+          const span = document.createElement('span');
+          span.classList.add('char');
+          span.dataset['flipId'] = id;
+          span.dataset['char'] = wordChar.char;
+          span.dataset['round'] = String(round);
+          span.setAttribute('aria-hidden', 'true');
+          span.innerHTML = charMap[wordChar.char] || wordChar.char;
+
+          title.append(span);
+        });
+
+        tl.add(
+          Flip.from(state, {
+            duration: 1,
+            ease: 'back.inOut(1.7)',
+            absolute: true,
+            targets: '#hero-anagram-title .char',
+            scale: true,
+            toggleClass: 'flipping',
+            onEnter: (elements) =>
+              gsap.fromTo(
+                elements,
+                { opacity: 0, scale: 0.5, y: 60, rotation: 'random(-90, 90)' },
+                {
+                  duration: 0.6,
+                  y: 0,
+                  rotation: 0,
+                  delay: 0.6,
+                  scale: 1,
+                  opacity: 1,
+                  stagger: 0.05,
+                  ease: 'back.out(1.7)',
+                }
+              ),
+          }),
+          0.1
+        );
+
+        tl.add(() => {
+          currentChars.forEach((d) => d.remove());
+        });
+
+        tl.add(() => {
+          step++;
+          setTitle(options[step % options.length]);
+        }, '+=1');
+      };
+
+      if (tl && tl.progress() < 1) {
+        tl.add(() => doTheFlip());
+        if (tl.timeScale() === 1) {
+          tl.timeScale(3);
+        } else {
+          tl.progress(1);
+        }
+      } else {
+        doTheFlip();
+      }
+    };
+
+    async function start() {
+      await document.fonts.ready;
+      setTitle(options[0]);
+    }
+
+    start();
+  }
+</script>

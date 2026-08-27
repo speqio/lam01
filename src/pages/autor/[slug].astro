@@ -1,0 +1,74 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EntryCard from '../../components/EntryCard.tsx';
+
+export async function getStaticPaths() {
+  const autores = await getCollection('autores');
+  return autores.map((autor) => ({
+    params: { slug: autor.id },
+    props: { autor },
+  }));
+}
+
+const { autor } = Astro.props;
+
+const todasLasEntradas = await getCollection('entradas');
+const entradasDelAutor = todasLasEntradas.filter(
+  (entrada) => entrada.data.autor === autor.id
+);
+
+const entradasConRelaciones = await Promise.all(
+  entradasDelAutor.map(async (entrada) => {
+    const categoria = await getEntry('categorias', entrada.data.categoria);
+    return { entrada, categoria };
+  })
+);
+
+entradasConRelaciones.sort(
+  (a, b) => b.entrada.data.fecha.valueOf() - a.entrada.data.fecha.valueOf()
+);
+---
+
+<BaseLayout title={`${autor.data.nombre} — Blog Literario`} description={autor.data.biografia}>
+  <header class="mx-auto mb-12 flex max-w-2xl flex-col items-center text-center">
+    {
+      autor.data.foto && (
+        <img
+          src={autor.data.foto}
+          alt={autor.data.nombre}
+          class="mb-6 h-32 w-32 rounded-full border border-ink/15 object-cover"
+        />
+      )
+    }
+    <h1 class="font-headline text-4xl text-ink md:text-5xl">{autor.data.nombre}</h1>
+    <p class="mt-4 font-serif text-lg leading-relaxed text-ink-muted">{autor.data.biografia}</p>
+  </header>
+
+  <section>
+    <h2 class="mb-6 font-headline text-2xl text-ink">Artículos publicados</h2>
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {
+        entradasConRelaciones.map(({ entrada, categoria }) => (
+          <EntryCard
+            client:visible
+            title={entrada.data.titulo}
+            authorName={autor.data.nombre}
+            categoryName={categoria?.data.nombre ?? ''}
+            slug={entrada.id}
+            coverImage={entrada.data.portada}
+            date={entrada.data.fecha.toISOString()}
+          />
+        ))
+      }
+    </div>
+
+    {
+      entradasConRelaciones.length === 0 && (
+        <p class="text-center font-sans text-ink-muted">
+          Este autor todavía no tiene artículos publicados.
+        </p>
+      )
+    }
+  </section>
+</BaseLayout>

@@ -1,0 +1,33 @@
+---
+import SearchModal from './ui/SearchModal.tsx';
+
+const navItems = [
+  { name: 'Inicio', url: '/' },
+  { name: 'Números', url: '/numeros' },
+  { name: 'Categorías', url: '/categorias' },
+  { name: 'Archivo', url: '/archivo' },
+];
+
+---
+
+<header class="sticky top-0 z-20 bg-paper">
+  <!-- Masthead -->
+  <div class="bg-paper/95 backdrop-blur">
+    <div class="container mx-auto flex h-20 items-center justify-between gap-4 px-4">
+      <nav class="hidden items-center gap-6 font-mono text-xs uppercase tracking-widest md:flex">
+        {
+          navItems.map((item) => (
+            <a href={item.url} class="group relative text-ink transition-colors hover:text-accent">
+              {item.name}
+              <span class="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
+            </a>
+          ))
+        }
+      </nav>
+
+      <div class="hidden md:block">
+        <SearchModal client:load />
+      </div>
+    </div>
+  </div>
+</header>

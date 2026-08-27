@@ -1,0 +1,41 @@
+{
+  "name": "blog-literario",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build && pagefind --site dist/client",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@algorithm.ts/lcs": "^4.0.6",
+    "@astrojs/markdoc": "^2.0.8",
+    "@astrojs/react": "^4.4.2",
+    "@astrojs/vercel": "^11.0.8",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource/bebas-neue": "^5.3.0",
+    "@fontsource/im-fell-dw-pica": "^5.3.0",
+    "@fontsource/newsreader": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
+    "@keystatic/astro": "^5.2.0",
+    "@keystatic/core": "^0.5.51",
+    "@tailwindcss/typography": "^0.5.20",
+    "astro": "^7.2.7",
+    "autoprefixer": "^10.4.20",
+    "framer-motion": "^13.1.1",
+    "gsap": "^3.15.0",
+    "lottie-react": "^3.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.19"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "pagefind": "^1.5.2",
+    "typescript": "^5.7.2"
+  }
+}

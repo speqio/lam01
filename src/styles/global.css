@@ -1,0 +1,42 @@
+/* Tipografía única para todo el sitio (titulares, cuerpo, UI) — la misma que el banner
+   animado del hero. Solo trae peso 400 (normal/italic): no hay corte bold nativo. */
+@import '@fontsource/im-fell-dw-pica/400.css';
+@import '@fontsource/im-fell-dw-pica/400-italic.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+
+  /* Mixed case (no uppercase): en mayúscula se pierde el carácter caligráfico de esta
+     fuente. Sin font-bold porque IM Fell DW Pica solo trae peso 400 — pedir 700
+     forzaría un bold sintético (el navegador la "engorda" algorítmicamente), que en una
+     serif de trazo tan fino se ve roto. */
+  h1,
+  h2,
+  h3 {
+    @apply font-headline font-normal leading-[1.05] tracking-tight;
+  }
+
+  h4,
+  h5,
+  h6 {
+    @apply font-sans font-normal uppercase tracking-wide;
+  }
+}
+
+@layer components {
+  /* Letra capitular al inicio de un artículo — se aplica a mano con esta clase en el
+     primer párrafo del cuerpo (Tailwind Typography no ofrece un selector "primer
+     párrafo" propio, así que va como CSS plano en vez de una cadena de variantes
+     arbitrarias frágil). */
+  .drop-cap::first-letter {
+    @apply float-left mr-2 mt-1 font-serif font-normal text-accent;
+    font-size: 4.5rem;
+    line-height: 0.85;
+  }
+}

@@ -1,0 +1,32 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import MobileFloatingNav from '../components/MobileFloatingNav.astro';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Un blog de literatura: cuento, poesía y ensayo.' } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body class="min-h-screen bg-paper text-ink flex flex-col font-sans">
+    <Header />
+    <main class="flex-grow container mx-auto px-4 py-8 pb-28 md:pb-8" data-pagefind-body>
+      <slot />
+    </main>
+    <Footer />
+    <MobileFloatingNav />
+  </body>
+</html>

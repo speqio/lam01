@@ -1,0 +1,39 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import FilterChip from '../components/ui/FilterChip.astro';
+
+const categorias = await getCollection('categorias');
+const entradas = await getCollection('entradas');
+
+const categoriasConConteo = categorias
+  .map((categoria) => ({
+    categoria,
+    cantidad: entradas.filter((entrada) => entrada.data.categoria === categoria.id).length,
+  }))
+  .sort((a, b) => b.cantidad - a.cantidad);
+---
+
+<BaseLayout
+  title="Categorías — Blog Literario"
+  description="Explorá la revista por género: poesía, cuento, ensayo y crónica."
+>
+  <header class="mb-12 text-center">
+    <p class="font-sans text-sm uppercase tracking-widest text-accent">Géneros</p>
+    <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Categorías</h1>
+  </header>
+
+  <div class="flex flex-wrap justify-center gap-3">
+    {
+      categoriasConConteo.map(({ categoria, cantidad }) => (
+        <FilterChip href={`/categoria/${categoria.id}`} label={categoria.data.nombre} count={cantidad} />
+      ))
+    }
+  </div>
+
+  {
+    categoriasConConteo.length === 0 && (
+      <p class="text-center font-sans text-ink-muted">Todavía no hay categorías cargadas.</p>
+    )
+  }
+</BaseLayout>

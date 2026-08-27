@@ -1,0 +1,159 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+/**
+ * "Archivo": pila de tapas de números, adaptada de un CodePen de cartas apiladas en 3D
+ * (perspective + GSAP) — cada click hace que la carta de más adelante se vaya hacia
+ * abajo/atrás y pase al final de la fila, revelando la siguiente.
+ *
+ * Cambios respecto a la referencia (necesarios para vivir como una sección más del home,
+ * no como una demo de página completa):
+ * - El listener de click queda scopeado al contenedor de la pila, no a `document` — la
+ *   referencia escuchaba clicks en toda la página, lo cual acá dispararía la animación
+ *   al tocar el nav, el footer o cualquier otra sección.
+ * - El posicionamiento de las cartas es relativo al alto propio del contenedor (una
+ *   sección más, con una altura fija/responsive), no a `vh` como en la referencia
+ *   (pensada para ocupar el viewport completo).
+ * - Cada carta tiene un botón real ("Ver número →") a `/numero/[id]`: la referencia no
+ *   navega a ningún lado, solo cicla cartas — sin esto no había forma de efectivamente
+ *   entrar a un número. El click en ese botón no dispara el ciclo de cartas.
+ * - El título de cada carta usa <p>, no <h1> (la referencia le pone <h1> a cada carta,
+ *   pero una página no debería tener más de un <h1> real).
+ */
+interface Props {
+  numeros: CollectionEntry<'numeros'>[];
+}
+
+const { numeros } = Astro.props;
+
+const ordenados = [...numeros].sort((a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf());
+---
+
+{
+  ordenados.length > 0 && (
+    <section class="mb-12">
+      <div class="mb-6 flex items-baseline justify-between">
+        <div>
+          <h2 class="font-headline text-2xl lg:text-3xl">
+            <a href="/archivo/" class="transition-colors hover:text-accent">Archivo</a>
+          </h2>
+        </div>
+      </div>
+
+      <div class="archivo-stack-container relative h-[420px] w-full overflow-hidden sm:h-[480px] md:h-[560px]">
+        <div class="archivo-stack-slider absolute inset-0 [perspective:500px]">
+          {ordenados.map((numero) => (
+            <div class="archivo-stack-card absolute left-1/2 top-1/2 h-[280px] w-[85%] max-w-md overflow-hidden border border-ink bg-ink [transform:translate3d(-50%,-50%,0)] sm:h-[340px] md:w-[70%]">
+              <img
+                src={numero.data.portada}
+                alt=""
+                class="absolute h-full w-full object-cover opacity-75 grayscale contrast-125"
+              />
+              <div class="archivo-stack-copy absolute left-1/2 top-[42%] w-full -translate-x-1/2 -translate-y-1/2 overflow-hidden px-4 text-center">
+                <p class="font-headline uppercase leading-[0.9] tracking-tight text-paper text-[clamp(1rem,5.5vw,2rem)]">
+                  {numero.data.titulo}
+                </p>
+              </div>
+              <a
+                href={`/numero/${numero.id}`}
+                class="archivo-stack-cta absolute bottom-4 left-1/2 -translate-x-1/2 border border-paper px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-paper transition-colors hover:border-accent-amber hover:text-accent-amber"
+              >
+                Ver número →
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<script>
+  import { gsap } from 'gsap';
+  import { CustomEase } from 'gsap/CustomEase';
+
+  gsap.registerPlugin(CustomEase);
+  CustomEase.create('archivoCubic', '0.83, 0, 0.17, 1');
+
+  const containers = document.querySelectorAll<HTMLElement>('.archivo-stack-container');
+
+  containers.forEach((container) => {
+    const slider = container.querySelector<HTMLElement>('.archivo-stack-slider');
+    if (!slider) return;
+
+    const splitTitles = () => {
+      slider.querySelectorAll<HTMLElement>('.archivo-stack-copy p').forEach((p) => {
+        if (p.dataset.split) return;
+        p.dataset.split = 'true';
+        const text = p.textContent ?? '';
+        p.innerHTML = text
+          .split('')
+          .map((char) => `<span>${char === ' ' ? '&nbsp;&nbsp;' : char}</span>`)
+          .join('');
+      });
+    };
+
+    const layoutCards = () => {
+      const cards = Array.from(slider.querySelectorAll<HTMLElement>('.archivo-stack-card'));
+      gsap.to(cards, {
+        y: (i) => -15 + 15 * i + '%',
+        z: (i) => 15 * i,
+        duration: 1,
+        ease: 'archivoCubic',
+        stagger: -0.1,
+      });
+    };
+
+    splitTitles();
+    layoutCards();
+
+    gsap.set(slider.querySelectorAll('.archivo-stack-copy span'), { y: -200 });
+    const lastCardSpans = slider.querySelectorAll(
+      '.archivo-stack-card:last-child .archivo-stack-copy span'
+    );
+    gsap.set(lastCardSpans, { y: 0 });
+
+    let isAnimating = false;
+
+    container.addEventListener('click', (event) => {
+      if ((event.target as HTMLElement).closest('.archivo-stack-cta')) return; // navegación real, no ciclar.
+      if (isAnimating) return;
+      isAnimating = true;
+
+      const cards = Array.from(slider.querySelectorAll<HTMLElement>('.archivo-stack-card'));
+      const lastCard = cards.pop();
+      const nextCard = cards[cards.length - 1];
+      if (!lastCard || !nextCard) {
+        isAnimating = false;
+        return;
+      }
+
+      gsap.to(lastCard.querySelectorAll('.archivo-stack-copy span'), {
+        y: 200,
+        duration: 0.75,
+        ease: 'archivoCubic',
+      });
+
+      gsap.to(lastCard, {
+        y: '+=150%',
+        duration: 0.75,
+        ease: 'archivoCubic',
+        onComplete: () => {
+          slider.prepend(lastCard);
+          layoutCards();
+          gsap.set(lastCard.querySelectorAll('.archivo-stack-copy span'), { y: -200 });
+          setTimeout(() => {
+            isAnimating = false;
+          }, 1000);
+        },
+      });
+
+      gsap.to(nextCard.querySelectorAll('.archivo-stack-copy span'), {
+        y: 0,
+        duration: 1,
+        ease: 'archivoCubic',
+        stagger: 0.05,
+      });
+    });
+  });
+</script>

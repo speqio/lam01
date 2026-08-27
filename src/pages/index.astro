@@ -1,0 +1,86 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SwipeCard from '../components/ui/SwipeCard.tsx';
+import EntryFlipCard3D from '../components/ui/EntryFlipCard3D.tsx';
+import HeroAnagram from '../components/HeroAnagram.astro';
+import ArchivoStack from '../components/ArchivoStack.astro';
+import HoverRevealHero from '../components/HoverRevealHero.astro';
+
+const numeros = await getCollection('numeros');
+const numerosOrdenados = numeros.sort(
+  (a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf()
+);
+const ultimoNumero = numerosOrdenados[0];
+
+const todasLasEntradas = await getCollection('entradas');
+
+const todasConRelaciones = await Promise.all(
+  todasLasEntradas.map(async (entrada) => {
+    const autor = await getEntry('autores', entrada.data.autor);
+    const categoria = await getEntry('categorias', entrada.data.categoria);
+    return { entrada, autor, categoria };
+  })
+);
+
+todasConRelaciones.sort(
+  (a, b) => b.entrada.data.fecha.valueOf() - a.entrada.data.fecha.valueOf()
+);
+
+const ultimasEntradas = todasConRelaciones.slice(0, 6);
+
+const swipeItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
+  title: entrada.data.titulo,
+  authorName: autor?.data.nombre ?? '',
+  categoryName: categoria?.data.nombre ?? '',
+  slug: entrada.id,
+  coverImage: entrada.data.portada,
+  excerpt: entrada.data.extracto,
+}));
+
+const flipItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
+  title: entrada.data.titulo,
+  authorName: autor?.data.nombre ?? '',
+  categoryName: categoria?.data.nombre ?? '',
+  excerpt: entrada.data.extracto,
+  coverImage: entrada.data.portada,
+  href: `/entrada/${entrada.id}`,
+}));
+---
+
+<BaseLayout title="Blog Literario">
+  <section class="mb-4 py-10 sm:py-14">
+    <HeroAnagram />
+  </section>
+
+  {
+    ultimoNumero && (
+      <HoverRevealHero
+        numero={Number(ultimoNumero.id.replace(/\D/g, '')) || undefined}
+        titulo="-número 28-"
+        imagen={ultimoNumero.data.portada}
+        href={`/numero/${ultimoNumero.id}`}
+      />
+    )
+  }
+
+  {
+    swipeItems.length > 0 && (
+      <section class="mb-12">
+        <h2 class="text-center font-headline text-2xl lg:text-3xl">Últimas entradas</h2>
+
+        {/* Mobile: swipe deck. Desktop: abanico 3D más grande, con click-to-front. Se
+            hidratan las dos islas y se alternan por CSS — mismo patrón que el nav
+            flotante/Header. */}
+        <div class="mt-8 md:hidden">
+          <SwipeCard client:visible items={swipeItems} />
+        </div>
+        <div class="hidden md:block">
+          <EntryFlipCard3D client:visible items={flipItems} />
+        </div>
+      </section>
+    )
+  }
+
+  <ArchivoStack numeros={numeros} />
+</BaseLayout>

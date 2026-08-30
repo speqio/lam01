@@ -170,9 +170,6 @@ const { categorias, imagenPorCategoria } = Astro.props;
   .categorias-marquee-track {
     display: flex;
     width: max-content;
-    will-change: transform;
-    backface-visibility: hidden;
-    transform: translate3d(0, 0, 0);
     /* Solo en mobile (se resetea a 0 en md:): deja aire a los costados para que la
        primera y la última card también puedan llegar al centro del carril con
        scroll-snap-align: center más abajo — si no, quedarían pegadas contra un borde. */
@@ -193,6 +190,14 @@ const { categorias, imagenPorCategoria } = Astro.props;
   @media (min-width: 768px) {
     .categorias-marquee-track {
       padding-inline: 0;
+      /* Solo hace falta la capa GPU propia en desktop: ahí sí hay un transform que el
+         script reescribe cada frame para el autoplay/rueda. En mobile la posición la
+         maneja el scroll nativo, no un transform animado, así que forzar una capa acá
+         es puro costo (y en algunos navegadores mobile, causa de artefactos visuales
+         fantasma) sin ningún beneficio. */
+      will-change: transform;
+      backface-visibility: hidden;
+      transform: translate3d(0, 0, 0);
     }
 
     .categorias-marquee-card {

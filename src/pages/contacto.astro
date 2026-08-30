@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
 
 const inputClass =
   'w-full rounded-md border border-ink/15 bg-paper px-4 py-2.5 font-sans text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent';
@@ -9,13 +10,11 @@ const inputClass =
   title="Contacto — Blog Literario"
   description="Escribenos: colaboraciones, propuestas de textos o consultas para la revista."
 >
-  <header class="mb-12 text-center">
-    <p class="font-sans text-sm uppercase tracking-widest text-accent">Contacto</p>
-    <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Escribenos</h1>
-    <p class="mx-auto mt-4 max-w-xl font-serif text-lg text-ink-muted">
-      Recibimos propuestas de colaboración, textos inéditos y consultas de lectores.
-    </p>
-  </header>
+  <PageHeader
+    eyebrow="Contacto"
+    title="Escribenos"
+    description="Recibimos propuestas de colaboración, textos inéditos y consultas de lectores."
+  />
 
   <div class="mx-auto grid max-w-4xl grid-cols-1 gap-12 md:grid-cols-5">
     <div class="md:col-span-2">

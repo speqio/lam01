@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import FilterChip from '../components/ui/FilterChip.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
 
 const categorias = await getCollection('categorias');
 const entradas = await getCollection('entradas');
@@ -18,10 +19,7 @@ const categoriasConConteo = categorias
   title="Categorías — Blog Literario"
   description="Explorá la revista por género: poesía, cuento, ensayo y crónica."
 >
-  <header class="mb-12 text-center">
-    <p class="font-sans text-sm uppercase tracking-widest text-accent">Géneros</p>
-    <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Categorías</h1>
-  </header>
+  <PageHeader eyebrow="Géneros" title="Categorías" />
 
   <div class="flex flex-wrap justify-center gap-3">
     {

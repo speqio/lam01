@@ -1,6 +1,17 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
+import {
+  cardShell,
+  cardImageWrap,
+  cardImage,
+  cardImageTint,
+  cardBadge,
+  cardBody,
+  cardTitle,
+  cardCta,
+} from '../lib/cardStyles';
 
 const numeros = await getCollection('numeros');
 const numerosOrdenados = numeros.sort(
@@ -12,28 +23,18 @@ const numerosOrdenados = numeros.sort(
   title="Números — Blog Literario"
   description="Todas las ediciones publicadas de la revista, ordenadas de la más reciente a la más antigua."
 >
-  <header class="mb-12 text-center">
-    <p class="font-sans text-sm uppercase tracking-widest text-accent">Ediciones</p>
-    <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Números</h1>
-  </header>
+  <PageHeader eyebrow="Ediciones" title="Números" />
 
   <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
     {
       numerosOrdenados.map((numero) => (
-        <a
-          href={`/numero/${numero.id}`}
-          class="group flex h-56 overflow-hidden border border-ink bg-paper shadow-sm transition-shadow duration-300 hover:shadow-lg lg:h-64"
-        >
-          <div class="relative h-full w-2/5 shrink-0 bg-linen">
+        <a href={`/numero/${numero.id}`} class={cardShell}>
+          <div class={cardImageWrap}>
             {numero.data.portada && (
-              <img
-                src={numero.data.portada}
-                alt={numero.data.titulo}
-                class="h-full w-full object-cover grayscale contrast-125 transition-transform duration-500 group-hover:scale-105"
-              />
+              <img src={numero.data.portada} alt={numero.data.titulo} class={cardImage} />
             )}
-            <div class="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
-            <span class="absolute left-2 top-2 border border-paper bg-ink/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-paper">
+            <div class={cardImageTint} />
+            <span class={cardBadge}>
               {numero.data.fecha.toLocaleDateString('es-ES', {
                 month: 'long',
                 year: 'numeric',
@@ -42,18 +43,14 @@ const numerosOrdenados = numeros.sort(
             </span>
           </div>
 
-          <div class="flex w-3/5 flex-col gap-1 p-4 lg:gap-2 lg:p-6">
-            <h2 class="font-headline text-lg uppercase leading-[1.05] text-ink lg:text-xl">
-              {numero.data.titulo}
-            </h2>
+          <div class={cardBody}>
+            <h2 class={cardTitle}>{numero.data.titulo}</h2>
             {numero.data.descripcion && (
               <p class="line-clamp-3 font-serif text-sm italic leading-relaxed text-ink-muted">
                 {numero.data.descripcion}
               </p>
             )}
-            <span class="mt-auto font-mono text-xs font-medium uppercase tracking-widest text-accent transition-colors group-hover:underline">
-              Ver número
-            </span>
+            <span class={cardCta}>Ver número</span>
           </div>
         </a>
       ))

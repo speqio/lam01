@@ -49,6 +49,7 @@ export default config({
           label: 'Portada',
           directory: 'public/images/numeros',
           publicPath: '/images/numeros/',
+          validation: { isRequired: true },
         }),
         descripcion: fields.text({
           label: 'Descripción',

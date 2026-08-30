@@ -1,0 +1,23 @@
+---
+// Encabezado de página estándar: eyebrow + h1 + descripción opcional, centrado. Era el
+// mismo bloque de 3 líneas copiado a mano en /archivo, /categorias, /numeros, /autores,
+// /contacto y /proyecto — un cambio de tamaño/espaciado tenía que replicarse en los 6.
+interface Props {
+  eyebrow: string;
+  title: string;
+  description?: string;
+  class?: string;
+}
+
+const { eyebrow, title, description, class: className } = Astro.props;
+---
+
+<header class:list={['mb-12 text-center', className]}>
+  <p class="font-sans text-sm uppercase tracking-widest text-accent">{eyebrow}</p>
+  <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">{title}</h1>
+  {
+    description && (
+      <p class="mx-auto mt-4 max-w-xl font-serif text-lg text-ink-muted">{description}</p>
+    )
+  }
+</header>

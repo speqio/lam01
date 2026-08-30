@@ -1,12 +1,13 @@
 import { useState, type ReactNode } from 'react';
 import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
+import { cardImageWrap, cardImageTint, cardBadge } from '../../lib/cardStyles';
 
 /**
  * Adaptado de `npx @ayushmxxn/serenity-ui@latest add swipecard` — mecánica de arrastre
  * libre en 2D con inclinación 3D (rotateX/rotateY) y reciclado de la tarjeta arrastrada
  * al fondo del mazo. Reskineado por completo con los tokens del design system actual
- * (bordes rectos, tipografía Bebas Neue/Space Grotesk/Newsreader, paleta paper/ink/accent)
- * — cero clases ni colores del original. Uso: islas de "últimas entradas" en mobile.
+ * (bordes rectos, tipografía IM Fell DW Pica, paleta paper/ink/accent) — cero clases ni
+ * colores del original. Uso: islas de "últimas entradas" en mobile.
  */
 export interface SwipeCardItem {
   title: string;
@@ -92,7 +93,7 @@ export default function SwipeCard({ items }: SwipeCardProps) {
                 transition={{ type: 'spring', stiffness: 250, damping: 25 }}
               >
                 <div className="flex h-full w-full">
-                  <div className="relative h-full w-2/5 shrink-0 bg-linen">
+                  <div className={cardImageWrap}>
                     {item.coverImage && (
                       <img
                         src={item.coverImage}
@@ -100,10 +101,8 @@ export default function SwipeCard({ items }: SwipeCardProps) {
                         className="pointer-events-none h-full w-full object-cover grayscale contrast-125"
                       />
                     )}
-                    <div className="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
-                    <span className="absolute left-2 top-2 border border-paper bg-ink/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-paper">
-                      {item.categoryName}
-                    </span>
+                    <div className={cardImageTint} />
+                    <span className={cardBadge}>{item.categoryName}</span>
                   </div>
                   <div className="flex w-3/5 flex-col gap-1 p-4">
                     <h3 className="font-headline text-lg uppercase leading-[1.05] text-ink">

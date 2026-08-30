@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
 ---
 
 <BaseLayout
@@ -7,10 +8,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   description="La misión, la filosofía y el equipo detrás de la revista."
 >
   <article class="prose prose-lg prose-stone mx-auto prose-headings:font-serif prose-p:font-serif prose-a:text-accent">
-    <header class="not-prose mb-12 text-center">
-      <p class="font-sans text-sm uppercase tracking-widest text-accent">Manifiesto</p>
-      <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Sobre el proyecto</h1>
-    </header>
+    <PageHeader eyebrow="Manifiesto" title="Sobre el proyecto" class="not-prose" />
 
     <p>
       Esta revista nació de una idea simple: la literatura necesita espacios que se lean con

@@ -1,6 +1,7 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
 
 const todasLasEntradas = await getCollection('entradas');
 
@@ -30,13 +31,11 @@ const anios = [...porAnio.keys()].sort((a, b) => b - a);
   title="Archivo — Blog Literario"
   description="El archivo completo de la revista: todas las entradas publicadas, sin restricción de número."
 >
-  <header class="mb-12 text-center">
-    <p class="font-sans text-sm uppercase tracking-widest text-accent">Hemeroteca</p>
-    <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Archivo</h1>
-    <p class="mx-auto mt-4 max-w-xl font-serif text-lg text-ink-muted">
-      Todo lo publicado en la revista, de más reciente a más antiguo.
-    </p>
-  </header>
+  <PageHeader
+    eyebrow="Hemeroteca"
+    title="Archivo"
+    description="Todo lo publicado en la revista, de más reciente a más antiguo."
+  />
 
   {
     anios.map((anio) => (

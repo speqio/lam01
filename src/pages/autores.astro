@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHeader from '../components/ui/PageHeader.astro';
 
 const autores = await getCollection('autores');
 const entradas = await getCollection('entradas');
@@ -17,10 +18,7 @@ const autoresConConteo = autores
   title="Autores — Blog Literario"
   description="Quiénes escriben en la revista, con su biografía y todo lo que publicaron."
 >
-  <header class="mb-12 text-center">
-    <p class="font-sans text-sm uppercase tracking-widest text-accent">Firmas</p>
-    <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Autores</h1>
-  </header>
+  <PageHeader eyebrow="Firmas" title="Autores" />
 
   <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
     {

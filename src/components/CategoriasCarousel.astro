@@ -52,6 +52,11 @@ const { categorias } = Astro.props;
           class="categorias-orbit-canvas absolute inset-0"
           data-categorias={JSON.stringify(categorias.map((c) => ({ slug: c.id, nombre: c.data.nombre })))}
         />
+
+        <div
+          class="categorias-orbit-pagination pointer-events-none absolute inset-x-0 bottom-4 z-10 flex flex-wrap items-center justify-center gap-2 px-4 md:bottom-6"
+          aria-hidden="true"
+        />
       </div>
     </section>
   )
@@ -154,22 +159,84 @@ const { categorias } = Astro.props;
       cardMeshes.push(mesh);
     });
 
+    const cardWidth = 5;
+    const cardHeight = 3.4;
+    const halfVerticalFov = Math.tan((camera.fov * Math.PI) / 360);
+    const mobileFillFraction = 0.62;
+
     function resize() {
       const { width, height } = root!.getBoundingClientRect();
       const aspect = width / height;
       camera.aspect = aspect;
-      // Con FOV vertical fijo, un contenedor más alto/angosto (aspect chico) tiene menos
-      // FOV horizontal — las tarjetas se ven más "acercadas" y pueden invadir la zona del
-      // aside aunque el offset del grupo no haya cambiado. Alejar la cámara cuando el
-      // aspect baja del de referencia compensa eso y mantiene el tamaño aparente estable.
-      const referenceAspect = 1.8;
-      const aspectFactor = Math.max(1, referenceAspect / aspect);
-      camera.position.z = 22 * aspectFactor;
+      if (isDesktopLayout) {
+        // Con FOV vertical fijo, un contenedor más alto/angosto (aspect chico) tiene menos
+        // FOV horizontal — las tarjetas se ven más "acercadas" y pueden invadir la zona del
+        // aside aunque el offset del grupo no haya cambiado. Alejar la cámara cuando el
+        // aspect baja del de referencia compensa eso y mantiene el tamaño aparente estable.
+        const referenceAspect = 1.8;
+        const aspectFactor = Math.max(1, referenceAspect / aspect);
+        camera.position.z = 22 * aspectFactor;
+      } else {
+        // Mobile no tiene aside que evitar, así que en vez de compensar por un aspect de
+        // referencia (pensado para desktop), se calcula la distancia que hace que la
+        // tarjeta ocupe una fracción fija del cuadro tanto a lo ancho como a lo alto —
+        // un z fijo se ve enorme y desbordado en un contenedor angosto/alto y diminuto en
+        // uno más cuadrado, según el dispositivo.
+        // zForWidth/zForHeight son la distancia cámara→tarjeta necesaria, no la
+        // coordenada z de la cámara: la tarjeta activa vive en z≈radius (no en z=0), así
+        // que hay que sumarle el radio del anillo para obtener camera.position.z real.
+        const zForWidth = cardWidth / (mobileFillFraction * 2 * aspect * halfVerticalFov);
+        const zForHeight = cardHeight / (mobileFillFraction * 2 * halfVerticalFov);
+        camera.position.z = radius + Math.max(zForWidth, zForHeight);
+      }
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
     }
     resize();
     window.addEventListener('resize', resize);
+
+    // Paginación: un punto por categoría, resaltando la que está de frente. También
+    // sirve para saltar directo a una categoría sin tener que arrastrar/scrollear.
+    const pagination = root.querySelector<HTMLElement>('.categorias-orbit-pagination');
+    const dotButtons: HTMLButtonElement[] = [];
+    const twoPi = Math.PI * 2;
+
+    function setActiveIndex(j: number) {
+      // Misma parametrización que el raycast de click: la tarjeta j queda de frente
+      // cuando la rotación del grupo es (j/total)*2π. Se elige la vuelta (k) más
+      // cercana a la rotación objetivo actual para que la animación tome el camino
+      // corto en vez de dar vueltas de más.
+      const base = (j / total) * twoPi;
+      const k = Math.round((targetRotation - base) / twoPi);
+      targetRotation = base + k * twoPi;
+    }
+
+    if (pagination) {
+      data.forEach((item, i) => {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.setAttribute('aria-label', item.nombre);
+        dot.className =
+          'categorias-orbit-dot pointer-events-auto h-2 w-2 rounded-full border border-ink/40 bg-transparent transition-transform';
+        dot.addEventListener('click', () => setActiveIndex(i));
+        pagination.appendChild(dot);
+        dotButtons.push(dot);
+      });
+    }
+
+    let lastActiveIndex = -1;
+    function updateActivePagination(rotation: number) {
+      if (dotButtons.length === 0) return;
+      const idx = (((Math.round((rotation * total) / twoPi)) % total) + total) % total;
+      if (idx === lastActiveIndex) return;
+      lastActiveIndex = idx;
+      dotButtons.forEach((btn, i) => {
+        const active = i === idx;
+        btn.classList.toggle('bg-ink', active);
+        btn.classList.toggle('border-ink', active);
+        btn.classList.toggle('scale-125', active);
+      });
+    }
 
     // Rotación por wheel/drag — capturada en el contenedor, nunca en window (ver
     // comentario del frontmatter). El drag también sirve como gesto en mobile: el touch
@@ -247,6 +314,7 @@ const { categorias } = Astro.props;
       requestAnimationFrame(animate);
       currentRotation += (targetRotation - currentRotation) * 0.08;
       carouselGroup.rotation.y = currentRotation;
+      updateActivePagination(currentRotation);
       renderer.render(scene, camera);
     }
     animate();

@@ -18,6 +18,16 @@ import type { CollectionEntry } from 'astro:content';
  * Las categorías no tienen portada propia en el CMS (ver `imagenPorCategoria`, resuelto
  * en index.astro a partir de la entrada más reciente de cada categoría) — la tarjeta
  * cae a un panel tipográfico cuando no hay ninguna disponible todavía.
+ *
+ * Dos decisiones de rendimiento, ambas para que la animación en mobile no se ponga
+ * pesada/lenta (era notorio justo al cruzar el borde izquierdo, donde vivía el mask):
+ * - Las fotos van en `<img loading="lazy" decoding="async">` en vez de
+ *   `background-image` inline: así el navegador puede decodificarlas fuera del hilo
+ *   principal y no descargar las del segundo set (fuera de vista) de entrada.
+ * - El desvanecido de los bordes es un par de overlays con gradiente (color sólido,
+ *   compositados una sola vez), no un `mask-image` sobre todo el contenedor — un mask
+ *   sobre una pista con fotos moviéndose obliga a recomponer la máscara contra el
+ *   contenido en cada frame, que es justo lo que se sentía pesado en mobile.
  */
 interface Props {
   categorias: CollectionEntry<'categorias'>[];
@@ -50,12 +60,16 @@ const { categorias, imagenPorCategoria } = Astro.props;
               <a
                 href={`/categoria/${categoria.id}`}
                 class="group relative block h-full w-full overflow-hidden border border-ink/15 bg-surface transition-colors duration-300 hover:border-accent"
-                style={
-                  imagenPorCategoria[categoria.id]
-                    ? `background-image:url(${imagenPorCategoria[categoria.id]})`
-                    : undefined
-                }
               >
+                {imagenPorCategoria[categoria.id] && (
+                  <img
+                    src={imagenPorCategoria[categoria.id]}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    class="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
                 {imagenPorCategoria[categoria.id] && (
                   <span class="absolute inset-0 bg-gradient-to-t from-canvas/90 via-canvas/10 to-transparent" />
                 )}
@@ -76,12 +90,16 @@ const { categorias, imagenPorCategoria } = Astro.props;
                 href={`/categoria/${categoria.id}`}
                 tabindex="-1"
                 class="group relative block h-full w-full overflow-hidden border border-ink/15 bg-surface transition-colors duration-300 hover:border-accent"
-                style={
-                  imagenPorCategoria[categoria.id]
-                    ? `background-image:url(${imagenPorCategoria[categoria.id]})`
-                    : undefined
-                }
               >
+                {imagenPorCategoria[categoria.id] && (
+                  <img
+                    src={imagenPorCategoria[categoria.id]}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    class="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
                 {imagenPorCategoria[categoria.id] && (
                   <span class="absolute inset-0 bg-gradient-to-t from-canvas/90 via-canvas/10 to-transparent" />
                 )}
@@ -94,6 +112,15 @@ const { categorias, imagenPorCategoria } = Astro.props;
             </li>
           ))}
         </ul>
+
+        <div
+          class="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-canvas to-transparent md:w-16"
+          aria-hidden="true"
+        />
+        <div
+          class="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-canvas to-transparent md:w-16"
+          aria-hidden="true"
+        />
       </div>
     </section>
   )
@@ -101,19 +128,9 @@ const { categorias, imagenPorCategoria } = Astro.props;
 
 <style>
   .categorias-marquee-view {
+    position: relative;
     width: 100%;
     overflow: hidden;
-    /* Se desvanece contra el fondo en los bordes del contenedor en vez de cortar en
-       seco — no hay bleed a viewport-width en este sitio (ver frontmatter), así que el
-       degradado atenúa contra el propio `container` de la página. */
-    mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent,
-      black 5%,
-      black 95%,
-      transparent
-    );
   }
 
   .categorias-marquee-track {
@@ -143,16 +160,10 @@ const { categorias, imagenPorCategoria } = Astro.props;
       height: 23rem;
     }
   }
-
-  /* Sin bg propio: el estilo inline de la tarjeta ya trae background-image. */
-  .categorias-marquee-card a {
-    background-size: cover;
-    background-position: center;
-  }
 </style>
 
 <script>
-  const AUTOPLAY_DURATION_S = 45;
+  const AUTOPLAY_DURATION_S = 48;
 
   function initMarquee() {
     const view = document.getElementById('categorias-marquee');
@@ -160,63 +171,87 @@ const { categorias, imagenPorCategoria } = Astro.props;
     if (!view || !track) return;
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
 
-    // La pista renderiza el set de categorías dos veces (ver frontmatter): la mitad del
-    // scrollWidth total es el ancho exacto de un set, sea cual sea el tamaño de tarjeta
-    // del breakpoint actual — se mide en vez de hardcodearse por eso.
-    let setWidth = track.scrollWidth / 2;
-    function measure() {
-      setWidth = track!.scrollWidth / 2;
-    }
-    window.addEventListener('resize', measure);
-
+    // La pista renderiza el set de categorías dos veces. Tomamos el ancho exacto del
+    // conjunto para que la animación siga siendo precisa aunque cambie el breakpoint.
+    let setWidth = 0;
     let offset = 0;
     let isInteracting = false;
+    let lastTime: number | null = null;
 
-    function render() {
-      track!.style.transform = `translateX(${-offset}px)`;
+    function measure() {
+      const width = track.scrollWidth;
+      setWidth = width > 0 ? width / 2 : 0;
+      if (setWidth <= 0) return;
+      offset = ((offset % setWidth) + setWidth) % setWidth;
+      render();
     }
 
-    // Rueda del mouse (deltaY) o gesto horizontal de trackpad (deltaX) sobre el
-    // carrusel: se captura en el contenedor, nunca en window (mismo criterio que el
-    // resto de las secciones scroll-driven del sitio) para no secuestrar el scroll de
-    // la página cuando el cursor pasa por encima.
+    function render() {
+      if (!setWidth) return;
+      track.style.transform = `translate3d(${-offset}px, 0, 0)`;
+    }
+
+    // En móvil no se captura la rueda ni el scroll del contenedor para evitar que el
+    // carrusel “se coma” el desplazamiento de la página y termine ralentizándose.
     view.addEventListener(
       'wheel',
       (event) => {
+        if (isCoarsePointer) return;
         event.preventDefault();
         const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+        if (!delta || !setWidth) return;
         offset = ((offset + delta) % setWidth + setWidth) % setWidth;
         render();
       },
       { passive: false }
     );
 
-    // El autoplay se pausa mientras el mouse está encima o hay foco por teclado adentro
-    // — mismo momento en el que tiene sentido dejar que la rueda tome el control.
-    view.addEventListener('mouseenter', () => (isInteracting = true));
-    view.addEventListener('mouseleave', () => (isInteracting = false));
-    view.addEventListener('focusin', () => (isInteracting = true));
-    view.addEventListener('focusout', () => (isInteracting = false));
+    // El autoplay se pausa sólo cuando el usuario interactúa con el carrusel y en
+    // pantallas no táctiles, para mantener el rendimiento estable en mobile.
+    view.addEventListener('mouseenter', () => {
+      if (!isCoarsePointer) isInteracting = true;
+    });
+    view.addEventListener('mouseleave', () => {
+      isInteracting = false;
+    });
+    view.addEventListener('focusin', () => {
+      isInteracting = true;
+    });
+    view.addEventListener('focusout', () => {
+      isInteracting = false;
+    });
 
     if (reduceMotion) {
+      measure();
       render();
       return;
     }
 
-    let lastTime: number | null = null;
     function tick(now: number) {
       if (lastTime === null) lastTime = now;
-      const dt = (now - lastTime) / 1000;
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
       lastTime = now;
 
-      if (!isInteracting) {
-        offset = ((offset + (setWidth / AUTOPLAY_DURATION_S) * dt) % setWidth + setWidth) % setWidth;
+      if (!isInteracting && setWidth > 0) {
+        const velocity = setWidth / AUTOPLAY_DURATION_S;
+        offset = ((offset + velocity * dt) % setWidth + setWidth) % setWidth;
         render();
       }
 
       requestAnimationFrame(tick);
     }
+
+    measure();
+    render();
+    window.addEventListener('resize', measure, { passive: true });
+
+    if ('ResizeObserver' in window) {
+      const resizeObserver = new ResizeObserver(() => measure());
+      resizeObserver.observe(view);
+    }
+
     requestAnimationFrame(tick);
   }
 

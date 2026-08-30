@@ -21,6 +21,17 @@ import type { CollectionEntry } from 'astro:content';
  * - Anchos en % del contenedor (no vw como la referencia) para no depender del ancho
  *   total de la ventana — es una sección más, no una página de demo a pantalla
  *   completa.
+ * - Dos diagramaciones distintas según el tamaño, no una sola reusada:
+ *   - Desktop (md+): igual que la referencia — columnas angostas lado a lado, la que
+ *     se clickea crece en `width` y el resto se achica. La etiqueta va horizontal (no
+ *     rotada en `writing-mode: vertical-rl` como en un borrador anterior): a 19%+ del
+ *     ancho de la sección entra cómoda sin necesidad de rotarla.
+ *   - Mobile: se apilan de arriba hacia abajo (una fila angosta por filtro, ancho
+ *     completo) para que la etiqueta entre horizontal sin rotarla — clickear una fila
+ *     la expande en `height` hacia abajo en vez de en `width` hacia los costados. Como
+ *     las filas no comparten un ancho total fijo (cada una ocupa su propio alto en el
+ *     documento), expandir una no le "roba" espacio a las demás — se quedan en su alto
+ *     de reposo, no hace falta achicarlas.
  */
 interface Props {
   entradas: CollectionEntry<'entradas'>[];
@@ -88,20 +99,19 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
     </h2>
   </div>
 
-  <div class="archivo-explorer-group flex h-[60vh] w-full items-stretch justify-center gap-1 overflow-hidden sm:h-[65vh]">
+  <div class="archivo-explorer-group flex w-full flex-col gap-1 md:h-[60vh] md:flex-row md:items-stretch md:justify-center md:overflow-hidden lg:h-[65vh]">
     {
       filtros.map((filtro) => (
         <div
-          class="archivo-explorer-item group relative shrink-0 cursor-pointer overflow-hidden border border-ink/15 bg-surface transition-colors duration-300 hover:border-accent"
-          style="width: 19%"
+          class="archivo-explorer-item group relative h-16 w-full shrink-0 cursor-pointer overflow-hidden border border-ink/15 bg-surface transition-colors duration-300 hover:border-accent md:h-auto md:w-[19%]"
           data-key={filtro.key}
           data-azar={filtro.key === 'azar' ? JSON.stringify(slugsAzar) : undefined}
           role="button"
           tabindex="0"
           aria-label={filtro.titulo}
         >
-          <div class="archivo-explorer-collapsed absolute inset-0 flex items-center justify-center">
-            <span class="[writing-mode:vertical-rl] font-mono text-xs uppercase tracking-[0.3em] text-ink/60">
+          <div class="archivo-explorer-collapsed absolute inset-0 flex items-center justify-start px-6 md:justify-center md:px-0">
+            <span class="font-mono text-xs uppercase tracking-[0.3em] text-ink/60">
               {filtro.label}
             </span>
           </div>
@@ -144,9 +154,16 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
   containers.forEach((group) => {
     const items = Array.from(group.querySelectorAll<HTMLElement>('.archivo-explorer-item'));
 
+    // Mismo breakpoint que el CSS (md, ver clases del contenedor/items en el
+    // frontmatter): decide una sola vez, al cargar, qué eje anima cada click — width
+    // en desktop (columnas lado a lado), height en mobile (filas apiladas).
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+
     const collapsedWidth = '10%';
     const restWidth = '19%';
     const expandedWidth = '52%';
+    const collapsedHeight = '4rem';
+    const expandedHeight = '26rem';
 
     let expandedItem: HTMLElement | null = null;
 
@@ -167,7 +184,11 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
 
     function collapseAll() {
       items.forEach((it) => {
-        gsap.to(it, { width: restWidth, duration: 1.4, ease: 'elastic(1, 0.7)' });
+        if (isDesktop) {
+          gsap.to(it, { width: restWidth, duration: 1.4, ease: 'elastic(1, 0.7)' });
+        } else {
+          gsap.to(it, { height: collapsedHeight, duration: 1.4, ease: 'elastic(1, 0.7)' });
+        }
         setExpandedVisuals(it, false);
       });
       expandedItem = null;
@@ -178,12 +199,26 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
         collapseAll();
         return;
       }
-      items.forEach((it) => {
-        if (it === item) return;
-        gsap.to(it, { width: collapsedWidth, duration: 1.4, ease: 'elastic(1, 0.7)' });
-        setExpandedVisuals(it, false);
-      });
-      gsap.to(item, { width: expandedWidth, duration: 1.6, ease: 'elastic(1, 0.5)' });
+
+      if (isDesktop) {
+        items.forEach((it) => {
+          if (it === item) return;
+          gsap.to(it, { width: collapsedWidth, duration: 1.4, ease: 'elastic(1, 0.7)' });
+          setExpandedVisuals(it, false);
+        });
+        gsap.to(item, { width: expandedWidth, duration: 1.6, ease: 'elastic(1, 0.5)' });
+      } else {
+        // Apiladas, cada fila ocupa su propio alto en el documento en vez de competir
+        // por un ancho total fijo — expandir una no le hace falta "robarle" espacio a
+        // las demás, se quedan como estaban. Solo hay que volver a colapsar la que
+        // estuviera abierta antes.
+        if (expandedItem) {
+          gsap.to(expandedItem, { height: collapsedHeight, duration: 1.4, ease: 'elastic(1, 0.7)' });
+          setExpandedVisuals(expandedItem, false);
+        }
+        gsap.to(item, { height: expandedHeight, duration: 1.6, ease: 'elastic(1, 0.5)' });
+      }
+
       setExpandedVisuals(item, true);
       expandedItem = item;
     }

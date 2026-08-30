@@ -74,25 +74,33 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
         entradas.map((item) => (
           <a
             href={`/entrada/${item.slug}`}
-            class="numero-sequence-card absolute left-1/2 top-1/2 w-full min-w-0 max-w-sm"
+            class="numero-sequence-card group absolute left-1/2 top-1/2 w-full min-w-0 max-w-md"
           >
-            <div class="flex h-64 w-full flex-col overflow-hidden border border-ink bg-paper shadow-xl">
-              <div class="h-[78%] w-full overflow-hidden bg-linen">
+            <div class="flex h-56 w-full overflow-hidden border border-ink bg-paper shadow-xl">
+              <div class="relative h-full w-2/5 shrink-0 bg-linen">
                 {item.portada && (
                   <img
                     src={item.portada}
                     alt=""
-                    class="h-full w-full object-cover grayscale contrast-125"
+                    class="pointer-events-none h-full w-full object-cover grayscale contrast-125"
                     loading="lazy"
                   />
                 )}
+                <div class="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
+                <span class="absolute left-2 top-2 border border-paper bg-ink/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-paper">
+                  {item.categoriaNombre}
+                </span>
               </div>
-              <div class="flex h-[22%] items-center justify-between border-t border-ink/15 px-4 font-mono text-[10px] uppercase tracking-widest text-ink-muted">
-                <span>{item.categoriaNombre}</span>
-                <span>{item.autorNombre}</span>
+              <div class="flex w-3/5 flex-col gap-1 p-4">
+                <h3 class="font-headline text-lg uppercase leading-[1.05] text-ink">{item.titulo}</h3>
+                <p class="font-mono text-[10px] uppercase tracking-widest text-ink-muted">
+                  Por {item.autorNombre}
+                </p>
+                <span class="mt-auto font-mono text-xs font-medium uppercase tracking-widest text-accent group-hover:underline">
+                  Leer entrada
+                </span>
               </div>
             </div>
-            <p class="mt-2 px-1 font-headline text-lg leading-tight text-ink">{item.titulo}</p>
           </a>
         ))
       }

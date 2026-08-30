@@ -6,12 +6,14 @@ import type { CollectionEntry } from 'astro:content';
  * (adaptado de una referencia de marquee de tarjetas con fondo, reemplaza al carrusel
  * 3D en Three.js que había antes). Cada tarjeta es un link real a `/categoria/[id]`.
  *
- * El loop es puramente CSS (`@keyframes` + `translateX(-50%)`): la pista renderiza la
- * lista de categorías dos veces seguidas y anima exactamente la mitad de su ancho, así
- * que cuando el primer set termina de salir por la izquierda el segundo ya está en la
- * posición inicial del primero — no hace falta JS para el loop. El segundo set se
- * marca `aria-hidden`/`tabindex="-1"` para que lectores de pantalla y navegación por
- * teclado no encuentren cada categoría dos veces.
+ * El loop es JS (rAF + `translateX` en px, offset con módulo sobre el ancho de un set):
+ * la pista renderiza la lista de categorías dos veces seguidas, así que cuando el
+ * primer set termina de salir por la izquierda el segundo ya está en la posición
+ * inicial del primero. Es JS y no CSS puro porque además del autoplay hay que poder
+ * navegar con la rueda del mouse/trackpad estando encima (mismo criterio que el resto
+ * de las secciones scroll-driven de este sitio: la rueda se captura en el contenedor,
+ * nunca en window). El segundo set se marca `aria-hidden`/`tabindex="-1"` para que
+ * lectores de pantalla y navegación por teclado no encuentren cada categoría dos veces.
  *
  * Las categorías no tienen portada propia en el CMS (ver `imagenPorCategoria`, resuelto
  * en index.astro a partir de la entrada más reciente de cada categoría) — la tarjeta
@@ -41,7 +43,7 @@ const { categorias, imagenPorCategoria } = Astro.props;
         </h2>
       </div>
 
-      <div class="categorias-marquee-view">
+      <div id="categorias-marquee" class="categorias-marquee-view">
         <ul class="categorias-marquee-track">
           {categorias.map((categoria) => (
             <li class="categorias-marquee-card">
@@ -117,13 +119,8 @@ const { categorias, imagenPorCategoria } = Astro.props;
   .categorias-marquee-track {
     display: flex;
     width: max-content;
-    animation: categorias-marquee-scroll 40s linear infinite;
-  }
-
-  /* Pausa al pasar el mouse o al enfocar por teclado una tarjeta de la pista. */
-  .categorias-marquee-view:hover .categorias-marquee-track,
-  .categorias-marquee-track:has(:focus-visible) {
-    animation-play-state: paused;
+    /* La posición la escribe el script (rAF + wheel) vía transform inline. */
+    will-change: transform;
   }
 
   .categorias-marquee-card {
@@ -131,16 +128,6 @@ const { categorias, imagenPorCategoria } = Astro.props;
     height: 17rem;
     margin-right: 1rem;
     flex-shrink: 0;
-  }
-
-  @keyframes categorias-marquee-scroll {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      /* La mitad del ancho total = el largo exacto del primer set (ver frontmatter). */
-      transform: translateX(-50%);
-    }
   }
 
   @media (min-width: 768px) {
@@ -155,9 +142,6 @@ const { categorias, imagenPorCategoria } = Astro.props;
       width: 17rem;
       height: 23rem;
     }
-    .categorias-marquee-track {
-      animation-duration: 50s;
-    }
   }
 
   /* Sin bg propio: el estilo inline de la tarjeta ya trae background-image. */
@@ -165,13 +149,76 @@ const { categorias, imagenPorCategoria } = Astro.props;
     background-size: cover;
     background-position: center;
   }
-
-  /* Se detiene en vez de animar, pero sigue con overflow: hidden (nunca aparece un
-     scrollbar) — el segundo set de tarjetas queda oculto, igual que cualquier card
-     recortada por la máscara de bordes. */
-  @media (prefers-reduced-motion: reduce) {
-    .categorias-marquee-track {
-      animation: none;
-    }
-  }
 </style>
+
+<script>
+  const AUTOPLAY_DURATION_S = 45;
+
+  function initMarquee() {
+    const view = document.getElementById('categorias-marquee');
+    const track = view?.querySelector<HTMLElement>('.categorias-marquee-track');
+    if (!view || !track) return;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // La pista renderiza el set de categorías dos veces (ver frontmatter): la mitad del
+    // scrollWidth total es el ancho exacto de un set, sea cual sea el tamaño de tarjeta
+    // del breakpoint actual — se mide en vez de hardcodearse por eso.
+    let setWidth = track.scrollWidth / 2;
+    function measure() {
+      setWidth = track!.scrollWidth / 2;
+    }
+    window.addEventListener('resize', measure);
+
+    let offset = 0;
+    let isInteracting = false;
+
+    function render() {
+      track!.style.transform = `translateX(${-offset}px)`;
+    }
+
+    // Rueda del mouse (deltaY) o gesto horizontal de trackpad (deltaX) sobre el
+    // carrusel: se captura en el contenedor, nunca en window (mismo criterio que el
+    // resto de las secciones scroll-driven del sitio) para no secuestrar el scroll de
+    // la página cuando el cursor pasa por encima.
+    view.addEventListener(
+      'wheel',
+      (event) => {
+        event.preventDefault();
+        const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+        offset = ((offset + delta) % setWidth + setWidth) % setWidth;
+        render();
+      },
+      { passive: false }
+    );
+
+    // El autoplay se pausa mientras el mouse está encima o hay foco por teclado adentro
+    // — mismo momento en el que tiene sentido dejar que la rueda tome el control.
+    view.addEventListener('mouseenter', () => (isInteracting = true));
+    view.addEventListener('mouseleave', () => (isInteracting = false));
+    view.addEventListener('focusin', () => (isInteracting = true));
+    view.addEventListener('focusout', () => (isInteracting = false));
+
+    if (reduceMotion) {
+      render();
+      return;
+    }
+
+    let lastTime: number | null = null;
+    function tick(now: number) {
+      if (lastTime === null) lastTime = now;
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      if (!isInteracting) {
+        offset = ((offset + (setWidth / AUTOPLAY_DURATION_S) * dt) % setWidth + setWidth) % setWidth;
+        render();
+      }
+
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  initMarquee();
+</script>

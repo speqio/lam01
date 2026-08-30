@@ -8,6 +8,11 @@ import { motion } from 'framer-motion';
  * los tokens del design system actual — cero clases ni colores del original (que usaba
  * fotos de stock hardcodeadas y una paleta neón). Uso: isla de "últimas entradas" en
  * desktop, como contraparte de SwipeCard.tsx (que cumple el mismo rol en mobile).
+ *
+ * Diagramación interna de la tarjeta (imagen izquierda + badge de categoría flotando +
+ * título/autor a la derecha) igual a SwipeCard/NumeroSequence — mismo design system en
+ * todos los lugares donde aparece una tarjeta de entrada. La info va SIEMPRE visible,
+ * no solo al hacer click; al frente lo único que se agrega es el link "Leer entrada".
  */
 export interface EntryFlipItem {
   title: string;
@@ -32,7 +37,7 @@ interface CardProps {
 function Card({ item, index, total, isHovered, isFirstCard, isFront, frontIndex, onClick }: CardProps) {
   return (
     <motion.div
-      className={`absolute h-64 w-96 cursor-pointer overflow-hidden border border-ink bg-paper lg:h-80 lg:w-[32rem] ${
+      className={`absolute flex h-64 w-96 cursor-pointer overflow-hidden border border-ink bg-paper lg:h-80 lg:w-[32rem] ${
         isFront ? 'z-20' : ''
       }`}
       style={{
@@ -86,15 +91,35 @@ function Card({ item, index, total, isHovered, isFirstCard, isFront, frontIndex,
       role="button"
       tabIndex={0}
     >
-      <div className="relative h-full w-full">
+      <div className="relative h-full w-2/5 shrink-0 bg-linen">
         {item.coverImage && (
           <img
             src={item.coverImage}
-            alt={item.title}
+            alt=""
             className="pointer-events-none h-full w-full object-cover grayscale contrast-125"
           />
         )}
         <div className="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
+        <span className="absolute left-2 top-2 border border-paper bg-ink/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-paper">
+          {item.categoryName}
+        </span>
+      </div>
+      <div className="flex w-3/5 flex-col gap-1 p-4 lg:gap-2 lg:p-6">
+        <h3 className="font-headline text-lg uppercase leading-[1.05] text-ink lg:text-2xl">
+          {item.title}
+        </h3>
+        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted lg:text-xs">
+          Por {item.authorName}
+        </p>
+        {isFront && (
+          <a
+            href={item.href}
+            onClick={(event) => event.stopPropagation()}
+            className="mt-auto font-mono text-xs font-medium uppercase tracking-widest text-accent hover:underline lg:text-sm"
+          >
+            Leer entrada
+          </a>
+        )}
       </div>
     </motion.div>
   );
@@ -118,10 +143,8 @@ export default function EntryFlipCard3D({ items }: EntryFlipCard3DProps) {
 
   if (items.length === 0) return null;
 
-  const activeItem = frontIndex !== null ? items[frontIndex] : null;
-
   return (
-    <div className="flex flex-col items-center gap-14 py-6 lg:py-10">
+    <div className="flex flex-col items-center py-6 lg:py-10">
       <div
         className="relative h-64 w-96 [perspective:1600px] lg:h-80 lg:w-[32rem]"
         onMouseEnter={() => setIsHovered(true)}
@@ -140,31 +163,6 @@ export default function EntryFlipCard3D({ items }: EntryFlipCard3DProps) {
             onClick={(i) => setFrontIndex((prev) => (prev === i ? null : i))}
           />
         ))}
-      </div>
-
-      <div className="min-h-[9rem] w-full max-w-2xl text-center">
-        {activeItem ? (
-          <>
-            <p className="font-mono text-xs uppercase tracking-widest text-accent">
-              {activeItem.categoryName}
-            </p>
-            <h3 className="mt-2 font-headline text-4xl uppercase leading-none text-ink">
-              {activeItem.title}
-            </h3>
-            <p className="mt-2 font-mono text-xs uppercase tracking-widest text-ink-muted">
-              Por {activeItem.authorName}
-            </p>
-            <p className="mx-auto mt-4 max-w-xl font-serif text-base leading-relaxed text-ink-muted">
-              {activeItem.excerpt}
-            </p>
-            <a
-              href={activeItem.href}
-              className="mt-4 inline-block font-mono text-xs uppercase tracking-widest text-accent hover:underline"
-            >
-              Leer entrada
-            </a>
-          </>
-        ) : null}
       </div>
     </div>
   );

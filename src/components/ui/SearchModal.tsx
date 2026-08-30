@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface PagefindResult {
   id: string;
@@ -113,11 +114,12 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
         </button>
       )}
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-4 pt-[10vh] backdrop-blur-sm"
-          onClick={() => setOpen(false)}
-        >
+      {open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-4 pt-[10vh] backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          >
           <div
             className="w-full max-w-xl overflow-hidden border border-ink bg-paper shadow-2xl"
             onClick={(event) => event.stopPropagation()}
@@ -193,8 +195,9 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
               )}
             </div>
           </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   );
 }

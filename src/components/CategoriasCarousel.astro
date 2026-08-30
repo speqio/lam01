@@ -75,9 +75,7 @@ const { categorias } = Astro.props;
 
     await document.fonts.ready;
 
-    const paper = '#FFFFF0';
     const ink = '#000000';
-    const inkMuted = '#4A4340';
 
     function createLabelTexture(nombre: string): THREE.CanvasTexture {
       const scale = 3;
@@ -86,19 +84,8 @@ const { categorias } = Astro.props;
       canvas.height = 348 * scale;
       const ctx = canvas.getContext('2d')!;
 
-      ctx.fillStyle = paper;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const borderWidth = 6 * scale;
-      ctx.strokeStyle = ink;
-      ctx.lineWidth = borderWidth;
-      ctx.strokeRect(borderWidth / 2, borderWidth / 2, canvas.width - borderWidth, canvas.height - borderWidth);
-
-      ctx.fillStyle = inkMuted;
-      ctx.font = `${16 * scale}px "Space Grotesk", monospace`;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.textAlign = 'center';
-      ctx.textBaseline = 'alphabetic';
-      ctx.fillText('CATEGORÍA', canvas.width / 2, 64 * scale);
 
       ctx.fillStyle = ink;
       let fontSize = 58 * scale;
@@ -117,12 +104,11 @@ const { categorias } = Astro.props;
     }
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(paper);
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
     camera.position.set(0, 0, 22);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     mount.appendChild(renderer.domElement);
     renderer.domElement.style.cursor = 'grab';
@@ -155,6 +141,7 @@ const { categorias } = Astro.props;
       const material = new THREE.MeshBasicMaterial({
         map: createLabelTexture(item.nombre),
         side: THREE.FrontSide,
+        transparent: true,
       });
 
       const mesh = new THREE.Mesh(geometry, material);

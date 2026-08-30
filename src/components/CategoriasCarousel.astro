@@ -15,10 +15,8 @@ import type { CollectionEntry } from 'astro:content';
  *   el scroll del documento; acá hay header/footer/resto del sitio arriba y abajo.
  * - Tamaño y cámara se calculan desde el propio contenedor (getBoundingClientRect), no
  *   desde window.innerWidth/innerHeight — es una sección más, no la página entera.
- * - Mobile: diagramación distinta a propósito (título arriba en flujo normal, carrusel
- *   abajo a ancho completo) en vez del overlay de texto sobre el 3D que usa desktop —
- *   el texto superpuesto sobre un canvas angosto no entra/lee bien en una pantalla
- *   chica.
+ * - Misma diagramación en todos los tamaños: título arriba centrado, carrusel abajo a
+ *   ancho completo (sin overlay de texto sobre el 3D) — todo centrado.
  */
 interface Props {
   categorias: CollectionEntry<'categorias'>[];
@@ -29,25 +27,15 @@ const { categorias } = Astro.props;
 
 {
   categorias.length > 0 && (
-    <section class="relative mb-12">
-      <div class="mb-4 md:hidden">
-        <h2 class="font-headline text-2xl lg:text-3xl">Categorías</h2>
+    <section class="relative mb-12 text-center">
+      <div class="mb-4">
+        <h2 class="font-headline text-2xl lg:text-4xl">Categorías</h2>
+        <p class="mx-auto mt-2 max-w-md font-serif text-sm italic leading-relaxed text-ink/70">
+          Arrastrá para hacer girar las categorías en su propio espacio tridimensional.
+        </p>
       </div>
 
-      <div id="categorias-orbit" class="relative h-[38vh] w-full overflow-hidden bg-accent md:h-[75vh]">
-        <aside class="pointer-events-none absolute left-4 top-1/2 z-10 hidden max-w-[280px] -translate-y-1/2 md:left-10 md:block">
-          <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-paper/60">
-            Espacio 3D · Órbita
-          </span>
-          <h2 class="mb-3 font-headline text-4xl uppercase leading-none tracking-tight text-paper lg:text-6xl">
-            Categorías
-          </h2>
-          <p class="font-serif text-sm italic leading-relaxed text-paper/80">
-            Arrastrá el scroll para hacer girar las categorías en su propio espacio
-            tridimensional continuo.
-          </p>
-        </aside>
-
+      <div id="categorias-orbit" class="relative h-[38vh] w-full overflow-hidden border border-ink/15 bg-paper md:h-[60vh]">
         <div
           class="categorias-orbit-canvas absolute inset-0"
           data-categorias={JSON.stringify(categorias.map((c) => ({ slug: c.id, nombre: c.data.nombre })))}
@@ -80,7 +68,7 @@ const { categorias } = Astro.props;
 
     await document.fonts.ready;
 
-    const marfil = '#FFFFF0';
+    const ink = '#000000';
 
     function createLabelTexture(nombre: string): THREE.CanvasTexture {
       const scale = 3;
@@ -92,9 +80,7 @@ const { categorias } = Astro.props;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.textAlign = 'center';
 
-      // Fondo de la sección es accent (rojo oscuro); el texto va en marfil para el
-      // contraste que pedía el usuario, en vez del negro que se usaba sobre fondo claro.
-      ctx.fillStyle = marfil;
+      ctx.fillStyle = ink;
       let fontSize = 58 * scale;
       const maxWidth = canvas.width - 64 * scale;
       const label = nombre.toUpperCase();
@@ -125,10 +111,6 @@ const { categorias } = Astro.props;
 
     const total = data.length;
     const radius = Math.max(7, total * 1.15);
-    // Desplazar el grupo a la derecha para que no choque con el texto fijo de la
-    // izquierda en desktop (mismo truco que la referencia, proporcional al radio).
-    const isDesktopLayout = window.matchMedia('(min-width: 768px)').matches;
-    if (isDesktopLayout) carouselGroup.position.set(radius * 0.35, 0, 0);
     const cardMeshes: THREE.Mesh[] = [];
 
     data.forEach((item, i) => {
@@ -164,33 +146,23 @@ const { categorias } = Astro.props;
     const cardWidth = 5;
     const cardHeight = 3.4;
     const halfVerticalFov = Math.tan((camera.fov * Math.PI) / 360);
-    const mobileFillFraction = 0.62;
+    const fillFraction = 0.62;
 
     function resize() {
       const { width, height } = root!.getBoundingClientRect();
       const aspect = width / height;
       camera.aspect = aspect;
-      if (isDesktopLayout) {
-        // Con FOV vertical fijo, un contenedor más alto/angosto (aspect chico) tiene menos
-        // FOV horizontal — las tarjetas se ven más "acercadas" y pueden invadir la zona del
-        // aside aunque el offset del grupo no haya cambiado. Alejar la cámara cuando el
-        // aspect baja del de referencia compensa eso y mantiene el tamaño aparente estable.
-        const referenceAspect = 1.8;
-        const aspectFactor = Math.max(1, referenceAspect / aspect);
-        camera.position.z = 22 * aspectFactor;
-      } else {
-        // Mobile no tiene aside que evitar, así que en vez de compensar por un aspect de
-        // referencia (pensado para desktop), se calcula la distancia que hace que la
-        // tarjeta ocupe una fracción fija del cuadro tanto a lo ancho como a lo alto —
-        // un z fijo se ve enorme y desbordado en un contenedor angosto/alto y diminuto en
-        // uno más cuadrado, según el dispositivo.
-        // zForWidth/zForHeight son la distancia cámara→tarjeta necesaria, no la
-        // coordenada z de la cámara: la tarjeta activa vive en z≈radius (no en z=0), así
-        // que hay que sumarle el radio del anillo para obtener camera.position.z real.
-        const zForWidth = cardWidth / (mobileFillFraction * 2 * aspect * halfVerticalFov);
-        const zForHeight = cardHeight / (mobileFillFraction * 2 * halfVerticalFov);
-        camera.position.z = radius + Math.max(zForWidth, zForHeight);
-      }
+      // Sin overlay de texto que esquivar (título y carrusel están apilados, no lado a
+      // lado), la cámara se encuadra igual en todos los tamaños: se calcula la distancia
+      // cámara→tarjeta que hace que la tarjeta activa ocupe una fracción fija del cuadro
+      // tanto a lo ancho como a lo alto — se toma la mayor de las dos para no desbordar
+      // ningún eje, sea cual sea el aspect ratio real del contenedor.
+      const zForWidth = cardWidth / (fillFraction * 2 * aspect * halfVerticalFov);
+      const zForHeight = cardHeight / (fillFraction * 2 * halfVerticalFov);
+      // zForWidth/zForHeight son la distancia cámara→tarjeta, no la coordenada z de la
+      // cámara: la tarjeta activa vive en z≈radius (no en z=0), así que hay que sumarle
+      // el radio del anillo para obtener camera.position.z real.
+      camera.position.z = radius + Math.max(zForWidth, zForHeight);
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
     }
@@ -219,7 +191,7 @@ const { categorias } = Astro.props;
         dot.type = 'button';
         dot.setAttribute('aria-label', item.nombre);
         dot.className =
-          'categorias-orbit-dot pointer-events-auto h-2.5 w-2.5 rounded-full border border-paper/40 bg-paper/10 transition-all duration-300';
+          'categorias-orbit-dot pointer-events-auto h-2.5 w-2.5 rounded-full border border-ink/30 bg-ink/10 transition-all duration-300';
         dot.addEventListener('click', () => setActiveIndex(i));
         pagination.appendChild(dot);
         dotButtons.push(dot);
@@ -234,12 +206,11 @@ const { categorias } = Astro.props;
       lastActiveIndex = idx;
       dotButtons.forEach((btn, i) => {
         const active = i === idx;
-        btn.classList.toggle('bg-accent-amber', active);
-        btn.classList.toggle('border-accent-amber', active);
-        btn.classList.toggle('bg-paper/10', !active);
-        btn.classList.toggle('border-paper/40', !active);
+        btn.classList.toggle('bg-accent', active);
+        btn.classList.toggle('border-accent', active);
+        btn.classList.toggle('bg-ink/10', !active);
+        btn.classList.toggle('border-ink/30', !active);
         btn.classList.toggle('scale-125', active);
-        btn.classList.toggle('shadow-[0_0_0_3px_rgba(176,96,11,0.35)]', active);
       });
     }
 

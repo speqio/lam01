@@ -15,6 +15,9 @@ dist/
 *.log
 npm-debug.log*
 
+# Ignore nested app repo
+my-app/
+
 # OS and editor files
 .DS_Store
 Thumbs.db

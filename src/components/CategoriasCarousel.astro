@@ -15,8 +15,11 @@ import type { CollectionEntry } from 'astro:content';
  *   el scroll del documento; acá hay header/footer/resto del sitio arriba y abajo.
  * - Tamaño y cámara se calculan desde el propio contenedor (getBoundingClientRect), no
  *   desde window.innerWidth/innerHeight — es una sección más, no la página entera.
- * - Misma diagramación en todos los tamaños: título arriba centrado, carrusel abajo a
- *   ancho completo (sin overlay de texto sobre el 3D) — todo centrado.
+ * - Título arriba, carrusel abajo a ancho completo (sin overlay de texto sobre el 3D)
+ *   en todos los tamaños. En mobile es solo "Categorías", alineado igual que el resto
+ *   de los títulos de sección (a la izquierda); en desktop suma la frase "Revisá
+ *   nuestro catálogo" arriba, centrado, con el mismo tamaño de título que Archivo y
+ *   Últimas entradas.
  */
 interface Props {
   categorias: CollectionEntry<'categorias'>[];
@@ -27,12 +30,18 @@ const { categorias } = Astro.props;
 
 {
   categorias.length > 0 && (
-    <section class="relative mb-12 text-center">
-      <div class="mb-4">
-        <h2 class="font-headline text-2xl lg:text-4xl">Categorías</h2>
-        <p class="mx-auto mt-2 max-w-md font-serif text-sm italic leading-relaxed text-ink/70">
-          Arrastrá para hacer girar las categorías en su propio espacio tridimensional.
-        </p>
+    <section class="relative mb-12">
+      <div class="mb-6 md:hidden">
+        <h2 class="font-headline text-2xl lg:text-3xl">Categorías</h2>
+      </div>
+
+      <div class="mb-6 hidden text-center md:block">
+        <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+          Revisá nuestro catálogo
+        </span>
+        <h2 class="font-headline text-4xl uppercase leading-none tracking-tight text-ink lg:text-6xl">
+          Categorías
+        </h2>
       </div>
 
       <div id="categorias-orbit" class="relative h-[38vh] w-full overflow-hidden border border-ink/15 bg-paper md:h-[60vh]">
@@ -82,7 +91,7 @@ const { categorias } = Astro.props;
 
       ctx.fillStyle = ink;
       let fontSize = 58 * scale;
-      const maxWidth = canvas.width - 64 * scale;
+      const maxWidth = canvas.width - 96 * scale;
       const label = nombre.toUpperCase();
       do {
         ctx.font = `${fontSize}px "IM Fell DW Pica", serif`;
@@ -90,6 +99,18 @@ const { categorias } = Astro.props;
       } while (ctx.measureText(label).width > maxWidth && fontSize > 20 * scale);
       ctx.textBaseline = 'middle';
       ctx.fillText(label, canvas.width / 2, canvas.height / 2 + 10 * scale);
+
+      // Recuadro contenedor: cada palabra vive dentro de un marco, como una tarjeta.
+      const borderInset = 24 * scale;
+      const borderWidth = 4 * scale;
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = borderWidth;
+      ctx.strokeRect(
+        borderInset,
+        borderInset,
+        canvas.width - borderInset * 2,
+        canvas.height - borderInset * 2
+      );
 
       const texture = new THREE.CanvasTexture(canvas);
       texture.anisotropy = 4;

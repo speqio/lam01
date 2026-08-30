@@ -100,9 +100,12 @@ const { categorias } = Astro.props;
       ctx.textBaseline = 'middle';
       ctx.fillText(label, canvas.width / 2, canvas.height / 2 + 10 * scale);
 
-      // Recuadro contenedor: cada palabra vive dentro de un marco, como una tarjeta.
+      // Recuadro contenedor: cada palabra vive dentro de un marco, como una tarjeta. El
+      // grosor imita el `border` (1px) de EntryFlipCard3D: la placa se renderiza bastante
+      // más chica en pantalla que el canvas fuente, así que hace falta más de 1 canvas-px
+      // para que, ya escalado, se vea igual de fina.
       const borderInset = 24 * scale;
-      const borderWidth = 4 * scale;
+      const borderWidth = 1.5 * scale;
       ctx.strokeStyle = ink;
       ctx.lineWidth = borderWidth;
       ctx.strokeRect(

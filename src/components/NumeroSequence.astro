@@ -45,6 +45,16 @@ interface Props {
 }
 
 const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
+
+// Alto del "carril" de scroll virtual en mobile: tiene que escalar con la cantidad de
+// tarjetas, si no un número con pocas entradas (a veces una sola) deja un carril
+// gigante desperdiciado — la pista queda fija (sticky) mucho más scroll del que hace
+// falta para completar un ciclo, así que después de que la última tarjeta ya pasó el
+// usuario sigue scrolleando por una zona muerta larga antes de llegar al resto del
+// sitio. 45vh de margen por tarjeta alcanza para un ciclo completo cómodo (la pista
+// anima con SPACING=260px por tarjeta, ver script) con un piso de 120vh para que el
+// carril nunca quede más bajo que la propia pista fija (65vh) + algo de margen.
+const runwayVh = Math.max(120, 70 + entradas.length * 45);
 ---
 
 <section
@@ -63,7 +73,10 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
     }
   </div>
 
-  <div class="numero-sequence-runway relative h-[280vh] w-full md:h-full">
+  <div
+    class="numero-sequence-runway relative w-full md:h-full"
+    style={`--numero-runway-h: ${runwayVh}vh`}
+  >
     <div
       class="numero-sequence-track sticky top-20 h-[65vh] w-full min-w-0 overflow-hidden px-4 md:static md:top-auto md:h-full md:w-full md:overflow-visible md:px-0"
     >
@@ -117,6 +130,18 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
   @media (min-width: 768px) {
     #numero-sequence {
       --seq-progress: 0;
+    }
+  }
+
+  /* Alto del carril mobile: lo fija el frontmatter según la cantidad de tarjetas (ver
+     `runwayVh`). En desktop no hay carril con scroll virtual, ocupa toda la fila. */
+  .numero-sequence-runway {
+    height: var(--numero-runway-h, 120vh);
+  }
+
+  @media (min-width: 768px) {
+    .numero-sequence-runway {
+      height: 100%;
     }
   }
 

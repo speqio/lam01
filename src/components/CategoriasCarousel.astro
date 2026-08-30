@@ -166,12 +166,12 @@ const { categorias, imagenPorCategoria } = Astro.props;
     background-position: center;
   }
 
+  /* Se detiene en vez de animar, pero sigue con overflow: hidden (nunca aparece un
+     scrollbar) — el segundo set de tarjetas queda oculto, igual que cualquier card
+     recortada por la máscara de bordes. */
   @media (prefers-reduced-motion: reduce) {
     .categorias-marquee-track {
       animation: none;
-    }
-    .categorias-marquee-view {
-      overflow-x: auto;
     }
   }
 </style>

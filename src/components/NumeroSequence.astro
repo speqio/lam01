@@ -226,7 +226,7 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
           const opacity = Math.max(0, 1 - distanceNormalized * 1.2);
           const zIndex = Math.round(100 - Math.abs(progress));
 
-          card.style.transform = `translate3d(-50%, ${progress}px, 0) scale(${scale})`;
+          card.style.transform = `translate3d(-50%, calc(-50% + ${progress}px), 0) scale(${scale})`;
           card.style.opacity = String(opacity);
           card.style.zIndex = String(zIndex);
         });

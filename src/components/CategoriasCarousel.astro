@@ -9,13 +9,15 @@ import type { CollectionEntry } from 'astro:content';
  * tarjetas/bordes/rectángulos, mismo mecanismo en todos los tamaños de pantalla.
  *
  * Es CSS puro (`@keyframes` + `translateX(-50%)`, la pista duplica la lista de
- * categorías una vez para el loop sin costura) — sin JS. Sin fotos que decodificar ni
- * pintar, no hay ninguna razón para que esto le cueste nada al hilo principal en
- * ningún dispositivo, así que no hace falta la complejidad de rAF/scroll-snap/pausa
- * por interacción que tenía la versión con imágenes. Se pausa con :hover (mouse) y
- * :focus-within (teclado); en touch no hace falta pausar nada porque tocar un link no
- * compite con la animación (el tap registra en la posición visual del momento, se
- * mueva o no el track).
+ * categorías una vez para el loop sin costura) en mobile — ahí no hace falta más: sin
+ * fotos que decodificar/pintar, no hay ninguna razón para que esto le cueste nada al
+ * hilo principal. Se pausa con :hover (mouse) y :focus-within (teclado); en touch no
+ * hace falta pausar nada porque tocar un link no compite con la animación.
+ *
+ * En desktop (md+) un script chico le suma navegación con la rueda del mouse/trackpad
+ * estando encima — apaga la animación CSS y pasa a manejar el mismo translateX con
+ * rAF (autoplay + offset acumulado por wheel), igual que el resto de las secciones
+ * scroll-driven del sitio: la rueda se captura en el contenedor, nunca en window.
  */
 interface Props {
   categorias: CollectionEntry<'categorias'>[];
@@ -40,21 +42,21 @@ const { categorias } = Astro.props;
         </h2>
       </div>
 
-      <div class="categorias-ticker-view">
+      <div id="categorias-ticker" class="categorias-ticker-view">
         <div class="categorias-ticker-track">
           {categorias.map((categoria) => (
             <>
               <a
                 href={`/categoria/${categoria.id}`}
-                class="font-headline text-3xl font-bold uppercase leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-4xl md:text-6xl"
+                class="font-headline text-xl font-bold uppercase leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
               >
                 {categoria.data.nombre}
               </a>
               <span
-                class="mx-5 text-3xl leading-none text-ink/20 sm:text-4xl md:mx-8 md:text-6xl"
+                class="mx-4 text-xl leading-none text-ink/20 sm:text-2xl md:mx-6 md:text-3xl"
                 aria-hidden="true"
               >
-                /
+                •
               </span>
             </>
           ))}
@@ -64,15 +66,15 @@ const { categorias } = Astro.props;
                 href={`/categoria/${categoria.id}`}
                 tabindex="-1"
                 aria-hidden="true"
-                class="font-headline text-3xl font-bold uppercase leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-4xl md:text-6xl"
+                class="font-headline text-xl font-bold uppercase leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
               >
                 {categoria.data.nombre}
               </a>
               <span
-                class="mx-5 text-3xl leading-none text-ink/20 sm:text-4xl md:mx-8 md:text-6xl"
+                class="mx-4 text-xl leading-none text-ink/20 sm:text-2xl md:mx-6 md:text-3xl"
                 aria-hidden="true"
               >
-                /
+                •
               </span>
             </>
           ))}
@@ -128,3 +130,106 @@ const { categorias } = Astro.props;
     }
   }
 </style>
+
+<script>
+  const AUTOPLAY_DURATION_S = 34;
+
+  function initDesktopWheel(view: HTMLElement, track: HTMLElement) {
+    // Apaga el @keyframes de CSS: de acá en más el transform lo escribe este script
+    // (autoplay en rAF + offset acumulado por wheel), único responsable en desktop.
+    track.style.animation = 'none';
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let setWidth = 0;
+    let offset = 0;
+    let isInteracting = false;
+    let lastTime: number | null = null;
+
+    function measure() {
+      const width = track.scrollWidth;
+      setWidth = width > 0 ? width / 2 : 0;
+      if (setWidth <= 0) return;
+      offset = ((offset % setWidth) + setWidth) % setWidth;
+      render();
+    }
+
+    function render() {
+      if (!setWidth) return;
+      track.style.transform = `translateX(${-offset}px)`;
+    }
+
+    // La rueda se captura en el contenedor, nunca en window — mismo criterio que el
+    // resto de las secciones scroll-driven del sitio, así no secuestra el scroll de
+    // la página cuando el cursor pasa por encima.
+    view.addEventListener(
+      'wheel',
+      (event) => {
+        event.preventDefault();
+        const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+        if (!delta || !setWidth) return;
+        offset = ((offset + delta) % setWidth + setWidth) % setWidth;
+        render();
+      },
+      { passive: false }
+    );
+
+    view.addEventListener('mouseenter', () => {
+      isInteracting = true;
+    });
+    view.addEventListener('mouseleave', () => {
+      isInteracting = false;
+    });
+    view.addEventListener('focusin', () => {
+      isInteracting = true;
+    });
+    view.addEventListener('focusout', () => {
+      isInteracting = false;
+    });
+
+    if (reduceMotion) {
+      measure();
+      render();
+      return;
+    }
+
+    function tick(now: number) {
+      if (lastTime === null) lastTime = now;
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      if (!isInteracting && setWidth > 0) {
+        const velocity = setWidth / AUTOPLAY_DURATION_S;
+        offset = ((offset + velocity * dt) % setWidth + setWidth) % setWidth;
+        render();
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    measure();
+    render();
+    window.addEventListener('resize', measure, { passive: true });
+
+    if ('ResizeObserver' in window) {
+      const resizeObserver = new ResizeObserver(() => measure());
+      resizeObserver.observe(view);
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  function initCategoriasTicker() {
+    const view = document.getElementById('categorias-ticker');
+    if (!(view instanceof HTMLElement)) return;
+
+    const track = view.querySelector('.categorias-ticker-track');
+    if (!(track instanceof HTMLElement)) return;
+
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+    // En mobile no se toca nada: el @keyframes de CSS ya lo resuelve solo.
+    if (isDesktop) initDesktopWheel(view, track);
+  }
+
+  initCategoriasTicker();
+</script>

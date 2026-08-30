@@ -6,8 +6,6 @@ interface EntryCardProps {
   categoryName: string;
   slug: string;
   coverImage?: string;
-  /** ISO 8601 date string */
-  date: string;
 }
 
 export default function EntryCard({
@@ -16,15 +14,7 @@ export default function EntryCard({
   categoryName,
   slug,
   coverImage,
-  date,
 }: EntryCardProps) {
-  const formattedDate = new Date(date).toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-
   return (
     <motion.a
       href={`/entrada/${slug}`}
@@ -33,33 +23,32 @@ export default function EntryCard({
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
       whileHover={{ y: -4 }}
-      className="group flex flex-col overflow-hidden rounded-lg border border-linen bg-paper shadow-sm transition-shadow duration-300 hover:shadow-lg"
+      className="group flex h-56 overflow-hidden border border-ink bg-paper shadow-sm transition-shadow duration-300 hover:shadow-lg lg:h-64"
     >
-      <div className="aspect-[16/9] overflow-hidden bg-linen">
+      <div className="relative h-full w-2/5 shrink-0 bg-linen">
         {coverImage && (
-          <motion.img
+          <img
             src={coverImage}
             alt={title}
-            className="h-full w-full object-cover"
-            initial={{ scale: 1.04 }}
-            whileHover={{ scale: 1.1 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="h-full w-full object-cover grayscale contrast-125 transition-transform duration-500 group-hover:scale-105"
           />
         )}
-      </div>
-
-      <div className="flex flex-1 flex-col gap-3 p-5">
-        <span className="w-fit rounded-full border border-accent/30 bg-accent/5 px-3 py-1 text-xs font-medium uppercase tracking-wide text-accent">
+        <div className="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
+        <span className="absolute left-2 top-2 border border-paper bg-ink/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-paper">
           {categoryName}
         </span>
+      </div>
 
-        <h2 className="font-serif text-xl leading-snug text-ink transition-colors group-hover:text-accent">
+      <div className="flex w-3/5 flex-col gap-1 p-4 lg:gap-2 lg:p-6">
+        <h2 className="font-headline text-lg uppercase leading-[1.05] text-ink lg:text-xl">
           {title}
         </h2>
-
-        <p className="mt-auto font-sans text-sm text-ink-muted">
-          {authorName} &middot; {formattedDate}
+        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">
+          Por {authorName}
         </p>
+        <span className="mt-auto font-mono text-xs font-medium uppercase tracking-widest text-accent transition-colors group-hover:underline">
+          Leer entrada
+        </span>
       </div>
     </motion.a>
   );

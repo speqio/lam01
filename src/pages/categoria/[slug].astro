@@ -51,7 +51,7 @@ const todasLasCategorias = await getCollection('categorias');
     }
   </div>
 
-  <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+  <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
     {
       entradasConRelaciones.map(({ entrada, autor }) => (
         <EntryCard
@@ -61,7 +61,6 @@ const todasLasCategorias = await getCollection('categorias');
           categoryName={categoria.data.nombre}
           slug={entrada.id}
           coverImage={entrada.data.portada}
-          date={entrada.data.fecha.toISOString()}
         />
       ))
     }

@@ -48,7 +48,7 @@ const { categorias } = Astro.props;
             <>
               <a
                 href={`/categoria/${categoria.id}`}
-                class="font-headline text-xl font-bold uppercase leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
+                class="font-headline text-xl font-medium uppercase leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
               >
                 {categoria.data.nombre}
               </a>
@@ -66,7 +66,7 @@ const { categorias } = Astro.props;
                 href={`/categoria/${categoria.id}`}
                 tabindex="-1"
                 aria-hidden="true"
-                class="font-headline text-xl font-bold uppercase leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
+                class="font-headline text-xl font-medium uppercase leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
               >
                 {categoria.data.nombre}
               </a>

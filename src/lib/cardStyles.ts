@@ -11,12 +11,12 @@
 // group-hover), no una grid a ancho completo como EntryCard/numeros.
 export const cardImageWrap = 'relative h-full w-2/5 shrink-0 bg-surface';
 
-// Badge de categoría/metadata sobre la imagen: recuadro con el acid-flash del sistema
-// — es justo el rol que la referencia de diseño le da a ese color ("tags, dividers, and
-// focused UI edges"), en vez de un tinte de color sobre la foto entera (que la misma
-// referencia prohíbe: el acento no va en áreas grandes).
+// Badge de categoría/metadata sobre la imagen: fondo sólido (no translúcido) en el
+// color de acento con letra en canvas (negro) — necesita contraste garantizado sea
+// cual sea la foto de fondo (clara, oscura, con texto encima, lo que sea), así que va
+// opaco en vez de dejar que el acid-flash/canvas-80% se mezcle con la imagen.
 export const cardBadge =
-  'absolute left-2 top-2 border border-accent bg-canvas/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-accent';
+  'absolute left-2 top-2 bg-accent px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-canvas';
 
 // Variante de card completa (EntryCard, /numeros): imagen que reacciona al hover del
 // link que envuelve toda la card.

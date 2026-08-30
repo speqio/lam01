@@ -14,15 +14,20 @@
  *   atrapado. Al escuchar en el elemento, el navegador solo dispara el evento cuando el
  *   cursor está físicamente encima — mover el mouse afuera devuelve el scroll normal.
  *
- * - Mobile: el mismo truco (capturar `touchmove` y bloquear el scroll real) NO es
- *   seguro acá — no existe "mover el dedo afuera" para soltarlo, y la sección ocupa
+ * - Mobile: el mismo truco (capturar `touchmove`/`wheel` y bloquear el scroll real) NO
+ *   es seguro acá — no existe "mover el dedo afuera" para soltarlo, y la sección ocupa
  *   casi toda la pantalla, así que el usuario podría quedar atrapado sin poder bajar.
- *   En vez de eso, es un flujo vertical simple y nativo: el texto va primero a ancho
- *   completo, y las tarjetas abajo, también a ancho completo, en un stack normal —
- *   nada de `grid` compartido con desktop ni `sticky` en esta pantalla. Es a propósito
- *   una distribución DISTINTA (no la misma grilla de dos columnas encogida): compartir
- *   el mismo contenedor grid/sticky entre ambos tamaños fue la fuente de los problemas
- *   de ancho en mobile, así que en vez de seguir parchándolo se separaron del todo.
+ *   Pero la pila de tarjetas SÍ tiene que animarse acá también (no un simple listado
+ *   estático) — así que el "carrusel" se maneja igual que un scrollytelling clásico:
+ *   un listener de `scroll` PASIVO en window (nunca `preventDefault`, el navegador
+ *   scrollea normal siempre) lee cuánto se scrolleó dentro de un "carril" alto
+ *   (`.numero-sequence-runway`) y ese número alimenta la MISMA fórmula de posición que
+ *   usa desktop. El carril tiene una pista `sticky` adentro que se queda fija en
+ *   pantalla mientras dura el scroll del carril — eso es lo que hace que las tarjetas
+ *   parezcan "pasar" en vez de que la sección entera se desplace de golpe.
+ *
+ * El texto (título/fecha/descripción) sigue en flujo simple arriba, a ancho completo,
+ * sin sticky ni grid compartido con desktop — ver el layout mobile-first más abajo.
  */
 interface EntradaItem {
   slug: string;
@@ -44,7 +49,7 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
 
 <section
   id="numero-sequence"
-  class="relative w-full overflow-x-hidden md:grid md:h-[75vh] md:grid-cols-2 md:gap-10 md:overflow-y-hidden"
+  class="relative w-full overflow-hidden md:grid md:h-[75vh] md:grid-cols-2 md:gap-10"
 >
   <div class="numero-sequence-info flex flex-col justify-center px-4 md:sticky md:top-20 md:z-10 md:min-w-0 md:self-start md:px-0">
     <p class="font-mono text-xs uppercase tracking-widest text-accent-amber">{fechaFormateada}</p>
@@ -61,33 +66,37 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
     </p>
   </div>
 
-  <div class="numero-sequence-track relative flex flex-col gap-8 px-4 pt-8 md:h-full md:w-full md:min-w-0 md:gap-0 md:px-0 md:pt-0">
-    {
-      entradas.map((item) => (
-        <a
-          href={`/entrada/${item.slug}`}
-          class="numero-sequence-card relative w-full md:absolute md:left-1/2 md:top-1/2 md:min-w-0 md:max-w-sm"
-        >
-          <div class="flex h-64 w-full flex-col overflow-hidden border border-ink bg-paper shadow-xl">
-            <div class="h-[78%] w-full overflow-hidden bg-linen">
-              {item.portada && (
-                <img
-                  src={item.portada}
-                  alt=""
-                  class="h-full w-full object-cover grayscale contrast-125"
-                  loading="lazy"
-                />
-              )}
+  <div class="numero-sequence-runway relative h-[280vh] w-full md:h-full">
+    <div
+      class="numero-sequence-track sticky top-20 h-[65vh] w-full min-w-0 overflow-hidden px-4 md:static md:top-auto md:h-full md:w-full md:overflow-visible md:px-0"
+    >
+      {
+        entradas.map((item) => (
+          <a
+            href={`/entrada/${item.slug}`}
+            class="numero-sequence-card absolute left-1/2 top-1/2 w-full min-w-0 max-w-sm"
+          >
+            <div class="flex h-64 w-full flex-col overflow-hidden border border-ink bg-paper shadow-xl">
+              <div class="h-[78%] w-full overflow-hidden bg-linen">
+                {item.portada && (
+                  <img
+                    src={item.portada}
+                    alt=""
+                    class="h-full w-full object-cover grayscale contrast-125"
+                    loading="lazy"
+                  />
+                )}
+              </div>
+              <div class="flex h-[22%] items-center justify-between border-t border-ink/15 px-4 font-mono text-[10px] uppercase tracking-widest text-ink-muted">
+                <span>{item.categoriaNombre}</span>
+                <span>{item.autorNombre}</span>
+              </div>
             </div>
-            <div class="flex h-[22%] items-center justify-between border-t border-ink/15 px-4 font-mono text-[10px] uppercase tracking-widest text-ink-muted">
-              <span>{item.categoriaNombre}</span>
-              <span>{item.autorNombre}</span>
-            </div>
-          </div>
-          <p class="mt-2 px-1 font-headline text-lg leading-tight text-ink">{item.titulo}</p>
-        </a>
-      ))
-    }
+            <p class="mt-2 px-1 font-headline text-lg leading-tight text-ink">{item.titulo}</p>
+          </a>
+        ))
+      }
+    </div>
   </div>
 </section>
 
@@ -129,53 +138,73 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
 
 <script>
   const stage = document.getElementById('numero-sequence');
-  // El scroll virtual (wheel/touch capturados) solo corre en desktop — en mobile las
-  // tarjetas quedan en flujo normal y el scroll real de la página las mueve.
-  const isDesktop = window.matchMedia('(min-width: 768px)').matches;
 
-  if (stage && isDesktop) {
+  if (stage) {
     const cards = Array.from(stage.querySelectorAll<HTMLElement>('.numero-sequence-card'));
 
     if (cards.length > 0) {
+      const isDesktop = window.matchMedia('(min-width: 768px)').matches;
       const SPACING = 260;
       const SHRINK_DISTANCE = 320;
 
       let scrollOffset = 0;
       let infoProgress = 0;
 
-      stage.addEventListener(
-        'wheel',
-        (event) => {
-          event.preventDefault();
-          scrollOffset = Math.max(0, scrollOffset + event.deltaY * 0.5);
-        },
-        { passive: false }
-      );
+      if (isDesktop) {
+        // Desktop: scroll virtual — wheel/touch capturados y bloqueados (preventDefault),
+        // seguro porque el listener vive en el elemento, no en window (ver comentario del
+        // frontmatter).
+        stage.addEventListener(
+          'wheel',
+          (event) => {
+            event.preventDefault();
+            scrollOffset = Math.max(0, scrollOffset + event.deltaY * 0.5);
+          },
+          { passive: false }
+        );
 
-      let touchStartY = 0;
-      stage.addEventListener(
-        'touchstart',
-        (event) => {
-          touchStartY = event.touches[0].clientY;
-        },
-        { passive: true }
-      );
-      stage.addEventListener(
-        'touchmove',
-        (event) => {
-          const deltaY = touchStartY - event.touches[0].clientY;
-          scrollOffset = Math.max(0, scrollOffset + deltaY * 0.8);
-          touchStartY = event.touches[0].clientY;
-        },
-        { passive: true }
-      );
+        let touchStartY = 0;
+        stage.addEventListener(
+          'touchstart',
+          (event) => {
+            touchStartY = event.touches[0].clientY;
+          },
+          { passive: true }
+        );
+        stage.addEventListener(
+          'touchmove',
+          (event) => {
+            const deltaY = touchStartY - event.touches[0].clientY;
+            scrollOffset = Math.max(0, scrollOffset + deltaY * 0.8);
+            touchStartY = event.touches[0].clientY;
+          },
+          { passive: true }
+        );
+      } else {
+        // Mobile: scroll real y pasivo — nunca preventDefault, el navegador scrollea
+        // normal siempre. El carril alto + la pista `sticky` (CSS) hacen que, mientras
+        // se scrollea DENTRO del carril, la pista quede fija en pantalla; ese tramo de
+        // scroll real es lo que se traduce a `scrollOffset` acá.
+        const runway = stage.querySelector<HTMLElement>('.numero-sequence-runway');
+
+        const updateFromScroll = () => {
+          if (!runway) return;
+          const top = runway.getBoundingClientRect().top;
+          scrollOffset = Math.max(0, -top);
+        };
+
+        window.addEventListener('scroll', updateFromScroll, { passive: true });
+        updateFromScroll();
+      }
 
       const update = () => {
         const total = cards.length;
 
-        const infoTarget = Math.min(scrollOffset / SHRINK_DISTANCE, 1);
-        infoProgress += (infoTarget - infoProgress) * 0.12;
-        stage.style.setProperty('--seq-progress', infoProgress.toFixed(3));
+        if (isDesktop) {
+          const infoTarget = Math.min(scrollOffset / SHRINK_DISTANCE, 1);
+          infoProgress += (infoTarget - infoProgress) * 0.12;
+          stage.style.setProperty('--seq-progress', infoProgress.toFixed(3));
+        }
 
         cards.forEach((card, i) => {
           let progress = (i * SPACING - scrollOffset) % (total * SPACING);

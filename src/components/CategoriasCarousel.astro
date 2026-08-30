@@ -18,6 +18,13 @@ import type { CollectionEntry } from 'astro:content';
  * estando encima — apaga la animación CSS y pasa a manejar el mismo translateX con
  * rAF (autoplay + offset acumulado por wheel), igual que el resto de las secciones
  * scroll-driven del sitio: la rueda se captura en el contenedor, nunca en window.
+ *
+ * Los nombres se pasan por `.toLocaleUpperCase('es')` en vez de usar `uppercase` de
+ * CSS: en algunos navegadores mobile, pedirle al motor de render que transforme a
+ * mayúscula un acento (ñ→Ñ, ó→Ó) sobre esta tipografía rompe la composición del glifo
+ * y se pierde la tilde/diéresis ("reseña" quedaba "RESENA"). Mandar el string ya en
+ * mayúscula evita ese paso — el navegador solo tiene que dibujar el carácter, no
+ * transformarlo primero.
  */
 interface Props {
   categorias: CollectionEntry<'categorias'>[];
@@ -48,9 +55,9 @@ const { categorias } = Astro.props;
             <>
               <a
                 href={`/categoria/${categoria.id}`}
-                class="font-headline text-xl font-medium uppercase leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
+                class="font-headline text-xl font-medium leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
               >
-                {categoria.data.nombre}
+                {categoria.data.nombre.toLocaleUpperCase('es')}
               </a>
               <span
                 class="mx-4 text-xl leading-none text-ink/20 sm:text-2xl md:mx-6 md:text-3xl"
@@ -66,9 +73,9 @@ const { categorias } = Astro.props;
                 href={`/categoria/${categoria.id}`}
                 tabindex="-1"
                 aria-hidden="true"
-                class="font-headline text-xl font-medium uppercase leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
+                class="font-headline text-xl font-medium leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
               >
-                {categoria.data.nombre}
+                {categoria.data.nombre.toLocaleUpperCase('es')}
               </a>
               <span
                 class="mx-4 text-xl leading-none text-ink/20 sm:text-2xl md:mx-6 md:text-3xl"

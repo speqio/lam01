@@ -1,9 +1,8 @@
 ---
 /**
- * Hero de "Último número" — portada estática, sin ningún comportamiento de hover/tap
- * (se sacó a propósito: la imagen flotante que seguía al cursor interfería con el click
- * en el botón "Ver número completo"). Misma imagen, mismo tratamiento visual (grayscale
- * + alto contraste), pero como bloque normal en el flujo, en todos los dispositivos.
+ * Hero de "Último número" — solo título, descripción y link. Sin portada (se sacó a
+ * propósito) y sin ningún comportamiento de hover/tap (esa mecánica interfería con el
+ * click en el botón "Ver número completo").
  *
  * Tokens del Design System Broadsheet actual (paper/ink/accent, font-headline =
  * IM Fell DW Pica en mixed-case, sin uppercase ni bold forzado — la fuente no trae un
@@ -12,11 +11,10 @@
 interface Props {
   titulo: string;
   descripcion?: string;
-  imagen: string;
   href?: string;
 }
 
-const { titulo, descripcion, imagen, href } = Astro.props;
+const { titulo, descripcion, href } = Astro.props;
 ---
 
 <section class="relative w-full px-4 py-4 text-center sm:py-6">
@@ -25,12 +23,6 @@ const { titulo, descripcion, imagen, href } = Astro.props;
   >
     {titulo}
   </h1>
-
-  <img
-    src={imagen}
-    alt={titulo}
-    class="mx-auto mt-8 w-full max-w-sm border-2 border-ink object-cover shadow-2xl grayscale contrast-125"
-  />
 
   {
     descripcion && (

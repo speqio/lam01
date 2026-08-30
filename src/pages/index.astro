@@ -4,7 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import SwipeCard from '../components/ui/SwipeCard.tsx';
 import EntryFlipCard3D from '../components/ui/EntryFlipCard3D.tsx';
 import HeroAnagram from '../components/HeroAnagram.astro';
-import ArchivoStack from '../components/ArchivoStack.astro';
+import ArchivoExplorer from '../components/ArchivoExplorer.astro';
 import HoverRevealHero from '../components/HoverRevealHero.astro';
 import CategoriasCarousel from '../components/CategoriasCarousel.astro';
 
@@ -95,5 +95,5 @@ const categorias = await getCollection('categorias');
 
   <CategoriasCarousel categorias={categorias} />
 
-  <ArchivoStack numeros={numeros} />
+  <ArchivoExplorer entradas={todasLasEntradas} />
 </BaseLayout>

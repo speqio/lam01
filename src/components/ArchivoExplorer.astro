@@ -1,0 +1,216 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+/**
+ * "Archivo": galería de paneles expandibles, adaptada de una demo en GSAP (CDN) que
+ * animaba el `width` de 5 recuadros con fotos de retrato — clickear uno lo expandía y
+ * comprimía al resto (`elastic` ease, sin plugins extra). Acá cada panel no es una foto
+ * sino una puerta de entrada distinta al archivo: año, autor, categoría, número o una
+ * entrada al azar.
+ *
+ * Cambios respecto a la referencia:
+ * - Los recuadros son 100% CSS/contenido (sin imágenes) y cada uno linkea a una página
+ *   real (/archivo, /autores, /categorias, /numeros) — la referencia era decorativa,
+ *   sin destino.
+ * - "Al azar" no tiene href fijo: al hacer click elige un slug al azar entre las
+ *   entradas (recibidas por props) y navega ahí mismo, así cada visita ofrece algo
+ *   distinto.
+ * - El link/botón interno de cada panel corta la propagación del click antes de llegar
+ *   al listener que expande/contrae el panel — si no, clickear el link también
+ *   dispararía la animación de expansión justo antes de navegar.
+ * - Anchos en % del contenedor (no vw como la referencia) para no depender del ancho
+ *   total de la ventana — es una sección más, no una página de demo a pantalla
+ *   completa.
+ */
+interface Props {
+  entradas: CollectionEntry<'entradas'>[];
+}
+
+const { entradas } = Astro.props;
+
+const filtros = [
+  {
+    key: 'anio',
+    label: 'Año',
+    titulo: 'Por año',
+    descripcion: 'El archivo agrupado por año de publicación, del más reciente al más antiguo.',
+    href: '/archivo/',
+    cta: 'Ver por año',
+  },
+  {
+    key: 'autor',
+    label: 'Autor',
+    titulo: 'Por autor',
+    descripcion: 'Quiénes escriben en la revista, con su biografía y todo lo que publicaron.',
+    href: '/autores/',
+    cta: 'Ver autores',
+  },
+  {
+    key: 'categoria',
+    label: 'Categoría',
+    titulo: 'Por categoría',
+    descripcion: 'Poesía, cuento, ensayo, crónica y el resto de los géneros de la revista.',
+    href: '/categorias/',
+    cta: 'Ver categorías',
+  },
+  {
+    key: 'numero',
+    label: 'Número',
+    titulo: 'Por número',
+    descripcion: 'Cada edición completa, tal como se publicó originalmente.',
+    href: '/numeros/',
+    cta: 'Ver números',
+  },
+  {
+    key: 'azar',
+    label: 'Al azar',
+    titulo: 'Al azar',
+    descripcion: 'Dejá que el archivo elija por vos: una entrada cualquiera, sin filtro.',
+    href: null,
+    cta: 'Sorprendeme',
+  },
+] as const;
+
+const slugsAzar = entradas.map((entrada) => entrada.id);
+---
+
+<section id="archivo-explorer" class="relative mb-12">
+  <div class="mb-6 md:hidden">
+    <h2 class="font-headline text-2xl lg:text-3xl">Archivo</h2>
+  </div>
+
+  <div class="mb-6 hidden text-center md:block">
+    <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+      Explorá el archivo
+    </span>
+    <h2 class="font-headline text-4xl uppercase leading-none tracking-tight text-ink lg:text-6xl">
+      Archivo
+    </h2>
+  </div>
+
+  <div class="archivo-explorer-group flex h-[60vh] w-full items-stretch justify-center gap-1 overflow-hidden sm:h-[65vh]">
+    {
+      filtros.map((filtro) => (
+        <div
+          class="archivo-explorer-item group relative shrink-0 cursor-pointer overflow-hidden border border-ink bg-paper transition-colors duration-300 hover:border-accent"
+          style="width: 19%"
+          data-key={filtro.key}
+          data-azar={filtro.key === 'azar' ? JSON.stringify(slugsAzar) : undefined}
+          role="button"
+          tabindex="0"
+          aria-label={filtro.titulo}
+        >
+          <div class="archivo-explorer-collapsed absolute inset-0 flex items-center justify-center">
+            <span class="[writing-mode:vertical-rl] font-mono text-xs uppercase tracking-[0.3em] text-ink/60">
+              {filtro.label}
+            </span>
+          </div>
+
+          <div class="archivo-explorer-expanded pointer-events-none absolute inset-0 flex flex-col justify-center gap-3 p-6 opacity-0 md:p-10">
+            <span class="font-mono text-xs uppercase tracking-widest text-ink/50">{filtro.label}</span>
+            <h3 class="font-headline text-3xl uppercase leading-none tracking-tight text-ink lg:text-4xl">
+              {filtro.titulo}
+            </h3>
+            <p class="max-w-xs font-serif text-sm italic leading-relaxed text-ink/70">
+              {filtro.descripcion}
+            </p>
+            {filtro.href ? (
+              <a
+                href={filtro.href}
+                class="archivo-explorer-link pointer-events-auto mt-2 inline-block w-fit border border-ink px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-accent hover:text-accent"
+              >
+                {filtro.cta}
+              </a>
+            ) : (
+              <button
+                type="button"
+                class="archivo-explorer-link archivo-explorer-azar pointer-events-auto mt-2 inline-block w-fit border border-ink px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-accent hover:text-accent"
+              >
+                {filtro.cta}
+              </button>
+            )}
+          </div>
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+
+  const containers = document.querySelectorAll<HTMLElement>('.archivo-explorer-group');
+
+  containers.forEach((group) => {
+    const items = Array.from(group.querySelectorAll<HTMLElement>('.archivo-explorer-item'));
+
+    const collapsedWidth = '10%';
+    const restWidth = '19%';
+    const expandedWidth = '52%';
+
+    let expandedItem: HTMLElement | null = null;
+
+    function setExpandedVisuals(item: HTMLElement, isExpanded: boolean) {
+      const collapsed = item.querySelector<HTMLElement>('.archivo-explorer-collapsed');
+      const expanded = item.querySelector<HTMLElement>('.archivo-explorer-expanded');
+      gsap.to(collapsed, {
+        opacity: isExpanded ? 0 : 1,
+        duration: 0.4,
+        delay: isExpanded ? 0 : 0.3,
+      });
+      gsap.to(expanded, {
+        opacity: isExpanded ? 1 : 0,
+        duration: 0.4,
+        delay: isExpanded ? 0.3 : 0,
+      });
+    }
+
+    function collapseAll() {
+      items.forEach((it) => {
+        gsap.to(it, { width: restWidth, duration: 1.4, ease: 'elastic(1, 0.7)' });
+        setExpandedVisuals(it, false);
+      });
+      expandedItem = null;
+    }
+
+    function expand(item: HTMLElement) {
+      if (expandedItem === item) {
+        collapseAll();
+        return;
+      }
+      items.forEach((it) => {
+        if (it === item) return;
+        gsap.to(it, { width: collapsedWidth, duration: 1.4, ease: 'elastic(1, 0.7)' });
+        setExpandedVisuals(it, false);
+      });
+      gsap.to(item, { width: expandedWidth, duration: 1.6, ease: 'elastic(1, 0.5)' });
+      setExpandedVisuals(item, true);
+      expandedItem = item;
+    }
+
+    items.forEach((item) => {
+      item.addEventListener('click', (event) => {
+        if ((event.target as HTMLElement).closest('.archivo-explorer-link')) return;
+        expand(item);
+      });
+      item.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          expand(item);
+        }
+      });
+    });
+
+    const azarButton = group.querySelector<HTMLButtonElement>('.archivo-explorer-azar');
+    const azarItem = group.querySelector<HTMLElement>('[data-key="azar"]');
+    if (azarButton && azarItem) {
+      azarButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const slugs: string[] = JSON.parse(azarItem.dataset.azar ?? '[]');
+        if (slugs.length === 0) return;
+        const slug = slugs[Math.floor(Math.random() * slugs.length)];
+        window.location.href = `/entrada/${slug}`;
+      });
+    }
+  });
+</script>

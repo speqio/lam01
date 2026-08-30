@@ -30,21 +30,21 @@ const { categorias } = Astro.props;
 
 {
   categorias.length > 0 && (
-    <section class="relative mb-12">
-      <div class="mb-6 md:hidden">
+    <section class="relative my-14 md:my-20">
+      <div class="mb-4 md:hidden">
         <h2 class="font-headline text-2xl lg:text-3xl">Categorías</h2>
       </div>
 
-      <div class="mb-6 hidden text-center md:block">
-        <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+      <div class="mb-1 hidden text-center md:block">
+        <span class="mb-0.5 block font-mono text-xs uppercase tracking-widest text-ink/50">
           Revisá nuestro catálogo
         </span>
-        <h2 class="font-headline text-4xl uppercase leading-none tracking-tight text-ink lg:text-6xl">
+        <h2 class="font-headline text-3xl uppercase leading-none tracking-tight text-ink lg:text-5xl">
           Categorías
         </h2>
       </div>
 
-      <div id="categorias-orbit" class="relative h-[38vh] w-full overflow-hidden bg-paper md:h-[60vh]">
+      <div id="categorias-orbit" class="relative h-[34vh] w-full overflow-hidden bg-paper md:h-[46vh]">
         <div
           class="categorias-orbit-canvas absolute inset-0"
           data-categorias={JSON.stringify(categorias.map((c) => ({ slug: c.id, nombre: c.data.nombre })))}

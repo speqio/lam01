@@ -1,0 +1,57 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const autores = await getCollection('autores');
+const entradas = await getCollection('entradas');
+
+const autoresConConteo = autores
+  .map((autor) => ({
+    autor,
+    cantidad: entradas.filter((entrada) => entrada.data.autor === autor.id).length,
+  }))
+  .sort((a, b) => a.autor.data.nombre.localeCompare(b.autor.data.nombre, 'es'));
+---
+
+<BaseLayout
+  title="Autores — Blog Literario"
+  description="Quiénes escriben en la revista, con su biografía y todo lo que publicaron."
+>
+  <header class="mb-12 text-center">
+    <p class="font-sans text-sm uppercase tracking-widest text-accent">Firmas</p>
+    <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Autores</h1>
+  </header>
+
+  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    {
+      autoresConConteo.map(({ autor, cantidad }) => (
+        <a
+          href={`/autor/${autor.id}`}
+          class="group flex items-center gap-4 border border-ink/15 bg-paper p-5 shadow-sm transition-shadow hover:shadow-md"
+        >
+          {autor.data.foto && (
+            <img
+              src={autor.data.foto}
+              alt={autor.data.nombre}
+              class="h-16 w-16 shrink-0 rounded-full border border-ink/15 object-cover"
+            />
+          )}
+          <div class="min-w-0">
+            <h2 class="font-serif text-lg text-ink group-hover:text-accent">
+              {autor.data.nombre}
+            </h2>
+            <p class="font-sans text-xs uppercase tracking-wide text-ink-muted">
+              {cantidad} {cantidad === 1 ? 'entrada' : 'entradas'}
+            </p>
+          </div>
+        </a>
+      ))
+    }
+  </div>
+
+  {
+    autoresConConteo.length === 0 && (
+      <p class="text-center font-sans text-ink-muted">Todavía no hay autores cargados.</p>
+    )
+  }
+</BaseLayout>

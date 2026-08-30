@@ -1,0 +1,267 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+/**
+ * Carrusel 3D orbital de categorías, adaptado de una referencia en Three.js (r128, CDN)
+ * que orbitaba fotos de stock. Acá cada "tarjeta" es una placa con el nombre de una
+ * categoría (texto renderizado a un <canvas> 2D con la tipografía real del sitio y
+ * usado como CanvasTexture — no hay imágenes) y cada una es un link real a
+ * `/categoria/[id]` (la referencia era puramente decorativa, sin click).
+ *
+ * Cambios respecto a la referencia (mismo criterio que el resto de las secciones
+ * scroll-driven de este sitio):
+ * - `wheel`/`touch` van sobre el contenedor del carrusel, no en `window` — la
+ *   referencia era una página de demo de una sola pantalla que podía secuestrar todo
+ *   el scroll del documento; acá hay header/footer/resto del sitio arriba y abajo.
+ * - Tamaño y cámara se calculan desde el propio contenedor (getBoundingClientRect), no
+ *   desde window.innerWidth/innerHeight — es una sección más, no la página entera.
+ * - Mobile: diagramación distinta a propósito (título arriba en flujo normal, carrusel
+ *   abajo a ancho completo) en vez del overlay de texto sobre el 3D que usa desktop —
+ *   el texto superpuesto sobre un canvas angosto no entra/lee bien en una pantalla
+ *   chica.
+ */
+interface Props {
+  categorias: CollectionEntry<'categorias'>[];
+}
+
+const { categorias } = Astro.props;
+---
+
+{
+  categorias.length > 0 && (
+    <section class="relative mb-12">
+      <div class="mb-6 md:hidden">
+        <p class="font-mono text-xs uppercase tracking-widest text-accent-amber">
+          Espacio 3D · Órbita
+        </p>
+        <h2 class="mt-1 font-headline text-2xl leading-none text-ink lg:text-3xl">Categorías</h2>
+        <p class="mt-2 max-w-md font-serif text-sm italic text-ink/70">
+          Arrastrá para hacer girar las categorías en su propio espacio tridimensional.
+        </p>
+      </div>
+
+      <div id="categorias-orbit" class="relative h-[50vh] w-full overflow-hidden border border-ink/15 bg-paper md:h-[70vh]">
+        <aside class="pointer-events-none absolute left-4 top-1/2 z-10 hidden max-w-[280px] -translate-y-1/2 md:left-10 md:block">
+          <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+            Espacio 3D · Órbita
+          </span>
+          <h2 class="mb-3 font-headline text-4xl uppercase leading-none tracking-tight text-ink lg:text-6xl">
+            Categorías
+          </h2>
+          <p class="font-serif text-sm italic leading-relaxed text-ink/70">
+            Arrastrá el scroll para hacer girar las categorías en su propio espacio
+            tridimensional continuo.
+          </p>
+        </aside>
+
+        <div
+          class="categorias-orbit-canvas absolute inset-0"
+          data-categorias={JSON.stringify(categorias.map((c) => ({ slug: c.id, nombre: c.data.nombre })))}
+        />
+      </div>
+    </section>
+  )
+}
+
+<script>
+  import * as THREE from 'three';
+
+  interface CategoriaDatum {
+    slug: string;
+    nombre: string;
+  }
+
+  async function initOrbit() {
+    const root = document.getElementById('categorias-orbit');
+    const mount = root?.querySelector<HTMLElement>('.categorias-orbit-canvas');
+    if (!root || !mount) return;
+
+    const data: CategoriaDatum[] = JSON.parse(mount.dataset.categorias ?? '[]');
+    if (data.length === 0) return;
+
+    await document.fonts.ready;
+
+    const paper = '#FFFFF0';
+    const ink = '#000000';
+    const inkMuted = '#4A4340';
+
+    function createLabelTexture(nombre: string): THREE.CanvasTexture {
+      const scale = 3;
+      const canvas = document.createElement('canvas');
+      canvas.width = 512 * scale;
+      canvas.height = 348 * scale;
+      const ctx = canvas.getContext('2d')!;
+
+      ctx.fillStyle = paper;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const borderWidth = 6 * scale;
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = borderWidth;
+      ctx.strokeRect(borderWidth / 2, borderWidth / 2, canvas.width - borderWidth, canvas.height - borderWidth);
+
+      ctx.fillStyle = inkMuted;
+      ctx.font = `${16 * scale}px "Space Grotesk", monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('CATEGORÍA', canvas.width / 2, 64 * scale);
+
+      ctx.fillStyle = ink;
+      let fontSize = 58 * scale;
+      const maxWidth = canvas.width - 64 * scale;
+      const label = nombre.toUpperCase();
+      do {
+        ctx.font = `${fontSize}px "IM Fell DW Pica", serif`;
+        fontSize -= 2 * scale;
+      } while (ctx.measureText(label).width > maxWidth && fontSize > 20 * scale);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, canvas.width / 2, canvas.height / 2 + 10 * scale);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.anisotropy = 4;
+      return texture;
+    }
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(paper);
+
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.set(0, 0, 22);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    mount.appendChild(renderer.domElement);
+    renderer.domElement.style.cursor = 'grab';
+
+    const carouselGroup = new THREE.Group();
+    scene.add(carouselGroup);
+
+    const total = data.length;
+    const radius = Math.max(7, total * 1.15);
+    // Desplazar el grupo a la derecha para que no choque con el texto fijo de la
+    // izquierda en desktop (mismo truco que la referencia, proporcional al radio).
+    const isDesktopLayout = window.matchMedia('(min-width: 768px)').matches;
+    if (isDesktopLayout) carouselGroup.position.set(radius * 0.35, 0, 0);
+    const cardMeshes: THREE.Mesh[] = [];
+
+    data.forEach((item, i) => {
+      // +Math.PI/2: sin este offset, la tarjeta 0 arranca de costado (mirando en +x, casi
+      // de canto para la cámara) en vez de de frente — con FrontSide, según cuántas
+      // categorías haya y el aspect ratio del contenedor, podía no haber NINGUNA
+      // tarjeta mirando a cámara en reposo (pasaba en mobile). Así, la tarjeta 0 siempre
+      // arranca centrada mirando directo a la cámara.
+      const angle = (i / total) * Math.PI * 2 + Math.PI / 2;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+
+      const geometry = new THREE.PlaneGeometry(5, 3.4);
+      // FrontSide (no DoubleSide): con texto, mostrar la cara trasera de una tarjeta del
+      // otro lado del anillo se ve como texto espejado/roto — mejor que esas tarjetas
+      // queden ocultas hasta que roten hacia la cámara, en vez de verse invertidas.
+      const material = new THREE.MeshBasicMaterial({
+        map: createLabelTexture(item.nombre),
+        side: THREE.FrontSide,
+      });
+
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(x, 0, z);
+      mesh.lookAt(0, 0, 0);
+      mesh.rotateY(Math.PI);
+      mesh.userData.slug = item.slug;
+
+      carouselGroup.add(mesh);
+      cardMeshes.push(mesh);
+    });
+
+    function resize() {
+      const { width, height } = root!.getBoundingClientRect();
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // Rotación por wheel/drag — capturada en el contenedor, nunca en window (ver
+    // comentario del frontmatter). El drag también sirve como gesto en mobile: el touch
+    // queda "capturado" por el elemento donde empezó, no por toda la página.
+    let targetRotation = 0;
+    let currentRotation = 0;
+
+    root.addEventListener(
+      'wheel',
+      (event) => {
+        event.preventDefault();
+        targetRotation += event.deltaY * 0.0025;
+      },
+      { passive: false }
+    );
+
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragDistance = 0;
+
+    const onDragStart = (clientX: number) => {
+      isDragging = true;
+      dragStartX = clientX;
+      dragDistance = 0;
+      renderer.domElement.style.cursor = 'grabbing';
+    };
+    const onDragMove = (clientX: number) => {
+      if (!isDragging) return;
+      const delta = clientX - dragStartX;
+      dragDistance += Math.abs(delta);
+      targetRotation -= delta * 0.01;
+      dragStartX = clientX;
+    };
+    const onDragEnd = () => {
+      isDragging = false;
+      renderer.domElement.style.cursor = 'grab';
+    };
+
+    renderer.domElement.addEventListener('mousedown', (e) => onDragStart(e.clientX));
+    window.addEventListener('mousemove', (e) => onDragMove(e.clientX));
+    window.addEventListener('mouseup', onDragEnd);
+
+    renderer.domElement.addEventListener(
+      'touchstart',
+      (e) => onDragStart(e.touches[0].clientX),
+      { passive: true }
+    );
+    renderer.domElement.addEventListener(
+      'touchmove',
+      (e) => {
+        onDragMove(e.touches[0].clientX);
+      },
+      { passive: true }
+    );
+    renderer.domElement.addEventListener('touchend', onDragEnd);
+
+    // Click/tap sobre una tarjeta navega a esa categoría — solo si no fue un drag.
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+
+    function handleTap(clientX: number, clientY: number) {
+      if (dragDistance > 6) return;
+      const rect = root!.getBoundingClientRect();
+      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(cardMeshes);
+      const slug = hits[0]?.object.userData.slug;
+      if (slug) window.location.href = `/categoria/${slug}`;
+    }
+
+    renderer.domElement.addEventListener('click', (e) => handleTap(e.clientX, e.clientY));
+
+    function animate() {
+      requestAnimationFrame(animate);
+      currentRotation += (targetRotation - currentRotation) * 0.08;
+      carouselGroup.rotation.y = currentRotation;
+      renderer.render(scene, camera);
+    }
+    animate();
+  }
+
+  initOrbit();
+</script>

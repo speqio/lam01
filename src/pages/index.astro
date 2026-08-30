@@ -6,6 +6,7 @@ import EntryFlipCard3D from '../components/ui/EntryFlipCard3D.tsx';
 import HeroAnagram from '../components/HeroAnagram.astro';
 import ArchivoStack from '../components/ArchivoStack.astro';
 import HoverRevealHero from '../components/HoverRevealHero.astro';
+import CategoriasCarousel from '../components/CategoriasCarousel.astro';
 
 const numeros = await getCollection('numeros');
 const numerosOrdenados = numeros.sort(
@@ -46,6 +47,8 @@ const flipItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
   coverImage: entrada.data.portada,
   href: `/entrada/${entrada.id}`,
 }));
+
+const categorias = await getCollection('categorias');
 ---
 
 <BaseLayout title="Blog Literario">
@@ -76,6 +79,8 @@ const flipItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
       </section>
     )
   }
+
+  <CategoriasCarousel categorias={categorias} />
 
   <ArchivoStack numeros={numeros} />
 </BaseLayout>

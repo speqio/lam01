@@ -30,19 +30,19 @@ const { categorias } = Astro.props;
 {
   categorias.length > 0 && (
     <section class="relative mb-12">
-      <div class="mb-6 md:hidden">
+      <div class="mb-4 md:hidden">
         <h2 class="font-headline text-2xl lg:text-3xl">Categorías</h2>
       </div>
 
-      <div id="categorias-orbit" class="relative h-[50vh] w-full overflow-hidden border border-ink/15 bg-paper md:h-[70vh]">
+      <div id="categorias-orbit" class="relative h-[38vh] w-full overflow-hidden bg-accent md:h-[75vh]">
         <aside class="pointer-events-none absolute left-4 top-1/2 z-10 hidden max-w-[280px] -translate-y-1/2 md:left-10 md:block">
-          <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+          <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-paper/60">
             Espacio 3D · Órbita
           </span>
-          <h2 class="mb-3 font-headline text-4xl uppercase leading-none tracking-tight text-ink lg:text-6xl">
+          <h2 class="mb-3 font-headline text-4xl uppercase leading-none tracking-tight text-paper lg:text-6xl">
             Categorías
           </h2>
-          <p class="font-serif text-sm italic leading-relaxed text-ink/70">
+          <p class="font-serif text-sm italic leading-relaxed text-paper/80">
             Arrastrá el scroll para hacer girar las categorías en su propio espacio
             tridimensional continuo.
           </p>
@@ -80,7 +80,7 @@ const { categorias } = Astro.props;
 
     await document.fonts.ready;
 
-    const ink = '#000000';
+    const marfil = '#FFFFF0';
 
     function createLabelTexture(nombre: string): THREE.CanvasTexture {
       const scale = 3;
@@ -92,7 +92,9 @@ const { categorias } = Astro.props;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.textAlign = 'center';
 
-      ctx.fillStyle = ink;
+      // Fondo de la sección es accent (rojo oscuro); el texto va en marfil para el
+      // contraste que pedía el usuario, en vez del negro que se usaba sobre fondo claro.
+      ctx.fillStyle = marfil;
       let fontSize = 58 * scale;
       const maxWidth = canvas.width - 64 * scale;
       const label = nombre.toUpperCase();
@@ -217,7 +219,7 @@ const { categorias } = Astro.props;
         dot.type = 'button';
         dot.setAttribute('aria-label', item.nombre);
         dot.className =
-          'categorias-orbit-dot pointer-events-auto h-2 w-2 rounded-full border border-ink/40 bg-transparent transition-transform';
+          'categorias-orbit-dot pointer-events-auto h-2.5 w-2.5 rounded-full border border-paper/40 bg-paper/10 transition-all duration-300';
         dot.addEventListener('click', () => setActiveIndex(i));
         pagination.appendChild(dot);
         dotButtons.push(dot);
@@ -232,9 +234,12 @@ const { categorias } = Astro.props;
       lastActiveIndex = idx;
       dotButtons.forEach((btn, i) => {
         const active = i === idx;
-        btn.classList.toggle('bg-ink', active);
-        btn.classList.toggle('border-ink', active);
+        btn.classList.toggle('bg-accent-amber', active);
+        btn.classList.toggle('border-accent-amber', active);
+        btn.classList.toggle('bg-paper/10', !active);
+        btn.classList.toggle('border-paper/40', !active);
         btn.classList.toggle('scale-125', active);
+        btn.classList.toggle('shadow-[0_0_0_3px_rgba(176,96,11,0.35)]', active);
       });
     }
 

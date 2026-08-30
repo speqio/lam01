@@ -44,7 +44,7 @@ const { categorias } = Astro.props;
         </h2>
       </div>
 
-      <div id="categorias-orbit" class="relative h-[38vh] w-full overflow-hidden border border-ink/15 bg-paper md:h-[60vh]">
+      <div id="categorias-orbit" class="relative h-[38vh] w-full overflow-hidden bg-paper md:h-[60vh]">
         <div
           class="categorias-orbit-canvas absolute inset-0"
           data-categorias={JSON.stringify(categorias.map((c) => ({ slug: c.id, nombre: c.data.nombre })))}

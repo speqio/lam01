@@ -2,32 +2,31 @@
 import type { CollectionEntry } from 'astro:content';
 
 /**
- * Carrusel automático de categorías: pista CSS que se desplaza en loop infinito
- * (adaptado de una referencia de marquee de tarjetas con fondo, reemplaza al carrusel
- * 3D en Three.js que había antes). Cada tarjeta es un link real a `/categoria/[id]`.
+ * Carrusel de categorías — DOS mecanismos de navegación distintos según el tamaño, a
+ * propósito (mismo criterio que NumeroSequence.astro):
  *
- * El loop es JS (rAF + `translateX` en px, offset con módulo sobre el ancho de un set):
- * la pista renderiza la lista de categorías dos veces seguidas, así que cuando el
- * primer set termina de salir por la izquierda el segundo ya está en la posición
- * inicial del primero. Es JS y no CSS puro porque además del autoplay hay que poder
- * navegar con la rueda del mouse/trackpad estando encima (mismo criterio que el resto
- * de las secciones scroll-driven de este sitio: la rueda se captura en el contenedor,
- * nunca en window). El segundo set se marca `aria-hidden`/`tabindex="-1"` para que
- * lectores de pantalla y navegación por teclado no encuentren cada categoría dos veces.
+ * - Desktop (md+): autoplay + loop infinito en JS (rAF + `translateX` en px, offset con
+ *   módulo sobre el ancho de un set) y navegación con la rueda del mouse/trackpad
+ *   estando encima — capturada en el contenedor, nunca en window. La pista renderiza
+ *   la lista de categorías dos veces seguidas para el loop; el segundo set se marca
+ *   `aria-hidden`/`tabindex="-1"` para que lectores de pantalla y teclado no lo vean.
+ *
+ * - Mobile: SIN autoplay — se probó y la animación continua ahí se sentía pesada aun
+ *   optimizada (ver historial de este componente), y además "algo que se mueve solo"
+ *   no comunica que se puede navegar. En su lugar es un carril con scroll horizontal
+ *   NATIVO (`overflow-x` + `scroll-snap`, sin JS de por medio moviendo nada — el
+ *   navegador compone el scroll, no hay forma más barata) y puntos de paginación
+ *   debajo que (a) avisan que hay más categorías para el lado y (b) marcan cuál está
+ *   activa a medida que se scrollea. El segundo set (solo necesario para el loop
+ *   infinito de desktop) se oculta en mobile — el scroll nativo es finito, no loop.
  *
  * Las categorías no tienen portada propia en el CMS (ver `imagenPorCategoria`, resuelto
  * en index.astro a partir de la entrada más reciente de cada categoría) — la tarjeta
  * cae a un panel tipográfico cuando no hay ninguna disponible todavía.
  *
- * Dos decisiones de rendimiento, ambas para que la animación en mobile no se ponga
- * pesada/lenta (era notorio justo al cruzar el borde izquierdo, donde vivía el mask):
- * - Las fotos van en `<img loading="lazy" decoding="async">` en vez de
- *   `background-image` inline: así el navegador puede decodificarlas fuera del hilo
- *   principal y no descargar las del segundo set (fuera de vista) de entrada.
- * - El desvanecido de los bordes es un par de overlays con gradiente (color sólido,
- *   compositados una sola vez), no un `mask-image` sobre todo el contenedor — un mask
- *   sobre una pista con fotos moviéndose obliga a recomponer la máscara contra el
- *   contenido en cada frame, que es justo lo que se sentía pesado en mobile.
+ * Las fotos van en `<img loading="lazy" decoding="async">` en vez de background-image
+ * inline: el navegador las decodifica fuera del hilo principal y no descarga las del
+ * segundo set (fuera de vista en desktop, inexistente en mobile) de entrada.
  */
 interface Props {
   categorias: CollectionEntry<'categorias'>[];
@@ -85,7 +84,7 @@ const { categorias, imagenPorCategoria } = Astro.props;
             </li>
           ))}
           {categorias.map((categoria) => (
-            <li class="categorias-marquee-card" aria-hidden="true">
+            <li class="categorias-marquee-card hidden md:block" aria-hidden="true">
               <a
                 href={`/categoria/${categoria.id}`}
                 tabindex="-1"
@@ -122,6 +121,20 @@ const { categorias, imagenPorCategoria } = Astro.props;
           aria-hidden="true"
         />
       </div>
+
+      <div
+        class="categorias-marquee-pagination mt-4 flex flex-wrap items-center justify-center gap-2 md:hidden"
+        role="tablist"
+        aria-label="Ir a categoría"
+      >
+        {categorias.map((categoria) => (
+          <button
+            type="button"
+            class="categorias-marquee-dot h-1.5 w-1.5 shrink-0 rounded-full border border-ink/30 bg-ink/10 transition-all duration-300"
+            aria-label={`Ir a ${categoria.data.nombre}`}
+          />
+        ))}
+      </div>
     </section>
   )
 }
@@ -130,14 +143,32 @@ const { categorias, imagenPorCategoria } = Astro.props;
   .categorias-marquee-view {
     position: relative;
     width: 100%;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    touch-action: pan-y;
+    contain: layout paint;
+  }
+
+  .categorias-marquee-view::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .categorias-marquee-view {
+      overflow: hidden;
+      scroll-snap-type: none;
+    }
   }
 
   .categorias-marquee-track {
     display: flex;
     width: max-content;
-    /* La posición la escribe el script (rAF + wheel) vía transform inline. */
     will-change: transform;
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
   }
 
   .categorias-marquee-card {
@@ -145,6 +176,7 @@ const { categorias, imagenPorCategoria } = Astro.props;
     height: 17rem;
     margin-right: 1rem;
     flex-shrink: 0;
+    scroll-snap-align: start;
   }
 
   @media (min-width: 768px) {
@@ -165,23 +197,16 @@ const { categorias, imagenPorCategoria } = Astro.props;
 <script>
   const AUTOPLAY_DURATION_S = 48;
 
-  function initMarquee() {
-    const view = document.getElementById('categorias-marquee');
-    const track = view?.querySelector<HTMLElement>('.categorias-marquee-track');
-    if (!view || !track) return;
-
+  function initDesktopMarquee(view: HTMLElement, trackEl: HTMLElement) {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
 
-    // La pista renderiza el set de categorías dos veces. Tomamos el ancho exacto del
-    // conjunto para que la animación siga siendo precisa aunque cambie el breakpoint.
     let setWidth = 0;
     let offset = 0;
     let isInteracting = false;
     let lastTime: number | null = null;
 
     function measure() {
-      const width = track.scrollWidth;
+      const width = trackEl.scrollWidth;
       setWidth = width > 0 ? width / 2 : 0;
       if (setWidth <= 0) return;
       offset = ((offset % setWidth) + setWidth) % setWidth;
@@ -190,15 +215,12 @@ const { categorias, imagenPorCategoria } = Astro.props;
 
     function render() {
       if (!setWidth) return;
-      track.style.transform = `translate3d(${-offset}px, 0, 0)`;
+      trackEl.style.transform = `translate3d(${-offset}px, 0, 0)`;
     }
 
-    // En móvil no se captura la rueda ni el scroll del contenedor para evitar que el
-    // carrusel “se coma” el desplazamiento de la página y termine ralentizándose.
     view.addEventListener(
       'wheel',
       (event) => {
-        if (isCoarsePointer) return;
         event.preventDefault();
         const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
         if (!delta || !setWidth) return;
@@ -208,10 +230,8 @@ const { categorias, imagenPorCategoria } = Astro.props;
       { passive: false }
     );
 
-    // El autoplay se pausa sólo cuando el usuario interactúa con el carrusel y en
-    // pantallas no táctiles, para mantener el rendimiento estable en mobile.
     view.addEventListener('mouseenter', () => {
-      if (!isCoarsePointer) isInteracting = true;
+      isInteracting = true;
     });
     view.addEventListener('mouseleave', () => {
       isInteracting = false;
@@ -253,6 +273,59 @@ const { categorias, imagenPorCategoria } = Astro.props;
     }
 
     requestAnimationFrame(tick);
+  }
+
+  // Mobile: sin autoplay, el navegador scrollea nativo (scroll-snap). Los puntos son
+  // indicador de posición + atajo para saltar a una tarjeta — nada mueve la pista por
+  // JS, solo se lee `view.scrollLeft` para saber cuál está activa.
+  function initMobilePagination(view: HTMLElement, trackEl: HTMLElement) {
+    const dots = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('.categorias-marquee-dot')
+    );
+    if (dots.length === 0) return;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const step = () => trackEl.scrollWidth / dots.length;
+
+    let lastActive = -1;
+    function updateActive() {
+      const index = Math.max(0, Math.min(dots.length - 1, Math.round(view.scrollLeft / step())));
+      if (index === lastActive) return;
+      lastActive = index;
+      dots.forEach((dot, i) => {
+        const active = i === index;
+        dot.classList.toggle('bg-accent', active);
+        dot.classList.toggle('border-accent', active);
+        dot.classList.toggle('scale-125', active);
+        dot.classList.toggle('bg-ink/10', !active);
+        dot.classList.toggle('border-ink/30', !active);
+      });
+    }
+
+    dots.forEach((dot, i) => {
+      dot.addEventListener('click', () => {
+        view.scrollTo({ left: i * step(), behavior: reduceMotion ? 'auto' : 'smooth' });
+      });
+    });
+
+    view.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+  }
+
+  function initMarquee() {
+    const view = document.getElementById('categorias-marquee');
+    if (!(view instanceof HTMLElement)) return;
+
+    const track = view.querySelector('.categorias-marquee-track');
+    if (!(track instanceof HTMLElement)) return;
+
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+
+    if (isDesktop) {
+      initDesktopMarquee(view, track);
+    } else {
+      initMobilePagination(view, track);
+    }
   }
 
   initMarquee();

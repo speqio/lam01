@@ -123,14 +123,14 @@ const { categorias, imagenPorCategoria } = Astro.props;
       </div>
 
       <div
-        class="categorias-marquee-pagination mt-4 flex flex-wrap items-center justify-center gap-2 md:hidden"
+        class="categorias-marquee-pagination mt-4 flex flex-wrap items-center justify-center gap-2.5 md:hidden"
         role="tablist"
         aria-label="Ir a categoría"
       >
         {categorias.map((categoria) => (
           <button
             type="button"
-            class="categorias-marquee-dot h-1.5 w-1.5 shrink-0 rounded-full border border-ink/30 bg-ink/10 transition-all duration-300"
+            class="categorias-marquee-dot h-2.5 w-2.5 shrink-0 rounded-full border border-ink/30 bg-ink/10 transition-all duration-300"
             aria-label={`Ir a ${categoria.data.nombre}`}
           />
         ))}
@@ -148,7 +148,11 @@ const { categorias, imagenPorCategoria } = Astro.props;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    touch-action: pan-y;
+    /* pan-x (no pan-y): el navegador tiene que manejar nativo el swipe horizontal acá
+       adentro para que el scroll-snap responda al dedo sobre las cards, no solo al
+       tocar los puntos de paginación — un swipe vertical que arranca acá sigue
+       burbujeando como scroll normal de la página. */
+    touch-action: pan-x;
     contain: layout paint;
   }
 

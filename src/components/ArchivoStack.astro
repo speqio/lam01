@@ -32,18 +32,30 @@ const ordenados = [...numeros].sort((a, b) => b.data.fecha.valueOf() - a.data.fe
 {
   ordenados.length > 0 && (
     <section class="mb-12">
-      <div class="mb-6 flex items-baseline justify-between">
-        <div>
-          <h2 class="font-headline text-2xl lg:text-3xl">
-            <a href="/archivo/" class="transition-colors hover:text-accent">Archivo</a>
-          </h2>
-        </div>
+      <div class="mb-6 md:hidden">
+        <h2 class="font-headline text-2xl lg:text-3xl">
+          <a href="/archivo/" class="transition-colors hover:text-accent">Archivo</a>
+        </h2>
       </div>
 
       <div class="archivo-stack-container relative h-[420px] w-full overflow-hidden sm:h-[480px] md:h-[560px]">
+        <aside class="pointer-events-none absolute left-4 top-1/2 z-10 hidden max-w-[280px] -translate-y-1/2 md:left-10 md:block">
+          <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+            Números anteriores
+          </span>
+          <h2 class="mb-3 font-headline text-4xl uppercase leading-none tracking-tight text-ink lg:text-6xl">
+            <a href="/archivo/" class="pointer-events-auto transition-colors hover:text-accent">
+              Archivo
+            </a>
+          </h2>
+          <p class="font-serif text-sm italic leading-relaxed text-ink/70">
+            Hacé click en la pila para pasar a la siguiente edición.
+          </p>
+        </aside>
+
         <div class="archivo-stack-slider absolute inset-0 [perspective:500px]">
           {ordenados.map((numero, index) => (
-            <div class="archivo-stack-card absolute left-1/2 top-1/2 h-[280px] w-[85%] max-w-md overflow-hidden border border-ink bg-ink [transform:translate3d(-50%,-50%,0)] sm:h-[340px] md:w-[70%]">
+            <div class="archivo-stack-card absolute left-1/2 top-1/2 h-[280px] w-[85%] max-w-md overflow-hidden border border-ink bg-ink [transform:translate3d(-50%,-50%,0)] sm:h-[340px] md:left-[64%] md:w-[70%]">
               <img
                 src={numero.data.portada}
                 alt=""

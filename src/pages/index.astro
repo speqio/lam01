@@ -65,16 +65,32 @@ const categorias = await getCollection('categorias');
   {
     swipeItems.length > 0 && (
       <section class="mb-4">
-        <h2 class="font-headline text-2xl lg:text-3xl">Últimas entradas</h2>
+        <div class="md:hidden">
+          <h2 class="font-headline text-2xl lg:text-3xl">Últimas entradas</h2>
+        </div>
 
-        {/* Mobile: swipe deck. Desktop: abanico 3D más grande, con click-to-front. Se
-            hidratan las dos islas y se alternan por CSS — mismo patrón que el nav
-            flotante/Header. */}
+        {/* Mobile: swipe deck. Desktop: abanico 3D más grande, con click-to-front, más
+            un aside de texto flotando a la izquierda — misma diagramación que
+            Categorías/Archivo en desktop. Se hidratan las dos islas y se alternan por
+            CSS — mismo patrón que el nav flotante/Header. */}
         <div class="mt-8 md:hidden">
           <SwipeCard client:visible items={swipeItems} />
         </div>
-        <div class="hidden md:block">
-          <EntryFlipCard3D client:visible items={flipItems} />
+        <div class="relative hidden md:block">
+          <aside class="pointer-events-none absolute left-4 top-1/2 z-10 max-w-[280px] -translate-y-1/2 md:left-10">
+            <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+              Recién publicado
+            </span>
+            <h2 class="mb-3 font-headline text-4xl uppercase leading-none tracking-tight text-ink lg:text-6xl">
+              Últimas entradas
+            </h2>
+            <p class="font-serif text-sm italic leading-relaxed text-ink/70">
+              Pasá el mouse y hacé click en una tapa para traerla al frente.
+            </p>
+          </aside>
+          <div class="md:pl-72 lg:pl-80">
+            <EntryFlipCard3D client:visible items={flipItems} />
+          </div>
         </div>
       </section>
     )

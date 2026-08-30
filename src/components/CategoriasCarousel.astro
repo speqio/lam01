@@ -31,13 +31,7 @@ const { categorias } = Astro.props;
   categorias.length > 0 && (
     <section class="relative mb-12">
       <div class="mb-6 md:hidden">
-        <p class="font-mono text-xs uppercase tracking-widest text-accent-amber">
-          Espacio 3D · Órbita
-        </p>
-        <h2 class="mt-1 font-headline text-2xl leading-none text-ink lg:text-3xl">Categorías</h2>
-        <p class="mt-2 max-w-md font-serif text-sm italic text-ink/70">
-          Arrastrá para hacer girar las categorías en su propio espacio tridimensional.
-        </p>
+        <h2 class="font-headline text-2xl lg:text-3xl">Categorías</h2>
       </div>
 
       <div id="categorias-orbit" class="relative h-[50vh] w-full overflow-hidden border border-ink/15 bg-paper md:h-[70vh]">
@@ -175,7 +169,15 @@ const { categorias } = Astro.props;
 
     function resize() {
       const { width, height } = root!.getBoundingClientRect();
-      camera.aspect = width / height;
+      const aspect = width / height;
+      camera.aspect = aspect;
+      // Con FOV vertical fijo, un contenedor más alto/angosto (aspect chico) tiene menos
+      // FOV horizontal — las tarjetas se ven más "acercadas" y pueden invadir la zona del
+      // aside aunque el offset del grupo no haya cambiado. Alejar la cámara cuando el
+      // aspect baja del de referencia compensa eso y mantiene el tamaño aparente estable.
+      const referenceAspect = 1.8;
+      const aspectFactor = Math.max(1, referenceAspect / aspect);
+      camera.position.z = 22 * aspectFactor;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
     }

@@ -11,14 +11,20 @@ import type { CollectionEntry } from 'astro:content';
  *   la lista de categorías dos veces seguidas para el loop; el segundo set se marca
  *   `aria-hidden`/`tabindex="-1"` para que lectores de pantalla y teclado no lo vean.
  *
- * - Mobile: SIN autoplay — se probó y la animación continua ahí se sentía pesada aun
- *   optimizada (ver historial de este componente), y además "algo que se mueve solo"
- *   no comunica que se puede navegar. En su lugar es un carril con scroll horizontal
- *   NATIVO (`overflow-x` + `scroll-snap`, sin JS de por medio moviendo nada — el
- *   navegador compone el scroll, no hay forma más barata) y puntos de paginación
- *   debajo que (a) avisan que hay más categorías para el lado y (b) marcan cuál está
- *   activa a medida que se scrollea. El segundo set (solo necesario para el loop
- *   infinito de desktop) se oculta en mobile — el scroll nativo es finito, no loop.
+ * - Mobile: sin autoplay, sin "peek" de la card siguiente, sin JS moviendo nada — cada
+ *   tarjeta ocupa el ancho completo del carril (una sola visible por pantalla) y el
+ *   navegador scrollea nativo con scroll-snap, una tarjeta por swipe, como una vista
+ *   paginada. Se llegó acá después de que la versión anterior (varias tarjetas
+ *   parcialmente visibles a los costados, atenuadas/deshabilitadas por JS) siguiera
+ *   reportando un artefacto visual en mobile que no se pudo reproducir ni acotar por
+ *   descarte de propiedades CSS puntuales — en vez de seguir ajustando esa versión, se
+ *   simplifica de raíz: con una sola tarjeta entera visible a la vez no hay ninguna
+ *   parcialmente pintada al costado, no hace falta togglear opacity/pointer-events por
+ *   scroll (todas las tarjetas quedan siempre clickeables, total solo una está en
+ *   pantalla), y el ancho de tarjeta se mide en px reales (`view.clientWidth`) en vez
+ *   de estimarse en `vw` — la misma lección de NumeroSequence.astro: `vw` no es
+ *   confiable entre navegadores mobile por la barra de direcciones dinámica. Los
+ *   puntos de paginación debajo avisan que hay más categorías y sirven de atajo.
  *
  * Las categorías no tienen portada propia en el CMS (ver `imagenPorCategoria`, resuelto
  * en index.astro a partir de la entrada más reciente de cada categoría) — la tarjeta
@@ -107,11 +113,11 @@ const { categorias, imagenPorCategoria } = Astro.props;
         </ul>
 
         <div
-          class="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-canvas to-transparent md:w-16"
+          class="pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-16 bg-gradient-to-r from-canvas to-transparent md:block"
           aria-hidden="true"
         />
         <div
-          class="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-canvas to-transparent md:w-16"
+          class="pointer-events-none absolute inset-y-0 right-0 z-10 hidden w-16 bg-gradient-to-l from-canvas to-transparent md:block"
           aria-hidden="true"
         />
       </div>
@@ -163,40 +169,30 @@ const { categorias, imagenPorCategoria } = Astro.props;
   .categorias-marquee-track {
     display: flex;
     width: max-content;
-    /* Solo en mobile (se resetea a 0 en md:): deja aire a los costados para que la
-       primera y la última card también puedan llegar al centro del carril con
-       scroll-snap-align: center más abajo — si no, quedarían pegadas contra un borde. */
-    padding-inline: calc(50vw - 6rem);
   }
 
   .categorias-marquee-card {
-    width: 12rem;
-    height: 17rem;
-    margin-right: 1rem;
+    /* Una sola tarjeta entera por pantalla en mobile — nada parcialmente visible al
+       costado. El ancho lo pisa el script con el px real del carril
+       (--categorias-card-w, medido con view.clientWidth); este calc(100vw - 2rem) es
+       solo el placeholder para el primer paint antes de que el script corra. */
+    width: var(--categorias-card-w, calc(100vw - 2rem));
+    height: 18rem;
+    margin-right: 0;
     flex-shrink: 0;
-    /* center (no start): en mobile solo la card del medio queda "disponible" — el
-       script deshabilita el link de las demás mientras no estén centradas (ver
-       <script>), así que tienen que llegar exactamente al centro, no a un borde. */
-    scroll-snap-align: center;
+    scroll-snap-align: start;
   }
 
-  /* Degradado de legibilidad para el título sobre la foto: antes era un <span>
-     absolute inset-0 aparte (una capa extra de alpha-blend por card, encima de la
-     imagen, encima del fondo — bastante peso para renderizar en simultáneo durante un
-     scroll nativo rápido en mobile). Con box-shadow inset es la misma idea sin sumar
-     una capa/nodo del DOM propio. */
+  /* Degradado de legibilidad para el título sobre la foto — box-shadow inset en vez de
+     un <span> aparte, para no sumar una capa de alpha-blend por card. */
   .categorias-marquee-link {
     box-shadow: inset 0 -70px 50px -20px rgba(18, 18, 18, 0.85);
   }
 
   @media (min-width: 768px) {
     .categorias-marquee-track {
-      padding-inline: 0;
       /* Solo hace falta la capa GPU propia en desktop: ahí sí hay un transform que el
-         script reescribe cada frame para el autoplay/rueda. En mobile la posición la
-         maneja el scroll nativo, no un transform animado, así que forzar una capa acá
-         es puro costo (y en algunos navegadores mobile, causa de artefactos visuales
-         fantasma) sin ningún beneficio. */
+         script reescribe cada frame para el autoplay/rueda. */
       will-change: transform;
       backface-visibility: hidden;
       transform: translate3d(0, 0, 0);
@@ -205,6 +201,7 @@ const { categorias, imagenPorCategoria } = Astro.props;
     .categorias-marquee-card {
       width: 15rem;
       height: 21rem;
+      margin-right: 1rem;
     }
   }
 
@@ -297,13 +294,12 @@ const { categorias, imagenPorCategoria } = Astro.props;
     requestAnimationFrame(tick);
   }
 
-  // Mobile: sin autoplay, el navegador scrollea nativo (scroll-snap por card,
-  // centrado). Solo la card centrada queda clickeable — las de al lado (que se ven
-  // parcialmente por el padding-inline del track) se deshabilitan mientras no estén
-  // en el centro, así un toque cerca del borde nunca navega a la card equivocada. Las
-  // posiciones se miden por geometría real (offsetLeft) en vez de asumir un ancho
-  // uniforme por card, porque el padding-inline ya no hace que scrollWidth/N sea el
-  // "paso" correcto entre cards.
+  // Mobile: una tarjeta entera por pantalla, sin autoplay, sin JS moviendo nada — el
+  // navegador scrollea nativo con scroll-snap. Como nunca hay más de una visible a la
+  // vez, no hace falta deshabilitar ninguna: todas quedan siempre clickeables. El
+  // único trabajo del script es (a) fijar el ancho de tarjeta = ancho real del carril
+  // en px, medido, no estimado en vw, y (b) marcar qué punto de paginación corresponde
+  // a la tarjeta visible / saltar a una al tocar un punto.
   function initMobilePagination(view: HTMLElement, trackEl: HTMLElement) {
     const cards = Array.from(trackEl.children).filter(
       (li): li is HTMLLIElement => li instanceof HTMLLIElement && !li.hasAttribute('aria-hidden')
@@ -313,30 +309,18 @@ const { categorias, imagenPorCategoria } = Astro.props;
     );
     if (cards.length === 0 || dots.length === 0) return;
 
-    const links = cards.map((card) => card.querySelector<HTMLAnchorElement>('a'));
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function targetScrollLeft(card: HTMLElement) {
-      return card.offsetLeft + card.offsetWidth / 2 - view.clientWidth / 2;
+    function sizeCards() {
+      view.style.setProperty('--categorias-card-w', `${view.clientWidth}px`);
     }
-
-    function closestIndex() {
-      const center = view.scrollLeft + view.clientWidth / 2;
-      let closest = 0;
-      let closestDist = Infinity;
-      cards.forEach((card, i) => {
-        const dist = Math.abs(card.offsetLeft + card.offsetWidth / 2 - center);
-        if (dist < closestDist) {
-          closestDist = dist;
-          closest = i;
-        }
-      });
-      return closest;
-    }
+    sizeCards();
+    window.addEventListener('resize', sizeCards, { passive: true });
 
     let lastActive = -1;
     function updateActive() {
-      const index = closestIndex();
+      const step = view.clientWidth || 1;
+      const index = Math.max(0, Math.min(cards.length - 1, Math.round(view.scrollLeft / step)));
       if (index === lastActive) return;
       lastActive = index;
 
@@ -348,19 +332,11 @@ const { categorias, imagenPorCategoria } = Astro.props;
         dot.classList.toggle('bg-ink/10', !active);
         dot.classList.toggle('border-ink/30', !active);
       });
-
-      links.forEach((link, i) => {
-        if (!link) return;
-        const active = i === index;
-        link.classList.toggle('pointer-events-none', !active);
-        link.classList.toggle('opacity-60', !active);
-        link.tabIndex = active ? 0 : -1;
-      });
     }
 
     dots.forEach((dot, i) => {
       dot.addEventListener('click', () => {
-        view.scrollTo({ left: targetScrollLeft(cards[i]), behavior: reduceMotion ? 'auto' : 'smooth' });
+        view.scrollTo({ left: i * view.clientWidth, behavior: reduceMotion ? 'auto' : 'smooth' });
       });
     });
 
@@ -384,6 +360,7 @@ const { categorias, imagenPorCategoria } = Astro.props;
 
     if ('ResizeObserver' in window) {
       const resizeObserver = new ResizeObserver(() => {
+        sizeCards();
         lastActive = -1;
         updateActive();
       });

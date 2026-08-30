@@ -58,7 +58,7 @@ const { categorias, imagenPorCategoria } = Astro.props;
             <li class="categorias-marquee-card">
               <a
                 href={`/categoria/${categoria.id}`}
-                class="group relative block h-full w-full overflow-hidden border border-ink/15 bg-surface transition duration-300 hover:border-accent"
+                class="categorias-marquee-link group relative block h-full w-full overflow-hidden border border-ink/15 bg-surface transition duration-300 hover:border-accent"
               >
                 {imagenPorCategoria[categoria.id] && (
                   <img
@@ -68,9 +68,6 @@ const { categorias, imagenPorCategoria } = Astro.props;
                     decoding="async"
                     class="pointer-events-none absolute inset-0 h-full w-full object-cover"
                   />
-                )}
-                {imagenPorCategoria[categoria.id] && (
-                  <span class="absolute inset-0 bg-gradient-to-t from-canvas/90 via-canvas/10 to-transparent" />
                 )}
                 <span class="relative flex h-full flex-col justify-end p-4">
                   <span class="font-headline text-lg uppercase leading-tight text-ink lg:text-xl">
@@ -88,7 +85,7 @@ const { categorias, imagenPorCategoria } = Astro.props;
               <a
                 href={`/categoria/${categoria.id}`}
                 tabindex="-1"
-                class="group relative block h-full w-full overflow-hidden border border-ink/15 bg-surface transition-colors duration-300 hover:border-accent"
+                class="categorias-marquee-link group relative block h-full w-full overflow-hidden border border-ink/15 bg-surface transition-colors duration-300 hover:border-accent"
               >
                 {imagenPorCategoria[categoria.id] && (
                   <img
@@ -98,9 +95,6 @@ const { categorias, imagenPorCategoria } = Astro.props;
                     decoding="async"
                     class="pointer-events-none absolute inset-0 h-full w-full object-cover"
                   />
-                )}
-                {imagenPorCategoria[categoria.id] && (
-                  <span class="absolute inset-0 bg-gradient-to-t from-canvas/90 via-canvas/10 to-transparent" />
                 )}
                 <span class="relative flex h-full flex-col justify-end p-4">
                   <span class="font-headline text-lg uppercase leading-tight text-ink lg:text-xl">
@@ -153,7 +147,6 @@ const { categorias, imagenPorCategoria } = Astro.props;
        tocar los puntos de paginación — un swipe vertical que arranca acá sigue
        burbujeando como scroll normal de la página. */
     touch-action: pan-x;
-    contain: layout paint;
   }
 
   .categorias-marquee-view::-webkit-scrollbar {
@@ -185,6 +178,15 @@ const { categorias, imagenPorCategoria } = Astro.props;
        script deshabilita el link de las demás mientras no estén centradas (ver
        <script>), así que tienen que llegar exactamente al centro, no a un borde. */
     scroll-snap-align: center;
+  }
+
+  /* Degradado de legibilidad para el título sobre la foto: antes era un <span>
+     absolute inset-0 aparte (una capa extra de alpha-blend por card, encima de la
+     imagen, encima del fondo — bastante peso para renderizar en simultáneo durante un
+     scroll nativo rápido en mobile). Con box-shadow inset es la misma idea sin sumar
+     una capa/nodo del DOM propio. */
+  .categorias-marquee-link {
+    box-shadow: inset 0 -70px 50px -20px rgba(18, 18, 18, 0.85);
   }
 
   @media (min-width: 768px) {
@@ -362,7 +364,22 @@ const { categorias, imagenPorCategoria } = Astro.props;
       });
     });
 
-    view.addEventListener('scroll', updateActive, { passive: true });
+    // El listener de scroll nativo puede disparar más seguido de lo que hace falta
+    // pintar — se limita a como mucho una lectura de geometría + un posible cambio de
+    // clases por frame, en vez de una por cada evento 'scroll' bruto.
+    let scrollTicking = false;
+    view.addEventListener(
+      'scroll',
+      () => {
+        if (scrollTicking) return;
+        scrollTicking = true;
+        requestAnimationFrame(() => {
+          updateActive();
+          scrollTicking = false;
+        });
+      },
+      { passive: true }
+    );
     updateActive();
 
     if ('ResizeObserver' in window) {

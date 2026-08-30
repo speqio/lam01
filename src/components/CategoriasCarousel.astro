@@ -58,7 +58,7 @@ const { categorias, imagenPorCategoria } = Astro.props;
             <li class="categorias-marquee-card">
               <a
                 href={`/categoria/${categoria.id}`}
-                class="group relative block h-full w-full overflow-hidden border border-ink/15 bg-surface transition-colors duration-300 hover:border-accent"
+                class="group relative block h-full w-full overflow-hidden border border-ink/15 bg-surface transition duration-300 hover:border-accent"
               >
                 {imagenPorCategoria[categoria.id] && (
                   <img
@@ -173,6 +173,10 @@ const { categorias, imagenPorCategoria } = Astro.props;
     will-change: transform;
     backface-visibility: hidden;
     transform: translate3d(0, 0, 0);
+    /* Solo en mobile (se resetea a 0 en md:): deja aire a los costados para que la
+       primera y la última card también puedan llegar al centro del carril con
+       scroll-snap-align: center más abajo — si no, quedarían pegadas contra un borde. */
+    padding-inline: calc(50vw - 6rem);
   }
 
   .categorias-marquee-card {
@@ -180,10 +184,17 @@ const { categorias, imagenPorCategoria } = Astro.props;
     height: 17rem;
     margin-right: 1rem;
     flex-shrink: 0;
-    scroll-snap-align: start;
+    /* center (no start): en mobile solo la card del medio queda "disponible" — el
+       script deshabilita el link de las demás mientras no estén centradas (ver
+       <script>), así que tienen que llegar exactamente al centro, no a un borde. */
+    scroll-snap-align: center;
   }
 
   @media (min-width: 768px) {
+    .categorias-marquee-track {
+      padding-inline: 0;
+    }
+
     .categorias-marquee-card {
       width: 15rem;
       height: 21rem;
@@ -279,23 +290,49 @@ const { categorias, imagenPorCategoria } = Astro.props;
     requestAnimationFrame(tick);
   }
 
-  // Mobile: sin autoplay, el navegador scrollea nativo (scroll-snap). Los puntos son
-  // indicador de posición + atajo para saltar a una tarjeta — nada mueve la pista por
-  // JS, solo se lee `view.scrollLeft` para saber cuál está activa.
+  // Mobile: sin autoplay, el navegador scrollea nativo (scroll-snap por card,
+  // centrado). Solo la card centrada queda clickeable — las de al lado (que se ven
+  // parcialmente por el padding-inline del track) se deshabilitan mientras no estén
+  // en el centro, así un toque cerca del borde nunca navega a la card equivocada. Las
+  // posiciones se miden por geometría real (offsetLeft) en vez de asumir un ancho
+  // uniforme por card, porque el padding-inline ya no hace que scrollWidth/N sea el
+  // "paso" correcto entre cards.
   function initMobilePagination(view: HTMLElement, trackEl: HTMLElement) {
+    const cards = Array.from(trackEl.children).filter(
+      (li): li is HTMLLIElement => li instanceof HTMLLIElement && !li.hasAttribute('aria-hidden')
+    );
     const dots = Array.from(
       document.querySelectorAll<HTMLButtonElement>('.categorias-marquee-dot')
     );
-    if (dots.length === 0) return;
+    if (cards.length === 0 || dots.length === 0) return;
 
+    const links = cards.map((card) => card.querySelector<HTMLAnchorElement>('a'));
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const step = () => trackEl.scrollWidth / dots.length;
+
+    function targetScrollLeft(card: HTMLElement) {
+      return card.offsetLeft + card.offsetWidth / 2 - view.clientWidth / 2;
+    }
+
+    function closestIndex() {
+      const center = view.scrollLeft + view.clientWidth / 2;
+      let closest = 0;
+      let closestDist = Infinity;
+      cards.forEach((card, i) => {
+        const dist = Math.abs(card.offsetLeft + card.offsetWidth / 2 - center);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = i;
+        }
+      });
+      return closest;
+    }
 
     let lastActive = -1;
     function updateActive() {
-      const index = Math.max(0, Math.min(dots.length - 1, Math.round(view.scrollLeft / step())));
+      const index = closestIndex();
       if (index === lastActive) return;
       lastActive = index;
+
       dots.forEach((dot, i) => {
         const active = i === index;
         dot.classList.toggle('bg-accent', active);
@@ -304,16 +341,32 @@ const { categorias, imagenPorCategoria } = Astro.props;
         dot.classList.toggle('bg-ink/10', !active);
         dot.classList.toggle('border-ink/30', !active);
       });
+
+      links.forEach((link, i) => {
+        if (!link) return;
+        const active = i === index;
+        link.classList.toggle('pointer-events-none', !active);
+        link.classList.toggle('opacity-60', !active);
+        link.tabIndex = active ? 0 : -1;
+      });
     }
 
     dots.forEach((dot, i) => {
       dot.addEventListener('click', () => {
-        view.scrollTo({ left: i * step(), behavior: reduceMotion ? 'auto' : 'smooth' });
+        view.scrollTo({ left: targetScrollLeft(cards[i]), behavior: reduceMotion ? 'auto' : 'smooth' });
       });
     });
 
     view.addEventListener('scroll', updateActive, { passive: true });
     updateActive();
+
+    if ('ResizeObserver' in window) {
+      const resizeObserver = new ResizeObserver(() => {
+        lastActive = -1;
+        updateActive();
+      });
+      resizeObserver.observe(view);
+    }
   }
 
   function initMarquee() {

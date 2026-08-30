@@ -52,7 +52,7 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
   class="relative w-full overflow-hidden md:grid md:h-[75vh] md:grid-cols-2 md:gap-10"
 >
   <div class="numero-sequence-info flex flex-col justify-center px-4 md:sticky md:top-20 md:z-10 md:min-w-0 md:self-start md:px-0">
-    <p class="font-mono text-xs uppercase tracking-widest text-accent-amber">{fechaFormateada}</p>
+    <p class="font-mono text-xs uppercase tracking-widest text-ink-muted">{fechaFormateada}</p>
     <h1 class="numero-sequence-title mt-2 font-headline leading-[0.9] text-ink">{titulo}</h1>
     {
       descripcion && (
@@ -73,8 +73,8 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
             href={`/entrada/${item.slug}`}
             class="numero-sequence-card group absolute left-1/2 top-1/2 w-full min-w-0 max-w-md md:max-w-xl lg:max-w-2xl"
           >
-            <div class="flex h-56 w-full overflow-hidden border border-ink bg-paper shadow-xl md:h-80 lg:h-96">
-              <div class="relative h-full w-2/5 shrink-0 bg-linen">
+            <div class="flex h-56 w-full overflow-hidden border border-ink/15 bg-surface md:h-80 lg:h-96">
+              <div class="relative h-full w-2/5 shrink-0 bg-surface">
                 {item.portada && (
                   <img
                     src={item.portada}
@@ -83,8 +83,7 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
                     loading="lazy"
                   />
                 )}
-                <div class="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
-                <span class="absolute left-2 top-2 border border-paper bg-ink/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-paper md:px-3 md:py-1.5 md:text-xs">
+                <span class="absolute left-2 top-2 border border-accent bg-canvas/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-accent md:px-3 md:py-1.5 md:text-xs">
                   {item.categoriaNombre}
                 </span>
               </div>

@@ -100,7 +100,7 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2 border border-ink/20 bg-paper px-3 py-1.5 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-accent hover:text-accent"
+          className="flex items-center gap-2 rounded-md border border-ink/20 bg-surface px-3 py-1.5 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-accent hover:text-accent"
           aria-label="Buscar"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -117,11 +117,11 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-4 pt-[10vh] backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-[10vh] backdrop-blur-sm"
             onClick={() => setOpen(false)}
           >
           <div
-            className="w-full max-w-xl overflow-hidden border border-ink bg-paper shadow-2xl"
+            className="w-full max-w-xl overflow-hidden border border-ink/20 bg-surface"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center gap-3 px-4 py-3">
@@ -172,7 +172,7 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
                 <a
                   key={result.url}
                   href={result.url}
-                  className="block px-3 py-3 transition-colors hover:bg-linen"
+                  className="block px-3 py-3 transition-colors hover:bg-ink/5"
                   onClick={() => setOpen(false)}
                 >
                   <p className="font-serif text-base text-ink">{result.meta.title}</p>
@@ -182,7 +182,7 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
                     </p>
                   )}
                   <p
-                    className="mt-1 font-sans text-sm text-ink-muted [&_mark]:bg-accent-amber/30 [&_mark]:font-medium [&_mark]:text-ink"
+                    className="mt-1 font-sans text-sm text-ink-muted [&_mark]:bg-accent/30 [&_mark]:font-medium [&_mark]:text-ink"
                     dangerouslySetInnerHTML={{ __html: result.excerpt }}
                   />
                 </a>

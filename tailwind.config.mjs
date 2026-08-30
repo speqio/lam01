@@ -6,21 +6,25 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Una sola familia (IM Fell DW Pica — la del banner animado del hero) para todo
-        // el sitio. Los tokens se conservan porque el resto del código sigue usando
-        // font-sans/serif/mono/headline como roles semánticos, no como familias distintas.
-        sans: ['"IM Fell DW Pica"', 'serif'],
-        serif: ['"IM Fell DW Pica"', 'serif'],
-        mono: ['"IM Fell DW Pica"', 'serif'],
-        headline: ['"IM Fell DW Pica"', 'serif'],
+        // Una sola familia (Inter Variable) para todo el sitio. Los tokens se conservan
+        // porque el resto del código sigue usando font-sans/serif/mono/headline como
+        // roles semánticos, no como familias distintas.
+        sans: ['"Inter Variable"', 'sans-serif'],
+        serif: ['"Inter Variable"', 'sans-serif'],
+        mono: ['"Inter Variable"', 'sans-serif'],
+        headline: ['"Inter Variable"', 'sans-serif'],
       },
       colors: {
-        paper: '#FFFFF0',
-        ink: '#000000',
-        'ink-muted': '#4A4340',
-        linen: '#E6DFC8',
-        accent: '#701F0F',
-        'accent-amber': '#B0600B',
+        // Paleta invertida (dark) adaptada de la referencia de diseño Riptype Foundry —
+        // los nombres de rol se conservan (canvas/ink/etc. ya eran roles semánticos, no
+        // colores literales) así que un cambio de paleta no obliga a tocar cada
+        // componente, solo estos valores.
+        canvas: '#121212', // fondo base de página (Workshop Black)
+        surface: '#292929', // superficie elevada: cards, modal, barras de nav (Platen Gray)
+        ink: '#ffffff', // texto/foreground principal (Paper White)
+        'ink-muted': '#a0a0a0', // texto secundario, metadata (Ash)
+        bone: '#d0d0d0', // cuerpo de texto largo en prosa/artículos (Bone)
+        accent: '#d9ff00', // único color de señal — CTAs, tags, bordes activos (Acid Flash)
       },
     },
   },

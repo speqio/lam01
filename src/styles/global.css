@@ -1,7 +1,8 @@
-/* Tipografía única para todo el sitio (titulares, cuerpo, UI) — la misma que el banner
-   animado del hero. Solo trae peso 400 (normal/italic): no hay corte bold nativo. */
-@import '@fontsource/im-fell-dw-pica/400.css';
-@import '@fontsource/im-fell-dw-pica/400-italic.css';
+/* Tipografía única para todo el sitio (nav, cuerpo, botones, titulares) — Inter Variable
+   como reemplazo de "Office" (tipo propietario de la referencia de diseño Riptype
+   Foundry): geométrica, grotesca, con un corte 700 real disponible para display/énfasis,
+   que era justo la limitación de la fuente anterior (IM Fell DW Pica, sin bold nativo). */
+@import '@fontsource-variable/inter';
 
 @tailwind base;
 @tailwind components;
@@ -9,17 +10,15 @@
 
 @layer base {
   body {
-    @apply bg-paper text-ink font-sans antialiased;
+    @apply bg-canvas text-ink font-sans antialiased;
   }
 
-  /* Mixed case (no uppercase): en mayúscula se pierde el carácter caligráfico de esta
-     fuente. Sin font-bold porque IM Fell DW Pica solo trae peso 400 — pedir 700
-     forzaría un bold sintético (el navegador la "engorda" algorítmicamente), que en una
-     serif de trazo tan fino se ve roto. */
+  /* Titulares en bold real (Inter sí lo trae, a diferencia de la fuente anterior) con
+     tracking amplio — así lee el sistema de tipos de Riptype para su escala "display". */
   h1,
   h2,
   h3 {
-    @apply font-headline font-normal leading-[1.05] tracking-tight;
+    @apply font-headline font-bold leading-[0.95] tracking-tight;
   }
 
   h4,
@@ -33,9 +32,10 @@
   /* Letra capitular al inicio de un artículo — se aplica a mano con esta clase en el
      primer párrafo del cuerpo (Tailwind Typography no ofrece un selector "primer
      párrafo" propio, así que va como CSS plano en vez de una cadena de variantes
-     arbitrarias frágil). */
+     arbitrarias frágil). En acid-flash: mismo rol que la "Decorative Star Mark" de la
+     referencia — un acento ornamental puntual, no decoración de superficie grande. */
   .drop-cap::first-letter {
-    @apply float-left mr-2 mt-1 font-serif font-normal text-accent;
+    @apply float-left mr-2 mt-1 font-serif font-bold text-accent;
     font-size: 4.5rem;
     line-height: 0.85;
   }

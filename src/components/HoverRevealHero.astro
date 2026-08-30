@@ -4,9 +4,8 @@
  * propósito) y sin ningún comportamiento de hover/tap (esa mecánica interfería con el
  * click en el botón "Ver número completo").
  *
- * Tokens del Design System Broadsheet actual (paper/ink/accent, font-headline =
- * IM Fell DW Pica en mixed-case, sin uppercase ni bold forzado — la fuente no trae un
- * corte bold real).
+ * Tokens del design system Riptype-dark (canvas/ink/accent), font-headline = Inter
+ * Variable en mixed-case, bold real (a diferencia de la fuente anterior).
  */
 interface Props {
   titulo: string;
@@ -36,7 +35,7 @@ const { titulo, descripcion, href } = Astro.props;
     href && (
       <a
         href={href}
-        class="relative z-10 mt-8 inline-block border border-ink px-6 py-3 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-accent hover:text-accent"
+        class="relative z-10 mt-8 inline-block rounded-full border border-accent px-6 py-3 font-mono text-xs uppercase tracking-widest text-accent transition-colors hover:bg-accent hover:text-canvas"
       >
         Ver número completo
       </a>

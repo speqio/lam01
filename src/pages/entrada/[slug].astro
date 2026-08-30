@@ -56,14 +56,13 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
 
   {
     entrada.data.portada && (
-      <div class="not-prose relative mb-10 aspect-[16/9] w-full overflow-hidden border border-ink">
+      <div class="not-prose relative mb-10 aspect-[16/9] w-full overflow-hidden border border-ink/15">
         <img
           src={entrada.data.portada}
           alt={entrada.data.titulo}
           data-pagefind-meta="image[src]"
           class="h-full w-full object-cover grayscale contrast-125"
         />
-        <div class="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
       </div>
     )
   }
@@ -78,13 +77,12 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
         <h2 class="mb-4 font-headline text-2xl">Galería</h2>
         <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
           {entrada.data.galeria.map((imagen) => (
-            <div class="relative aspect-square overflow-hidden border border-ink">
+            <div class="relative aspect-square overflow-hidden border border-ink/15">
               <img
                 src={imagen}
                 alt={entrada.data.titulo}
                 class="h-full w-full object-cover grayscale contrast-125"
               />
-              <div class="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
             </div>
           ))}
         </div>

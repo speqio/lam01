@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
-import { cardImageWrap, cardImageTint, cardBadge } from '../../lib/cardStyles';
+import { cardImageWrap, cardBadge } from '../../lib/cardStyles';
 
 /**
  * Adaptado de `npx @ayushmxxn/serenity-ui@latest add swipecard` — mecánica de arrastre
  * libre en 2D con inclinación 3D (rotateX/rotateY) y reciclado de la tarjeta arrastrada
  * al fondo del mazo. Reskineado por completo con los tokens del design system actual
- * (bordes rectos, tipografía IM Fell DW Pica, paleta paper/ink/accent) — cero clases ni
+ * (bordes rectos, tipografía Inter Variable, paleta canvas/ink/accent) — cero clases ni
  * colores del original. Uso: islas de "últimas entradas" en mobile.
  */
 export interface SwipeCardItem {
@@ -82,7 +82,7 @@ export default function SwipeCard({ items }: SwipeCardProps) {
           return (
             <DraggableCard key={itemIndex} onSendToBack={() => moveToBack(itemIndex)}>
               <motion.div
-                className="h-full w-full overflow-hidden border border-ink bg-paper shadow-lg"
+                className="h-full w-full overflow-hidden border border-ink/15 bg-surface"
                 animate={{
                   rotateZ: (order.length - stackPos - 1) * 6,
                   scale: 1 + stackPos * 0.1 - order.length * 0.1,
@@ -101,7 +101,6 @@ export default function SwipeCard({ items }: SwipeCardProps) {
                         className="pointer-events-none h-full w-full object-cover grayscale contrast-125"
                       />
                     )}
-                    <div className={cardImageTint} />
                     <span className={cardBadge}>{item.categoryName}</span>
                   </div>
                   <div className="flex w-3/5 flex-col gap-1 p-4">

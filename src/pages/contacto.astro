@@ -3,7 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/ui/PageHeader.astro';
 
 const inputClass =
-  'w-full rounded-md border border-ink/15 bg-paper px-4 py-2.5 font-sans text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent';
+  'w-full rounded-md border border-ink/15 bg-surface px-4 py-2.5 font-sans text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent';
 ---
 
 <BaseLayout
@@ -80,7 +80,7 @@ const inputClass =
 
       <button
         type="submit"
-        class="w-full rounded-md bg-accent px-6 py-3 font-sans text-sm font-medium text-paper transition-colors hover:bg-accent/90 sm:w-auto"
+        class="w-full rounded-full border border-accent px-6 py-3 font-mono text-xs uppercase tracking-widest text-accent transition-colors hover:bg-accent hover:text-canvas sm:w-auto"
       >
         Enviar mensaje
       </button>

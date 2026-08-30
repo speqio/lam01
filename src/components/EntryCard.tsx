@@ -3,7 +3,6 @@ import {
   cardShell,
   cardImageWrap,
   cardImage,
-  cardImageTint,
   cardBadge,
   cardBody,
   cardTitle,
@@ -37,7 +36,6 @@ export default function EntryCard({
     >
       <div className={cardImageWrap}>
         {coverImage && <img src={coverImage} alt={title} className={cardImage} />}
-        <div className={cardImageTint} />
         <span className={cardBadge}>{categoryName}</span>
       </div>
 

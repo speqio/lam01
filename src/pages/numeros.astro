@@ -6,7 +6,6 @@ import {
   cardShell,
   cardImageWrap,
   cardImage,
-  cardImageTint,
   cardBadge,
   cardBody,
   cardTitle,
@@ -33,7 +32,6 @@ const numerosOrdenados = numeros.sort(
             {numero.data.portada && (
               <img src={numero.data.portada} alt={numero.data.titulo} class={cardImage} />
             )}
-            <div class={cardImageTint} />
             <span class={cardBadge}>
               {numero.data.fecha.toLocaleDateString('es-ES', {
                 month: 'long',

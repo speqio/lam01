@@ -10,31 +10,21 @@
  * corte bold real).
  */
 interface Props {
-  vol?: string | number;
-  numero?: string | number;
   titulo: string;
   descripcion?: string;
   imagen: string;
   href?: string;
 }
 
-const { vol, numero, titulo, descripcion, imagen, href } = Astro.props;
-
-const etiqueta = [vol && `Vol ${vol}`, numero && `N° ${numero}`].filter(Boolean).join(' · ');
+const { titulo, descripcion, imagen, href } = Astro.props;
 ---
 
 <section
   id="hover-reveal-hero"
-  class="relative w-full cursor-pointer px-4 py-16 text-center select-none md:cursor-crosshair"
+  class="relative w-full cursor-pointer px-4 py-4 text-center select-none sm:py-6 md:cursor-crosshair"
 >
-  <div class="font-mono text-xs uppercase tracking-widest text-accent-amber">
-    <span class="inline-block rounded-full border border-ink/15 px-3 py-1">
-      Último número{etiqueta && ` · ${etiqueta}`}
-    </span>
-  </div>
-
   <h1
-    class="mx-auto mt-6 max-w-full font-headline leading-[0.85] tracking-tight text-ink text-[13vw] md:text-[9vw]"
+    class="mx-auto max-w-full font-headline leading-[0.85] tracking-tight text-ink text-[13vw] md:text-[9vw]"
   >
     {titulo}
   </h1>
@@ -60,7 +50,7 @@ const etiqueta = [vol && `Vol ${vol}`, numero && `N° ${numero}`].filter(Boolean
         href={href}
         class="relative z-10 mt-8 inline-block border border-ink px-6 py-3 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-accent hover:text-accent"
       >
-        Ver número completo →
+        Ver número completo
       </a>
     )
   }

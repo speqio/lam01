@@ -1,0 +1,201 @@
+---
+/**
+ * Secuencia editorial para la página de un número — adaptada de un CodePen de
+ * referencia (pista vertical infinita con `wheel`/`touch` + rAF). Mismo lenguaje visual
+ * en todas las pantallas (info fija + tarjetas fluyendo), pero con DOS mecanismos de
+ * entrada distintos según el tamaño, a propósito:
+ *
+ * - Desktop (md+): el mecanismo original de la referencia — `wheel` sobre la sección
+ *   mueve un "scroll virtual" que reposiciona las tarjetas en loop infinito y compacta
+ *   el título (todo interpolado desde la custom property `--seq-progress`). El listener
+ *   va en el contenedor, no en `window` como en la referencia — la referencia era una
+ *   demo de una sola pantalla que podía capturar todo el scroll del documento; acá hay
+ *   header/footer/resto del sitio, así que capturar scroll global dejaría al usuario
+ *   atrapado. Al escuchar en el elemento, el navegador solo dispara el evento cuando el
+ *   cursor está físicamente encima — mover el mouse afuera devuelve el scroll normal.
+ *
+ * - Mobile: el mismo truco (capturar `touchmove` y bloquear el scroll real) NO es
+ *   seguro acá — no existe "mover el dedo afuera" para soltarlo, y la sección ocupa
+ *   casi toda la pantalla, así que el usuario podría quedar atrapado sin poder bajar.
+ *   En vez de eso, es un flujo vertical simple y nativo: el texto va primero a ancho
+ *   completo, y las tarjetas abajo, también a ancho completo, en un stack normal —
+ *   nada de `grid` compartido con desktop ni `sticky` en esta pantalla. Es a propósito
+ *   una distribución DISTINTA (no la misma grilla de dos columnas encogida): compartir
+ *   el mismo contenedor grid/sticky entre ambos tamaños fue la fuente de los problemas
+ *   de ancho en mobile, así que en vez de seguir parchándolo se separaron del todo.
+ */
+interface EntradaItem {
+  slug: string;
+  titulo: string;
+  categoriaNombre: string;
+  autorNombre: string;
+  portada?: string;
+}
+
+interface Props {
+  titulo: string;
+  descripcion?: string;
+  fechaFormateada: string;
+  entradas: EntradaItem[];
+}
+
+const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
+---
+
+<section
+  id="numero-sequence"
+  class="relative w-full overflow-x-hidden md:grid md:h-[75vh] md:grid-cols-2 md:gap-10 md:overflow-y-hidden"
+>
+  <div class="numero-sequence-info flex flex-col justify-center px-4 md:sticky md:top-20 md:z-10 md:min-w-0 md:self-start md:px-0">
+    <p class="font-mono text-xs uppercase tracking-widest text-accent-amber">{fechaFormateada}</p>
+    <h1 class="numero-sequence-title mt-2 font-headline leading-[0.9] text-ink">{titulo}</h1>
+    {
+      descripcion && (
+        <p class="numero-sequence-desc mt-4 max-w-md overflow-hidden font-serif text-ink-muted">
+          {descripcion}
+        </p>
+      )
+    }
+    <p class="numero-sequence-hint mt-6 hidden font-mono text-[10px] uppercase tracking-widest text-ink-muted md:block">
+      Scrolleá para recorrer las entradas
+    </p>
+  </div>
+
+  <div class="numero-sequence-track relative flex flex-col gap-8 px-4 pt-8 md:h-full md:w-full md:min-w-0 md:gap-0 md:px-0 md:pt-0">
+    {
+      entradas.map((item) => (
+        <a
+          href={`/entrada/${item.slug}`}
+          class="numero-sequence-card relative w-full md:absolute md:left-1/2 md:top-1/2 md:min-w-0 md:max-w-sm"
+        >
+          <div class="flex h-64 w-full flex-col overflow-hidden border border-ink bg-paper shadow-xl">
+            <div class="h-[78%] w-full overflow-hidden bg-linen">
+              {item.portada && (
+                <img
+                  src={item.portada}
+                  alt=""
+                  class="h-full w-full object-cover grayscale contrast-125"
+                  loading="lazy"
+                />
+              )}
+            </div>
+            <div class="flex h-[22%] items-center justify-between border-t border-ink/15 px-4 font-mono text-[10px] uppercase tracking-widest text-ink-muted">
+              <span>{item.categoriaNombre}</span>
+              <span>{item.autorNombre}</span>
+            </div>
+          </div>
+          <p class="mt-2 px-1 font-headline text-lg leading-tight text-ink">{item.titulo}</p>
+        </a>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  #numero-sequence {
+    /* Mobile: arranca directo en compacto (1) — sin scroll virtual ni sticky ahí, el
+       título ya se ve en su tamaño final desde el principio. Desktop la pisa con 0 y
+       la anima el script en base al wheel. */
+    --seq-progress: 1;
+  }
+
+  @media (min-width: 768px) {
+    #numero-sequence {
+      --seq-progress: 0;
+    }
+  }
+
+  /* Todo lo que depende del progreso del scroll se interpola en CSS a partir de la
+     custom property que el script actualiza cada frame — el script solo escribe un
+     número, nunca toca font-size/opacity directamente. */
+  .numero-sequence-title {
+    font-size: clamp(1.75rem, calc(4rem - var(--seq-progress) * 2.1rem), 4.5rem);
+  }
+
+  .numero-sequence-desc {
+    opacity: calc(1 - var(--seq-progress) * 1.6);
+    max-height: calc((1 - var(--seq-progress)) * 10rem);
+    transition: opacity 0.1s linear;
+  }
+
+  .numero-sequence-hint {
+    opacity: calc(1 - var(--seq-progress) * 3);
+  }
+
+  .numero-sequence-card {
+    will-change: transform, opacity;
+  }
+</style>
+
+<script>
+  const stage = document.getElementById('numero-sequence');
+  // El scroll virtual (wheel/touch capturados) solo corre en desktop — en mobile las
+  // tarjetas quedan en flujo normal y el scroll real de la página las mueve.
+  const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+
+  if (stage && isDesktop) {
+    const cards = Array.from(stage.querySelectorAll<HTMLElement>('.numero-sequence-card'));
+
+    if (cards.length > 0) {
+      const SPACING = 260;
+      const SHRINK_DISTANCE = 320;
+
+      let scrollOffset = 0;
+      let infoProgress = 0;
+
+      stage.addEventListener(
+        'wheel',
+        (event) => {
+          event.preventDefault();
+          scrollOffset = Math.max(0, scrollOffset + event.deltaY * 0.5);
+        },
+        { passive: false }
+      );
+
+      let touchStartY = 0;
+      stage.addEventListener(
+        'touchstart',
+        (event) => {
+          touchStartY = event.touches[0].clientY;
+        },
+        { passive: true }
+      );
+      stage.addEventListener(
+        'touchmove',
+        (event) => {
+          const deltaY = touchStartY - event.touches[0].clientY;
+          scrollOffset = Math.max(0, scrollOffset + deltaY * 0.8);
+          touchStartY = event.touches[0].clientY;
+        },
+        { passive: true }
+      );
+
+      const update = () => {
+        const total = cards.length;
+
+        const infoTarget = Math.min(scrollOffset / SHRINK_DISTANCE, 1);
+        infoProgress += (infoTarget - infoProgress) * 0.12;
+        stage.style.setProperty('--seq-progress', infoProgress.toFixed(3));
+
+        cards.forEach((card, i) => {
+          let progress = (i * SPACING - scrollOffset) % (total * SPACING);
+          if (progress < -SPACING) progress += total * SPACING;
+          if (progress > total * SPACING - SPACING) progress -= total * SPACING;
+
+          const distanceNormalized = Math.abs(progress) / 400;
+          const scale = Math.max(0.7, 1 - distanceNormalized * 0.3);
+          const opacity = Math.max(0, 1 - distanceNormalized * 1.2);
+          const zIndex = Math.round(100 - Math.abs(progress));
+
+          card.style.transform = `translate3d(-50%, ${progress}px, 0) scale(${scale})`;
+          card.style.opacity = String(opacity);
+          card.style.zIndex = String(zIndex);
+        });
+
+        requestAnimationFrame(update);
+      };
+
+      update();
+    }
+  }
+</script>

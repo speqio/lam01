@@ -47,8 +47,8 @@ export default config({
         fecha: fields.date({ label: 'Fecha' }),
         portada: fields.image({
           label: 'Portada',
-          directory: 'src/content/numeros/images',
-          publicPath: '/src/content/numeros/images/',
+          directory: 'public/images/numeros',
+          publicPath: '/images/numeros/',
         }),
         descripcion: fields.text({
           label: 'Descripción',
@@ -92,7 +92,12 @@ export default config({
           }),
           {
             label: 'Galería',
-            itemLabel: (props) => props.value ?? 'Imagen',
+            itemLabel: (props) => {
+              const value = props.value;
+              return value && typeof value === 'object' && 'filename' in value
+                ? value.filename || 'Imagen'
+                : 'Imagen';
+            },
           }
         ),
         extracto: fields.text({

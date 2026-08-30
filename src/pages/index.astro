@@ -49,14 +49,13 @@ const flipItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
 ---
 
 <BaseLayout title="Blog Literario">
-  <section class="mb-4 py-10 sm:py-14">
+  <section class="py-4 sm:py-6">
     <HeroAnagram />
   </section>
 
   {
     ultimoNumero && (
       <HoverRevealHero
-        numero={Number(ultimoNumero.id.replace(/\D/g, '')) || undefined}
         titulo="-número 28-"
         imagen={ultimoNumero.data.portada}
         href={`/numero/${ultimoNumero.id}`}
@@ -66,8 +65,8 @@ const flipItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
 
   {
     swipeItems.length > 0 && (
-      <section class="mb-12">
-        <h2 class="text-center font-headline text-2xl lg:text-3xl">Últimas entradas</h2>
+      <section class="mb-4">
+        <h2 class="font-headline text-2xl lg:text-3xl">Últimas entradas</h2>
 
         {/* Mobile: swipe deck. Desktop: abanico 3D más grande, con click-to-front. Se
             hidratan las dos islas y se alternan por CSS — mismo patrón que el nav

@@ -1,7 +1,7 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import EntryCard from '../../components/EntryCard.tsx';
+import NumeroSequence from '../../components/NumeroSequence.astro';
 
 export async function getStaticPaths() {
   const numeros = await getCollection('numeros');
@@ -38,53 +38,24 @@ const formattedDate = numero.data.fecha.toLocaleDateString('es-ES', {
 ---
 
 <BaseLayout title={`${numero.data.titulo} — Blog Literario`} description={numero.data.descripcion}>
-  <header class="mb-12 text-center">
-    {
-      numero.data.portada && (
-        <div class="mx-auto mb-8 aspect-[16/7] w-full max-w-4xl overflow-hidden rounded-lg border border-ink/15 bg-linen">
-          <img
-            src={numero.data.portada}
-            alt={numero.data.titulo}
-            class="h-full w-full object-cover"
-          />
-        </div>
-      )
-    }
-    <p class="font-sans text-sm uppercase tracking-widest text-accent">{formattedDate}</p>
-    <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">{numero.data.titulo}</h1>
-    {
-      numero.data.descripcion && (
-        <p class="mx-auto mt-4 max-w-2xl font-serif text-lg text-ink-muted">
-          {numero.data.descripcion}
-        </p>
-      )
-    }
-  </header>
+  <NumeroSequence
+    titulo={numero.data.titulo}
+    descripcion={numero.data.descripcion}
+    fechaFormateada={formattedDate}
+    entradas={entradasConRelaciones.map(({ entrada, autor, categoria }) => ({
+      slug: entrada.id,
+      titulo: entrada.data.titulo,
+      categoriaNombre: categoria?.data.nombre ?? '',
+      autorNombre: autor?.data.nombre ?? '',
+      portada: entrada.data.portada,
+    }))}
+  />
 
-  <section>
-    <h2 class="mb-6 font-headline text-2xl text-ink">Entradas de este número</h2>
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {
-        entradasConRelaciones.map(({ entrada, autor, categoria }) => (
-          <EntryCard
-            client:visible
-            title={entrada.data.titulo}
-            authorName={autor?.data.nombre ?? ''}
-            categoryName={categoria?.data.nombre ?? ''}
-            slug={entrada.id}
-            coverImage={entrada.data.portada}
-            date={entrada.data.fecha.toISOString()}
-          />
-        ))
-      }
-    </div>
-
-    {
-      entradasConRelaciones.length === 0 && (
-        <p class="text-center font-sans text-ink-muted">
-          Todavía no hay entradas publicadas en este número.
-        </p>
-      )
-    }
-  </section>
+  {
+    entradasConRelaciones.length === 0 && (
+      <p class="text-center font-sans text-ink-muted">
+        Todavía no hay entradas publicadas en este número.
+      </p>
+    )
+  }
 </BaseLayout>

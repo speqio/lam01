@@ -40,7 +40,7 @@ function DraggableCard({ children, onSendToBack }: DraggableCardProps) {
 
   return (
     <motion.div
-      className="absolute h-96 w-72 cursor-grab"
+      className="absolute h-56 w-[22rem] cursor-grab"
       style={{ x, y, rotateX, rotateY }}
       drag
       dragConstraints={{ top: 0, right: 0, bottom: 0, left: 0 }}
@@ -75,7 +75,7 @@ export default function SwipeCard({ items }: SwipeCardProps) {
 
   return (
     <div className="mx-auto flex flex-col items-center gap-6">
-      <div className="relative h-96 w-72" style={{ perspective: 1200 }}>
+      <div className="relative h-56 w-[22rem]" style={{ perspective: 1200 }}>
         {order.map((itemIndex, stackPos) => {
           const item = items[itemIndex];
           return (
@@ -91,32 +91,34 @@ export default function SwipeCard({ items }: SwipeCardProps) {
                 initial={false}
                 transition={{ type: 'spring', stiffness: 250, damping: 25 }}
               >
-                <div className="relative h-2/3 w-full bg-linen">
-                  {item.coverImage && (
-                    <img
-                      src={item.coverImage}
-                      alt={item.title}
-                      className="pointer-events-none h-full w-full object-cover grayscale contrast-125"
-                    />
-                  )}
-                  <div className="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
-                </div>
-                <div className="flex h-1/3 flex-col gap-1 p-4">
-                  <span className="font-mono text-[11px] uppercase tracking-widest text-accent">
-                    {item.categoryName}
-                  </span>
-                  <h3 className="font-headline text-xl uppercase leading-none text-ink">
-                    {item.title}
-                  </h3>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">
-                    Por {item.authorName}
-                  </p>
-                  <a
-                    href={`/entrada/${item.slug}`}
-                    className="mt-auto font-mono text-xs font-medium uppercase tracking-widest text-accent hover:underline"
-                  >
-                    Leer entrada →
-                  </a>
+                <div className="flex h-full w-full">
+                  <div className="relative h-full w-2/5 shrink-0 bg-linen">
+                    {item.coverImage && (
+                      <img
+                        src={item.coverImage}
+                        alt={item.title}
+                        className="pointer-events-none h-full w-full object-cover grayscale contrast-125"
+                      />
+                    )}
+                    <div className="pointer-events-none absolute inset-0 bg-accent/20 mix-blend-color" />
+                    <span className="absolute left-2 top-2 border border-paper bg-ink/80 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-paper">
+                      {item.categoryName}
+                    </span>
+                  </div>
+                  <div className="flex w-3/5 flex-col gap-1 p-4">
+                    <h3 className="font-headline text-lg uppercase leading-[1.05] text-ink">
+                      {item.title}
+                    </h3>
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">
+                      Por {item.authorName}
+                    </p>
+                    <a
+                      href={`/entrada/${item.slug}`}
+                      className="mt-auto font-mono text-xs font-medium uppercase tracking-widest text-accent hover:underline"
+                    >
+                      Leer entrada
+                    </a>
+                  </div>
                 </div>
               </motion.div>
             </DraggableCard>

@@ -14,7 +14,7 @@ import type { CollectionEntry } from 'astro:content';
  * - El posicionamiento de las cartas es relativo al alto propio del contenedor (una
  *   sección más, con una altura fija/responsive), no a `vh` como en la referencia
  *   (pensada para ocupar el viewport completo).
- * - Cada carta tiene un botón real ("Ver número →") a `/numero/[id]`: la referencia no
+ * - Cada carta tiene un botón real ("Ver número") a `/numero/[id]`: la referencia no
  *   navega a ningún lado, solo cicla cartas — sin esto no había forma de efectivamente
  *   entrar a un número. El click en ese botón no dispara el ciclo de cartas.
  * - El título de cada carta usa <p>, no <h1> (la referencia le pone <h1> a cada carta,
@@ -42,13 +42,17 @@ const ordenados = [...numeros].sort((a, b) => b.data.fecha.valueOf() - a.data.fe
 
       <div class="archivo-stack-container relative h-[420px] w-full overflow-hidden sm:h-[480px] md:h-[560px]">
         <div class="archivo-stack-slider absolute inset-0 [perspective:500px]">
-          {ordenados.map((numero) => (
+          {ordenados.map((numero, index) => (
             <div class="archivo-stack-card absolute left-1/2 top-1/2 h-[280px] w-[85%] max-w-md overflow-hidden border border-ink bg-ink [transform:translate3d(-50%,-50%,0)] sm:h-[340px] md:w-[70%]">
               <img
                 src={numero.data.portada}
                 alt=""
                 class="absolute h-full w-full object-cover opacity-75 grayscale contrast-125"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
               />
+              <div class="archivo-folder-fallback absolute inset-0 hidden items-center justify-center bg-linen">
+                <div class={`archivo-folder-icon archivo-folder-tab-${(index % 4) + 1}`} />
+              </div>
               <div class="archivo-stack-copy absolute left-1/2 top-[42%] w-full -translate-x-1/2 -translate-y-1/2 overflow-hidden px-4 text-center">
                 <p class="font-headline uppercase leading-[0.9] tracking-tight text-paper text-[clamp(1rem,5.5vw,2rem)]">
                   {numero.data.titulo}
@@ -58,7 +62,7 @@ const ordenados = [...numeros].sort((a, b) => b.data.fecha.valueOf() - a.data.fe
                 href={`/numero/${numero.id}`}
                 class="archivo-stack-cta absolute bottom-4 left-1/2 -translate-x-1/2 border border-paper px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-paper transition-colors hover:border-accent-amber hover:text-accent-amber"
               >
-                Ver número →
+                Ver número
               </a>
             </div>
           ))}
@@ -67,6 +71,49 @@ const ordenados = [...numeros].sort((a, b) => b.data.fecha.valueOf() - a.data.fe
     </section>
   )
 }
+
+<style>
+  /* Placeholder tipo "carpeta" para cuando la portada de un número no carga (404, subida
+     rota, etc.) — reemplaza al ícono roto del navegador. La pestaña cambia de posición
+     por carta (4 variantes, según el índice) para que la pila se vea como carpetas reales
+     apiladas con pestañas escalonadas, no todas idénticas superpuestas. */
+  .archivo-folder-icon {
+    position: relative;
+    width: 62%;
+    height: 46%;
+    border-radius: 12px;
+    background: theme('colors.ink');
+  }
+
+  .archivo-folder-icon::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    height: 34%;
+    width: 40%;
+    border-radius: 10px 10px 0 0;
+    background: theme('colors.ink');
+  }
+
+  .archivo-folder-tab-1::before {
+    left: 8%;
+  }
+
+  .archivo-folder-tab-2::before {
+    left: 30%;
+  }
+
+  .archivo-folder-tab-3::before {
+    left: 52%;
+  }
+
+  .archivo-folder-tab-4::before {
+    left: 18%;
+    top: -12%;
+    height: 24%;
+    width: 34%;
+  }
+</style>
 
 <script>
   import { gsap } from 'gsap';

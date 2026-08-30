@@ -121,7 +121,7 @@ export default function EntryFlipCard3D({ items }: EntryFlipCard3DProps) {
   const activeItem = frontIndex !== null ? items[frontIndex] : null;
 
   return (
-    <div className="flex flex-col items-center gap-14 py-14 lg:py-24">
+    <div className="flex flex-col items-center gap-14 py-6 lg:py-10">
       <div
         className="relative h-64 w-96 [perspective:1600px] lg:h-80 lg:w-[32rem]"
         onMouseEnter={() => setIsHovered(true)}
@@ -161,7 +161,7 @@ export default function EntryFlipCard3D({ items }: EntryFlipCard3DProps) {
               href={activeItem.href}
               className="mt-4 inline-block font-mono text-xs uppercase tracking-widest text-accent hover:underline"
             >
-              Leer entrada →
+              Leer entrada
             </a>
           </>
         ) : null}

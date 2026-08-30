@@ -1,8 +1,10 @@
-/* Tipografía única para todo el sitio (nav, cuerpo, botones, titulares) — Inter Variable
-   como reemplazo de "Office" (tipo propietario de la referencia de diseño Riptype
-   Foundry): geométrica, grotesca, con un corte 700 real disponible para display/énfasis,
-   que era justo la limitación de la fuente anterior (IM Fell DW Pica, sin bold nativo). */
-@import '@fontsource-variable/inter';
+/* Tipografía única para todo el sitio (nav, cuerpo, botones, titulares) — Lekton. No es
+   variable: hay que importar cada corte que se usa a mano (400, 400 itálica, 700 — no
+   existe 700 itálica en el catálogo de Google Fonts, un bold+itálica simultáneo cae en
+   itálica sintética del navegador sobre el corte 700, caso raro en el sitio). */
+@import '@fontsource/lekton/400.css';
+@import '@fontsource/lekton/400-italic.css';
+@import '@fontsource/lekton/700.css';
 
 @tailwind base;
 @tailwind components;
@@ -13,8 +15,8 @@
     @apply bg-canvas text-ink font-sans antialiased;
   }
 
-  /* Titulares en bold real (Inter sí lo trae, a diferencia de la fuente anterior) con
-     tracking amplio — así lee el sistema de tipos de Riptype para su escala "display". */
+  /* Titulares en bold real (Lekton sí lo trae) con tracking amplio — así lee el
+     sistema de tipos de Riptype para su escala "display". */
   h1,
   h2,
   h3 {

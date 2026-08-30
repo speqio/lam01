@@ -6,7 +6,7 @@ import { cardImageWrap, cardBadge } from '../../lib/cardStyles';
  * Adaptado de `npx @ayushmxxn/serenity-ui@latest add swipecard` — mecánica de arrastre
  * libre en 2D con inclinación 3D (rotateX/rotateY) y reciclado de la tarjeta arrastrada
  * al fondo del mazo. Reskineado por completo con los tokens del design system actual
- * (bordes rectos, tipografía Inter Variable, paleta canvas/ink/accent) — cero clases ni
+ * (bordes rectos, tipografía Lekton, paleta canvas/ink/accent) — cero clases ni
  * colores del original. Uso: islas de "últimas entradas" en mobile.
  */
 export interface SwipeCardItem {

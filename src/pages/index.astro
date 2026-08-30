@@ -30,6 +30,18 @@ todasConRelaciones.sort(
 
 const ultimasEntradas = todasConRelaciones.slice(0, 6);
 
+// Las categorías no tienen portada propia en el CMS: se usa la portada de su entrada
+// más reciente como imagen del carrusel (todasConRelaciones ya está ordenado por fecha
+// desc, así que la primera coincidencia por categoría es la más nueva). Si una
+// categoría todavía no tiene entradas con portada, la tarjeta queda sin imagen de
+// fondo (ver fallback tipográfico en CategoriasCarousel).
+const imagenPorCategoria: Record<string, string> = {};
+for (const { entrada, categoria } of todasConRelaciones) {
+  if (categoria && entrada.data.portada && !imagenPorCategoria[categoria.id]) {
+    imagenPorCategoria[categoria.id] = entrada.data.portada;
+  }
+}
+
 const swipeItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
   title: entrada.data.titulo,
   authorName: autor?.data.nombre ?? '',
@@ -93,7 +105,7 @@ const categorias = await getCollection('categorias');
     )
   }
 
-  <CategoriasCarousel categorias={categorias} />
+  <CategoriasCarousel categorias={categorias} imagenPorCategoria={imagenPorCategoria} />
 
   <ArchivoExplorer entradas={todasLasEntradas} />
 </BaseLayout>

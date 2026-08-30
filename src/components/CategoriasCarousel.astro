@@ -2,30 +2,27 @@
 import type { CollectionEntry } from 'astro:content';
 
 /**
- * Carrusel 3D orbital de categorías, adaptado de una referencia en Three.js (r128, CDN)
- * que orbitaba fotos de stock. Acá cada "tarjeta" es una placa con el nombre de una
- * categoría (texto renderizado a un <canvas> 2D con la tipografía real del sitio y
- * usado como CanvasTexture — no hay imágenes) y cada una es un link real a
- * `/categoria/[id]` (la referencia era puramente decorativa, sin click).
+ * Carrusel automático de categorías: pista CSS que se desplaza en loop infinito
+ * (adaptado de una referencia de marquee de tarjetas con fondo, reemplaza al carrusel
+ * 3D en Three.js que había antes). Cada tarjeta es un link real a `/categoria/[id]`.
  *
- * Cambios respecto a la referencia (mismo criterio que el resto de las secciones
- * scroll-driven de este sitio):
- * - `wheel`/`touch` van sobre el contenedor del carrusel, no en `window` — la
- *   referencia era una página de demo de una sola pantalla que podía secuestrar todo
- *   el scroll del documento; acá hay header/footer/resto del sitio arriba y abajo.
- * - Tamaño y cámara se calculan desde el propio contenedor (getBoundingClientRect), no
- *   desde window.innerWidth/innerHeight — es una sección más, no la página entera.
- * - Título arriba, carrusel abajo a ancho completo (sin overlay de texto sobre el 3D)
- *   en todos los tamaños. En mobile es solo "Categorías", alineado igual que el resto
- *   de los títulos de sección (a la izquierda); en desktop suma la frase "Revisá
- *   nuestro catálogo" arriba, centrado, con el mismo tamaño de título que Archivo y
- *   Últimas entradas.
+ * El loop es puramente CSS (`@keyframes` + `translateX(-50%)`): la pista renderiza la
+ * lista de categorías dos veces seguidas y anima exactamente la mitad de su ancho, así
+ * que cuando el primer set termina de salir por la izquierda el segundo ya está en la
+ * posición inicial del primero — no hace falta JS para el loop. El segundo set se
+ * marca `aria-hidden`/`tabindex="-1"` para que lectores de pantalla y navegación por
+ * teclado no encuentren cada categoría dos veces.
+ *
+ * Las categorías no tienen portada propia en el CMS (ver `imagenPorCategoria`, resuelto
+ * en index.astro a partir de la entrada más reciente de cada categoría) — la tarjeta
+ * cae a un panel tipográfico cuando no hay ninguna disponible todavía.
  */
 interface Props {
   categorias: CollectionEntry<'categorias'>[];
+  imagenPorCategoria: Record<string, string>;
 }
 
-const { categorias } = Astro.props;
+const { categorias, imagenPorCategoria } = Astro.props;
 ---
 
 {
@@ -44,281 +41,137 @@ const { categorias } = Astro.props;
         </h2>
       </div>
 
-      <div id="categorias-orbit" class="relative h-[38vh] w-full overflow-hidden bg-surface md:h-[60vh]">
-        <div
-          class="categorias-orbit-canvas absolute inset-0"
-          data-categorias={JSON.stringify(categorias.map((c) => ({ slug: c.id, nombre: c.data.nombre })))}
-        />
-
-        <div
-          class="categorias-orbit-pagination pointer-events-none absolute inset-x-0 bottom-4 z-10 flex flex-wrap items-center justify-center gap-2 px-4 md:bottom-6"
-          aria-hidden="true"
-        />
+      <div class="categorias-marquee-view">
+        <ul class="categorias-marquee-track">
+          {categorias.map((categoria) => (
+            <li class="categorias-marquee-card">
+              <a
+                href={`/categoria/${categoria.id}`}
+                class="group relative block h-full w-full overflow-hidden border border-ink/15 bg-surface transition-colors duration-300 hover:border-accent"
+                style={
+                  imagenPorCategoria[categoria.id]
+                    ? `background-image:url(${imagenPorCategoria[categoria.id]})`
+                    : undefined
+                }
+              >
+                {imagenPorCategoria[categoria.id] && (
+                  <span class="absolute inset-0 bg-gradient-to-t from-canvas/90 via-canvas/10 to-transparent" />
+                )}
+                <span class="relative flex h-full flex-col justify-end p-4">
+                  <span class="font-headline text-lg uppercase leading-tight text-ink lg:text-xl">
+                    {categoria.data.nombre}
+                  </span>
+                  <span class="mt-1 font-mono text-xs uppercase tracking-widest text-accent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    Explorar
+                  </span>
+                </span>
+              </a>
+            </li>
+          ))}
+          {categorias.map((categoria) => (
+            <li class="categorias-marquee-card" aria-hidden="true">
+              <a
+                href={`/categoria/${categoria.id}`}
+                tabindex="-1"
+                class="group relative block h-full w-full overflow-hidden border border-ink/15 bg-surface transition-colors duration-300 hover:border-accent"
+                style={
+                  imagenPorCategoria[categoria.id]
+                    ? `background-image:url(${imagenPorCategoria[categoria.id]})`
+                    : undefined
+                }
+              >
+                {imagenPorCategoria[categoria.id] && (
+                  <span class="absolute inset-0 bg-gradient-to-t from-canvas/90 via-canvas/10 to-transparent" />
+                )}
+                <span class="relative flex h-full flex-col justify-end p-4">
+                  <span class="font-headline text-lg uppercase leading-tight text-ink lg:text-xl">
+                    {categoria.data.nombre}
+                  </span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   )
 }
 
-<script>
-  import * as THREE from 'three';
-
-  interface CategoriaDatum {
-    slug: string;
-    nombre: string;
+<style>
+  .categorias-marquee-view {
+    width: 100%;
+    overflow: hidden;
+    /* Se desvanece contra el fondo en los bordes del contenedor en vez de cortar en
+       seco — no hay bleed a viewport-width en este sitio (ver frontmatter), así que el
+       degradado atenúa contra el propio `container` de la página. */
+    mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 5%,
+      black 95%,
+      transparent
+    );
   }
 
-  async function initOrbit() {
-    const root = document.getElementById('categorias-orbit');
-    const mount = root?.querySelector<HTMLElement>('.categorias-orbit-canvas');
-    if (!root || !mount) return;
-
-    const data: CategoriaDatum[] = JSON.parse(mount.dataset.categorias ?? '[]');
-    if (data.length === 0) return;
-
-    await document.fonts.ready;
-
-    const ink = '#ffffff';
-
-    function createLabelTexture(nombre: string): THREE.CanvasTexture {
-      const scale = 3;
-      const canvas = document.createElement('canvas');
-      canvas.width = 512 * scale;
-      canvas.height = 348 * scale;
-      const ctx = canvas.getContext('2d')!;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.textAlign = 'center';
-
-      ctx.fillStyle = ink;
-      let fontSize = 58 * scale;
-      const maxWidth = canvas.width - 96 * scale;
-      const label = nombre.toUpperCase();
-      do {
-        ctx.font = `${fontSize}px "Inter Variable", sans-serif`;
-        fontSize -= 2 * scale;
-      } while (ctx.measureText(label).width > maxWidth && fontSize > 20 * scale);
-      ctx.textBaseline = 'middle';
-      ctx.fillText(label, canvas.width / 2, canvas.height / 2 + 10 * scale);
-
-      // Recuadro contenedor: cada palabra vive dentro de un marco, como una tarjeta. El
-      // grosor imita el `border` (1px) de EntryFlipCard3D: la placa se renderiza bastante
-      // más chica en pantalla que el canvas fuente, así que hace falta más de 1 canvas-px
-      // para que, ya escalado, se vea igual de fina.
-      const borderInset = 24 * scale;
-      const borderWidth = 1.5 * scale;
-      ctx.strokeStyle = ink;
-      ctx.lineWidth = borderWidth;
-      ctx.strokeRect(
-        borderInset,
-        borderInset,
-        canvas.width - borderInset * 2,
-        canvas.height - borderInset * 2
-      );
-
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.anisotropy = 4;
-      return texture;
-    }
-
-    const scene = new THREE.Scene();
-
-    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-    camera.position.set(0, 0, 22);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    mount.appendChild(renderer.domElement);
-    renderer.domElement.style.cursor = 'grab';
-
-    const carouselGroup = new THREE.Group();
-    scene.add(carouselGroup);
-
-    const total = data.length;
-    const radius = Math.max(7, total * 1.15);
-    const cardMeshes: THREE.Mesh[] = [];
-
-    data.forEach((item, i) => {
-      // +Math.PI/2: sin este offset, la tarjeta 0 arranca de costado (mirando en +x, casi
-      // de canto para la cámara) en vez de de frente — con FrontSide, según cuántas
-      // categorías haya y el aspect ratio del contenedor, podía no haber NINGUNA
-      // tarjeta mirando a cámara en reposo (pasaba en mobile). Así, la tarjeta 0 siempre
-      // arranca centrada mirando directo a la cámara.
-      const angle = (i / total) * Math.PI * 2 + Math.PI / 2;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-
-      const geometry = new THREE.PlaneGeometry(5, 3.4);
-      // FrontSide (no DoubleSide): con texto, mostrar la cara trasera de una tarjeta del
-      // otro lado del anillo se ve como texto espejado/roto — mejor que esas tarjetas
-      // queden ocultas hasta que roten hacia la cámara, en vez de verse invertidas.
-      const material = new THREE.MeshBasicMaterial({
-        map: createLabelTexture(item.nombre),
-        side: THREE.FrontSide,
-        transparent: true,
-      });
-
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(x, 0, z);
-      mesh.lookAt(0, 0, 0);
-      mesh.rotateY(Math.PI);
-      mesh.userData.slug = item.slug;
-
-      carouselGroup.add(mesh);
-      cardMeshes.push(mesh);
-    });
-
-    const cardWidth = 5;
-    const cardHeight = 3.4;
-    const halfVerticalFov = Math.tan((camera.fov * Math.PI) / 360);
-    const fillFraction = 0.62;
-
-    function resize() {
-      const { width, height } = root!.getBoundingClientRect();
-      const aspect = width / height;
-      camera.aspect = aspect;
-      // Sin overlay de texto que esquivar (título y carrusel están apilados, no lado a
-      // lado), la cámara se encuadra igual en todos los tamaños: se calcula la distancia
-      // cámara→tarjeta que hace que la tarjeta activa ocupe una fracción fija del cuadro
-      // tanto a lo ancho como a lo alto — se toma la mayor de las dos para no desbordar
-      // ningún eje, sea cual sea el aspect ratio real del contenedor.
-      const zForWidth = cardWidth / (fillFraction * 2 * aspect * halfVerticalFov);
-      const zForHeight = cardHeight / (fillFraction * 2 * halfVerticalFov);
-      // zForWidth/zForHeight son la distancia cámara→tarjeta, no la coordenada z de la
-      // cámara: la tarjeta activa vive en z≈radius (no en z=0), así que hay que sumarle
-      // el radio del anillo para obtener camera.position.z real.
-      camera.position.z = radius + Math.max(zForWidth, zForHeight);
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
-    }
-    resize();
-    window.addEventListener('resize', resize);
-
-    // Paginación: un punto por categoría, resaltando la que está de frente. También
-    // sirve para saltar directo a una categoría sin tener que arrastrar/scrollear.
-    const pagination = root.querySelector<HTMLElement>('.categorias-orbit-pagination');
-    const dotButtons: HTMLButtonElement[] = [];
-    const twoPi = Math.PI * 2;
-
-    function setActiveIndex(j: number) {
-      // Misma parametrización que el raycast de click: la tarjeta j queda de frente
-      // cuando la rotación del grupo es (j/total)*2π. Se elige la vuelta (k) más
-      // cercana a la rotación objetivo actual para que la animación tome el camino
-      // corto en vez de dar vueltas de más.
-      const base = (j / total) * twoPi;
-      const k = Math.round((targetRotation - base) / twoPi);
-      targetRotation = base + k * twoPi;
-    }
-
-    if (pagination) {
-      data.forEach((item, i) => {
-        const dot = document.createElement('button');
-        dot.type = 'button';
-        dot.setAttribute('aria-label', item.nombre);
-        dot.className =
-          'categorias-orbit-dot pointer-events-auto h-2.5 w-2.5 rounded-full border border-ink/30 bg-ink/10 transition-all duration-300';
-        dot.addEventListener('click', () => setActiveIndex(i));
-        pagination.appendChild(dot);
-        dotButtons.push(dot);
-      });
-    }
-
-    let lastActiveIndex = -1;
-    function updateActivePagination(rotation: number) {
-      if (dotButtons.length === 0) return;
-      const idx = (((Math.round((rotation * total) / twoPi)) % total) + total) % total;
-      if (idx === lastActiveIndex) return;
-      lastActiveIndex = idx;
-      dotButtons.forEach((btn, i) => {
-        const active = i === idx;
-        btn.classList.toggle('bg-accent', active);
-        btn.classList.toggle('border-accent', active);
-        btn.classList.toggle('bg-ink/10', !active);
-        btn.classList.toggle('border-ink/30', !active);
-        btn.classList.toggle('scale-125', active);
-      });
-    }
-
-    // Rotación por wheel/drag — capturada en el contenedor, nunca en window (ver
-    // comentario del frontmatter). El drag también sirve como gesto en mobile: el touch
-    // queda "capturado" por el elemento donde empezó, no por toda la página.
-    let targetRotation = 0;
-    let currentRotation = 0;
-
-    root.addEventListener(
-      'wheel',
-      (event) => {
-        event.preventDefault();
-        targetRotation += event.deltaY * 0.0025;
-      },
-      { passive: false }
-    );
-
-    let isDragging = false;
-    let dragStartX = 0;
-    let dragDistance = 0;
-
-    const onDragStart = (clientX: number) => {
-      isDragging = true;
-      dragStartX = clientX;
-      dragDistance = 0;
-      renderer.domElement.style.cursor = 'grabbing';
-    };
-    const onDragMove = (clientX: number) => {
-      if (!isDragging) return;
-      const delta = clientX - dragStartX;
-      dragDistance += Math.abs(delta);
-      targetRotation -= delta * 0.01;
-      dragStartX = clientX;
-    };
-    const onDragEnd = () => {
-      isDragging = false;
-      renderer.domElement.style.cursor = 'grab';
-    };
-
-    renderer.domElement.addEventListener('mousedown', (e) => onDragStart(e.clientX));
-    window.addEventListener('mousemove', (e) => onDragMove(e.clientX));
-    window.addEventListener('mouseup', onDragEnd);
-
-    renderer.domElement.addEventListener(
-      'touchstart',
-      (e) => onDragStart(e.touches[0].clientX),
-      { passive: true }
-    );
-    renderer.domElement.addEventListener(
-      'touchmove',
-      (e) => {
-        onDragMove(e.touches[0].clientX);
-      },
-      { passive: true }
-    );
-    renderer.domElement.addEventListener('touchend', onDragEnd);
-
-    // Click/tap sobre una tarjeta navega a esa categoría — solo si no fue un drag.
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-
-    function handleTap(clientX: number, clientY: number) {
-      if (dragDistance > 6) return;
-      const rect = root!.getBoundingClientRect();
-      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointer, camera);
-      const hits = raycaster.intersectObjects(cardMeshes);
-      const slug = hits[0]?.object.userData.slug;
-      if (slug) window.location.href = `/categoria/${slug}`;
-    }
-
-    renderer.domElement.addEventListener('click', (e) => handleTap(e.clientX, e.clientY));
-
-    function animate() {
-      requestAnimationFrame(animate);
-      currentRotation += (targetRotation - currentRotation) * 0.08;
-      carouselGroup.rotation.y = currentRotation;
-      updateActivePagination(currentRotation);
-      renderer.render(scene, camera);
-    }
-    animate();
+  .categorias-marquee-track {
+    display: flex;
+    width: max-content;
+    animation: categorias-marquee-scroll 40s linear infinite;
   }
 
-  initOrbit();
-</script>
+  /* Pausa al pasar el mouse o al enfocar por teclado una tarjeta de la pista. */
+  .categorias-marquee-view:hover .categorias-marquee-track,
+  .categorias-marquee-track:has(:focus-visible) {
+    animation-play-state: paused;
+  }
+
+  .categorias-marquee-card {
+    width: 12rem;
+    height: 17rem;
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+
+  @keyframes categorias-marquee-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      /* La mitad del ancho total = el largo exacto del primer set (ver frontmatter). */
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .categorias-marquee-card {
+      width: 15rem;
+      height: 21rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .categorias-marquee-card {
+      width: 17rem;
+      height: 23rem;
+    }
+    .categorias-marquee-track {
+      animation-duration: 50s;
+    }
+  }
+
+  /* Sin bg propio: el estilo inline de la tarjeta ya trae background-image. */
+  .categorias-marquee-card a {
+    background-size: cover;
+    background-position: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .categorias-marquee-track {
+      animation: none;
+    }
+    .categorias-marquee-view {
+      overflow-x: auto;
+    }
+  }
+</style>

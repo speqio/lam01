@@ -1,38 +1,28 @@
 ---
+import NumeroEntradasArco from './NumeroEntradasArco.astro';
+
 /**
- * Secuencia editorial para la página de un número — adaptada de un CodePen de
- * referencia (pista vertical infinita con `wheel`/`touch`). Mismo lenguaje visual en
- * todas las pantallas (info fija + tarjetas fluyendo), pero con DOS mecanismos de
- * entrada distintos según el tamaño, a propósito:
+ * Secuencia editorial para la página de un número: info fija (título/fecha/
+ * descripción) + tarjetas de sus entradas. El texto es compartido entre pantallas,
+ * pero el carrusel de tarjetas usa DOS componentes distintos según el tamaño:
  *
- * - Desktop (md+): el mecanismo original de la referencia — `wheel`/`touch` sobre la
- *   sección mueve un "scroll virtual" que reposiciona las tarjetas en loop infinito y
- *   compacta el título (todo interpolado desde la custom property `--seq-progress`).
- *   La captura la hace el plugin `Observer` de GSAP apuntando al contenedor, nunca a
- *   `window` como en la referencia — la referencia era una demo de una sola pantalla
- *   que podía capturar todo el scroll del documento; acá hay header/footer/resto del
- *   sitio, así que capturar scroll global dejaría al usuario atrapado. Al apuntar
- *   Observer al elemento, el navegador solo dispara el evento cuando el cursor está
- *   físicamente encima — mover el mouse afuera devuelve el scroll normal. El loop de
- *   render (posición/escala/opacidad de cada tarjeta según distancia al centro, y el
- *   lerp de `--seq-progress`) corre sobre `gsap.ticker` en vez de un
- *   `requestAnimationFrame` manual, y el lerp puntual usa `gsap.quickTo` en vez de un
- *   `+= (target - actual) * factor` a mano.
+ * - Desktop (md+): coverflow con scroll virtual, adaptado de un CodePen de referencia
+ *   (pista vertical infinita con `wheel`/`touch`). El plugin `Observer` de GSAP
+ *   captura wheel/touch apuntando al contenedor, nunca a `window` — la referencia era
+ *   una demo de una sola pantalla que podía capturar todo el scroll del documento;
+ *   acá hay header/footer/resto del sitio, así que capturar scroll global dejaría al
+ *   usuario atrapado. Al apuntar Observer al elemento, el navegador solo dispara el
+ *   evento cuando el cursor está físicamente encima — mover el mouse afuera devuelve
+ *   el scroll normal. El loop de render (posición/escala/opacidad de cada tarjeta
+ *   según distancia al centro, y el lerp de `--seq-progress` que achica el título)
+ *   corre sobre `gsap.ticker`/`gsap.quickTo`.
  *
- * - Mobile: el mismo truco (capturar `touchmove`/`wheel` y bloquear el scroll real) NO
- *   es seguro acá — no existe "mover el dedo afuera" para soltarlo, y la sección ocupa
- *   casi toda la pantalla, así que el usuario podría quedar atrapado sin poder bajar.
- *   Pero la pila de tarjetas SÍ tiene que animarse acá también (no un simple listado
- *   estático) — así que el "carrusel" se maneja igual que un scrollytelling clásico:
- *   un listener de `scroll` PASIVO en window (nunca `preventDefault`, el navegador
- *   scrollea normal siempre) lee cuánto se scrolleó dentro de un "carril" alto
- *   (`.numero-sequence-runway`) y ese número alimenta la MISMA fórmula de posición que
- *   usa desktop. El carril tiene una pista `sticky` adentro que se queda fija en
- *   pantalla mientras dura el scroll del carril — eso es lo que hace que las tarjetas
- *   parezcan "pasar" en vez de que la sección entera se desplace de golpe.
- *
- * El texto (título/fecha/descripción) sigue en flujo simple arriba, a ancho completo,
- * sin sticky ni grid compartido con desktop — ver el layout mobile-first más abajo.
+ * - Mobile: NumeroEntradasArco.astro (carrusel de arco arrastrable, sin scroll de la
+ *   página involucrado). Antes mobile reusaba la misma mecánica que desktop pero
+ *   manejada con scroll real pasivo dentro de un carril alto medido en JS — daba
+ *   problemas recurrentes en mobile (posiblemente ligado a números con pocas
+ *   entradas), así que se reemplazó por un componente estructuralmente distinto en
+ *   vez de seguir depurando esa mecánica puntual.
  */
 interface EntradaItem {
   slug: string;
@@ -50,15 +40,6 @@ interface Props {
 }
 
 const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
-
-// Estimación previa al montaje del alto del "carril" de scroll virtual en mobile —
-// nada más que un valor razonable para el primer paint antes de que el script mida el
-// alto real (ver `sizeRunway` en el <script>) y lo pise en px. Escala con la cantidad
-// de tarjetas para que la estimación no quede lejísimos del valor final que va a
-// aplicar el script y genere un salto de layout visible al montar. Sin entradas no hay
-// nada para animar (el script ni corre, ver el guard `cards.length > 0` de abajo), así
-// que el carril no necesita más que el alto de la pista misma.
-const runwayVh = entradas.length === 0 ? 65 : Math.max(120, 70 + entradas.length * 45);
 ---
 
 <section
@@ -77,13 +58,12 @@ const runwayVh = entradas.length === 0 ? 65 : Math.max(120, 70 + entradas.length
     }
   </div>
 
-  <div
-    class="numero-sequence-runway relative w-full md:h-full"
-    style={`--numero-runway-h: ${runwayVh}vh`}
-  >
-    <div
-      class="numero-sequence-track sticky top-20 h-[65vh] w-full min-w-0 overflow-hidden px-4 md:static md:top-auto md:h-full md:w-full md:overflow-visible md:px-0"
-    >
+  <div class="md:hidden">
+    <NumeroEntradasArco entradas={entradas} />
+  </div>
+
+  <div class="numero-sequence-runway relative hidden w-full md:block md:h-full">
+    <div class="numero-sequence-track static h-full w-full overflow-visible">
       {
         entradas.map((item) => (
           <a
@@ -137,18 +117,6 @@ const runwayVh = entradas.length === 0 ? 65 : Math.max(120, 70 + entradas.length
     }
   }
 
-  /* Alto del carril mobile: lo fija el frontmatter según la cantidad de tarjetas (ver
-     `runwayVh`). En desktop no hay carril con scroll virtual, ocupa toda la fila. */
-  .numero-sequence-runway {
-    height: var(--numero-runway-h, 120vh);
-  }
-
-  @media (min-width: 768px) {
-    .numero-sequence-runway {
-      height: 100%;
-    }
-  }
-
   /* Todo lo que depende del progreso del scroll se interpola en CSS a partir de la
      custom property que el script actualiza cada frame — el script solo escribe un
      número, nunca toca font-size/opacity directamente. */
@@ -177,13 +145,17 @@ const runwayVh = entradas.length === 0 ? 65 : Math.max(120, 70 + entradas.length
 
   gsap.registerPlugin(Observer);
 
+  // Este componente ahora es desktop-only para el carrusel (mobile usa
+  // NumeroEntradasArco.astro, ver frontmatter) — bail-out temprano evita trabajo de
+  // más sobre las `.numero-sequence-card`, que siguen en el DOM en mobile (ocultas
+  // por CSS vía `hidden md:block` en el contenedor, no removidas del documento).
+  const isDesktop = window.matchMedia('(min-width: 768px)').matches;
   const stage = document.getElementById('numero-sequence');
 
-  if (stage) {
+  if (stage && isDesktop) {
     const cards = Array.from(stage.querySelectorAll<HTMLElement>('.numero-sequence-card'));
 
     if (cards.length > 0) {
-      const isDesktop = window.matchMedia('(min-width: 768px)').matches;
       const SPACING = 260;
       const SHRINK_DISTANCE = 320;
 
@@ -201,69 +173,32 @@ const runwayVh = entradas.length === 0 ? 65 : Math.max(120, 70 + entradas.length
         onUpdate: () => stage.style.setProperty('--seq-progress', infoProxy.value.toFixed(3)),
       });
 
-      if (isDesktop) {
-        // Desktop: scroll virtual — wheel/touch capturados y bloqueados (preventDefault
-        // en wheel), seguro porque Observer apunta al elemento, no a window (ver
-        // comentario del frontmatter). Dos Observer separados (no un solo
-        // `type: 'wheel,touch'`) para mantener el multiplicador y el preventDefault
-        // distintos que tenía cada gesto originalmente.
-        Observer.create({
-          target: stage,
-          type: 'wheel',
-          preventDefault: true,
-          onChange: (self) => {
-            scrollOffset = Math.max(0, scrollOffset + self.deltaY * 0.5);
-          },
-        });
+      // wheel/touch capturados y bloqueados (preventDefault en wheel), seguro porque
+      // Observer apunta al elemento, no a window (ver comentario del frontmatter). Dos
+      // Observer separados (no un solo `type: 'wheel,touch'`) para mantener el
+      // multiplicador y el preventDefault distintos que tenía cada gesto originalmente.
+      Observer.create({
+        target: stage,
+        type: 'wheel',
+        preventDefault: true,
+        onChange: (self) => {
+          scrollOffset = Math.max(0, scrollOffset + self.deltaY * 0.5);
+        },
+      });
 
-        Observer.create({
-          target: stage,
-          type: 'touch',
-          onChange: (self) => {
-            scrollOffset = Math.max(0, scrollOffset + self.deltaY * 0.8);
-          },
-        });
-      } else {
-        // Mobile: scroll real y pasivo — nunca preventDefault, el navegador scrollea
-        // normal siempre. El carril alto + la pista `sticky` (CSS) hacen que, mientras
-        // se scrollea DENTRO del carril, la pista quede fija en pantalla; ese tramo de
-        // scroll real es lo que se traduce a `scrollOffset` acá.
-        const runway = stage.querySelector<HTMLElement>('.numero-sequence-runway');
-        const track = stage.querySelector<HTMLElement>('.numero-sequence-track');
-
-        // El alto del carril se MIDE en vez de estimarse en vh: tiene que alcanzar para
-        // el alto real de la pista fija (no una aproximación en vh, que varía según cómo
-        // cada navegador mobile resuelve el viewport con la barra de direcciones — eso
-        // fue lo que dejaba una zona muerta de scroll al final, de tamaño impredecible
-        // según el dispositivo) más el recorrido que necesita un ciclo completo de
-        // tarjetas (cards.length * SPACING, los mismos px de la fórmula de animación de
-        // abajo). Se recalcula en resize por si cambia el alto real de viewport (rotar
-        // el teléfono, o la barra de direcciones que se expande/contrae al scrollear).
-        const sizeRunway = () => {
-          if (!runway || !track) return;
-          const cycleDistance = cards.length * SPACING;
-          runway.style.height = `${track.offsetHeight + cycleDistance + 120}px`;
-        };
-        sizeRunway();
-        window.addEventListener('resize', sizeRunway);
-
-        const updateFromScroll = () => {
-          if (!runway) return;
-          const top = runway.getBoundingClientRect().top;
-          scrollOffset = Math.max(0, -top);
-        };
-
-        window.addEventListener('scroll', updateFromScroll, { passive: true });
-        updateFromScroll();
-      }
+      Observer.create({
+        target: stage,
+        type: 'touch',
+        onChange: (self) => {
+          scrollOffset = Math.max(0, scrollOffset + self.deltaY * 0.8);
+        },
+      });
 
       const update = () => {
         const total = cards.length;
 
-        if (isDesktop) {
-          const infoTarget = Math.min(scrollOffset / SHRINK_DISTANCE, 1);
-          animateInfoProgress(infoTarget);
-        }
+        const infoTarget = Math.min(scrollOffset / SHRINK_DISTANCE, 1);
+        animateInfoProgress(infoTarget);
 
         cards.forEach((card, i) => {
           let progress = (i * SPACING - scrollOffset) % (total * SPACING);

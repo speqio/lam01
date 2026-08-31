@@ -117,30 +117,37 @@ const { categorias } = Astro.props;
 </style>
 
 <script>
-  const tickerViews = document.querySelectorAll('.categorias-ticker-view');
+  const tickerViews = document.querySelectorAll<HTMLElement>('.categorias-ticker-view');
 
   tickerViews.forEach((view) => {
     let isDragging = false;
     let startX = 0;
     let startScrollLeft = 0;
 
-    view.addEventListener('wheel', (event) => {
-      if (Math.abs(event.deltaY) > 0) {
-        event.preventDefault();
-        view.scrollLeft += event.deltaY;
-      }
-    }, { passive: false });
+    view.addEventListener(
+      'wheel',
+      (event: Event) => {
+        const wheelEvent = event as WheelEvent;
+        if (Math.abs(wheelEvent.deltaY) > 0) {
+          wheelEvent.preventDefault();
+          view.scrollLeft += wheelEvent.deltaY;
+        }
+      },
+      { passive: false }
+    );
 
-    view.addEventListener('pointerdown', (event) => {
+    view.addEventListener('pointerdown', (event: Event) => {
+      const pointerEvent = event as PointerEvent;
       isDragging = true;
-      startX = event.clientX;
+      startX = pointerEvent.clientX;
       startScrollLeft = view.scrollLeft;
-      view.setPointerCapture(event.pointerId);
+      view.setPointerCapture(pointerEvent.pointerId);
     });
 
-    view.addEventListener('pointermove', (event) => {
+    view.addEventListener('pointermove', (event: Event) => {
       if (!isDragging) return;
-      const delta = event.clientX - startX;
+      const pointerEvent = event as PointerEvent;
+      const delta = pointerEvent.clientX - startX;
       view.scrollLeft = startScrollLeft - delta;
     });
 

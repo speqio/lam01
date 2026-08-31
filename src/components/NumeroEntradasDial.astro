@@ -82,19 +82,19 @@ const { entradas } = Astro.props;
   .numero-dial-scene {
     position: relative;
     width: 100%;
-    height: 14rem;
+    height: 24rem;
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    perspective: 1000px;
+    perspective: 1100px;
     touch-action: pan-y;
   }
 
   .numero-dial-carousel {
     position: relative;
-    width: 18rem;
-    height: 12rem;
+    width: 20rem;
+    height: 22rem;
     transform-style: preserve-3d;
   }
 
@@ -102,8 +102,8 @@ const { entradas } = Astro.props;
     position: absolute;
     left: 0;
     top: 0;
-    width: 18rem;
-    height: 12rem;
+    width: 20rem;
+    height: 22rem;
     will-change: transform, opacity;
     backface-visibility: hidden;
     -webkit-user-drag: none;
@@ -119,7 +119,7 @@ const { entradas } = Astro.props;
   // Radio del círculo (px) y grados que rota cada paso — juntos definen qué tan
   // "cerrado" se ve el dial. Con este radio/ángulo, la vecina inmediata ya se nota
   // rotada e internada en Z, no solo corrida al costado.
-  const RADIUS = 260;
+  const RADIUS = 290;
   const ANGLE_STEP = 46;
   const DEG_TO_RAD = Math.PI / 180;
   const DRAG_SENSITIVITY = 0.006;

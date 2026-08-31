@@ -1,5 +1,5 @@
 ---
-import NumeroEntradasArco from './NumeroEntradasArco.astro';
+import NumeroEntradasDial from './NumeroEntradasDial.astro';
 
 /**
  * Secuencia editorial para la página de un número: info fija (título/fecha/
@@ -17,7 +17,7 @@ import NumeroEntradasArco from './NumeroEntradasArco.astro';
  *   según distancia al centro, y el lerp de `--seq-progress` que achica el título)
  *   corre sobre `gsap.ticker`/`gsap.quickTo`.
  *
- * - Mobile: NumeroEntradasArco.astro (carrusel de arco arrastrable, sin scroll de la
+ * - Mobile: NumeroEntradasDial.astro (carrusel tipo dial arrastrable, sin scroll de la
  *   página involucrado). Antes mobile reusaba la misma mecánica que desktop pero
  *   manejada con scroll real pasivo dentro de un carril alto medido en JS — daba
  *   problemas recurrentes en mobile (posiblemente ligado a números con pocas
@@ -59,7 +59,7 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
   </div>
 
   <div class="md:hidden">
-    <NumeroEntradasArco entradas={entradas} />
+    <NumeroEntradasDial entradas={entradas} />
   </div>
 
   <div class="numero-sequence-runway relative hidden w-full md:block md:h-full">
@@ -146,7 +146,7 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
   gsap.registerPlugin(Observer);
 
   // Este componente ahora es desktop-only para el carrusel (mobile usa
-  // NumeroEntradasArco.astro, ver frontmatter) — bail-out temprano evita trabajo de
+  // NumeroEntradasDial.astro, ver frontmatter) — bail-out temprano evita trabajo de
   // más sobre las `.numero-sequence-card`, que siguen en el DOM en mobile (ocultas
   // por CSS vía `hidden md:block` en el contenedor, no removidas del documento).
   const isDesktop = window.matchMedia('(min-width: 768px)').matches;

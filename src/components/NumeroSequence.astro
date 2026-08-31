@@ -1,28 +1,11 @@
 ---
-import NumeroEntradasDial from './NumeroEntradasDial.astro';
-
 /**
- * Secuencia editorial para la página de un número: info fija (título/fecha/
- * descripción) + tarjetas de sus entradas. El texto es compartido entre pantallas,
- * pero el carrusel de tarjetas usa DOS componentes distintos según el tamaño:
+ * Secuencia editorial para la página de un número.
  *
- * - Desktop (md+): coverflow con scroll virtual, adaptado de un CodePen de referencia
- *   (pista vertical infinita con `wheel`/`touch`). El plugin `Observer` de GSAP
- *   captura wheel/touch apuntando al contenedor, nunca a `window` — la referencia era
- *   una demo de una sola pantalla que podía capturar todo el scroll del documento;
- *   acá hay header/footer/resto del sitio, así que capturar scroll global dejaría al
- *   usuario atrapado. Al apuntar Observer al elemento, el navegador solo dispara el
- *   evento cuando el cursor está físicamente encima — mover el mouse afuera devuelve
- *   el scroll normal. El loop de render (posición/escala/opacidad de cada tarjeta
- *   según distancia al centro, y el lerp de `--seq-progress` que achica el título)
- *   corre sobre `gsap.ticker`/`gsap.quickTo`.
- *
- * - Mobile: NumeroEntradasDial.astro (carrusel tipo dial arrastrable, sin scroll de la
- *   página involucrado). Antes mobile reusaba la misma mecánica que desktop pero
- *   manejada con scroll real pasivo dentro de un carril alto medido en JS — daba
- *   problemas recurrentes en mobile (posiblemente ligado a números con pocas
- *   entradas), así que se reemplazó por un componente estructuralmente distinto en
- *   vez de seguir depurando esa mecánica puntual.
+ * En mobile se usa una secuencia vertical simple: las tarjetas aparecen al hacer
+ * scroll, una detrás de otra, con GSAP y sin lógica pesada. En desktop conserva la
+ * versión más editorial y de coverflow que ya existía. La idea es mantener el
+ * diseño del sitio sin introducir una solución compleja ni dependencias extra.
  */
 interface EntradaItem {
   slug: string;
@@ -59,7 +42,41 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
   </div>
 
   <div class="md:hidden">
-    <NumeroEntradasDial entradas={entradas} />
+    <div class="mobile-sequence mx-auto max-w-md px-4 pb-8">
+      {entradas.map((item, index) => (
+        <a
+          href={`/entrada/${item.slug}`}
+          class="mobile-sequence-card group block overflow-hidden border border-ink/15 bg-surface"
+          data-index={index}
+        >
+          {item.portada && (
+            <div class="relative h-52 w-full overflow-hidden">
+              <img
+                src={item.portada}
+                alt={item.titulo}
+                class="h-full w-full object-cover grayscale transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+              />
+              <span class="absolute left-3 top-3 bg-canvas/80 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-ink backdrop-blur-sm">
+                {item.categoriaNombre}
+              </span>
+            </div>
+          )}
+
+          <div class="space-y-2 p-4">
+            <p class="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-muted">
+              Por {item.autorNombre}
+            </p>
+            <h3 class="font-headline text-2xl uppercase leading-none tracking-tight text-ink">
+              {item.titulo}
+            </h3>
+            <span class="inline-block font-mono text-[10px] uppercase tracking-[0.25em] text-accent">
+              Leer entrada
+            </span>
+          </div>
+        </a>
+      ))}
+    </div>
   </div>
 
   <div class="numero-sequence-runway relative hidden w-full md:block md:h-full">
@@ -137,11 +154,34 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
   .numero-sequence-card {
     will-change: transform, opacity;
   }
+
+  .mobile-sequence {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem 0 2rem;
+  }
+
+  .mobile-sequence-card {
+    opacity: 0;
+    transform: translateY(28px);
+    visibility: hidden;
+    will-change: transform, opacity, visibility;
+  }
+
+  .mobile-sequence-card.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+  }
 </style>
 
 <script>
   import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
   import { Observer } from 'gsap/Observer';
+
+  gsap.registerPlugin(ScrollTrigger);
 
   gsap.registerPlugin(Observer);
 
@@ -151,6 +191,37 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
   // por CSS vía `hidden md:block` en el contenedor, no removidas del documento).
   const isDesktop = window.matchMedia('(min-width: 768px)').matches;
   const stage = document.getElementById('numero-sequence');
+
+  if (!isDesktop) {
+    const mobileCards = gsap.utils.toArray<HTMLElement>('.mobile-sequence-card');
+
+    if (mobileCards.length > 0) {
+      mobileCards.forEach((card) => {
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: card,
+            start: 'top 82%',
+            end: 'bottom 18%',
+            toggleActions: 'play reverse play reverse',
+          },
+        });
+
+        tl.fromTo(
+          card,
+          { autoAlpha: 0, y: 28, visibility: 'hidden' },
+          {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.65,
+            ease: 'power2.out',
+            onStart: () => card.classList.add('is-visible'),
+            onReverseComplete: () => card.classList.remove('is-visible'),
+            onComplete: () => card.classList.add('is-visible'),
+          }
+        );
+      });
+    }
+  }
 
   if (stage && isDesktop) {
     const cards = Array.from(stage.querySelectorAll<HTMLElement>('.numero-sequence-card'));

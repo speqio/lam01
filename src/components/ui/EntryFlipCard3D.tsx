@@ -8,7 +8,7 @@ import { cardImageWrap, cardBadge } from '../../lib/cardStyles';
  * una tapa al frente al hacer click, con blur en las demás. Reskineado por completo con
  * los tokens del design system actual — cero clases ni colores del original (que usaba
  * fotos de stock hardcodeadas y una paleta neón). Uso: isla de "últimas entradas" en
- * desktop, como contraparte de SwipeCard.tsx (que cumple el mismo rol en mobile).
+ * desktop, como contraparte de UltimasEntradasCarousel.astro (mismo rol en mobile).
  *
  * Migrado de framer-motion a GSAP (`gsap.to`/`gsap.set` sobre un ref por tarjeta,
  * disparado desde un `useEffect`): las springs `{stiffness, damping}` del original se

@@ -1,7 +1,7 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import SwipeCard from '../components/ui/SwipeCard.tsx';
+import UltimasEntradasCarousel from '../components/ui/UltimasEntradasCarousel.astro';
 import EntryFlipCard3D from '../components/ui/EntryFlipCard3D.tsx';
 import HeroAnagram from '../components/HeroAnagram.astro';
 import ArchivoExplorer from '../components/ArchivoExplorer.astro';
@@ -69,12 +69,11 @@ const categorias = await getCollection('categorias');
           <h2 class="font-headline text-2xl lg:text-3xl">Últimas entradas</h2>
         </div>
 
-        {/* Mobile: swipe deck. Desktop: abanico 3D más grande, con click-to-front, más
-            un aside de texto flotando a la izquierda — misma diagramación que
-            Categorías/Archivo en desktop. Se hidratan las dos islas y se alternan por
-            CSS — mismo patrón que el nav flotante/Header. */}
+        {/* Mobile: carrusel de arco (GSAP, sin isla de React). Desktop: abanico 3D más
+            grande, con click-to-front, más un aside de texto flotando a la izquierda —
+            misma diagramación que Categorías/Archivo en desktop. */}
         <div class="mt-8 md:hidden">
-          <SwipeCard client:visible items={swipeItems} />
+          <UltimasEntradasCarousel items={swipeItems} />
         </div>
         <div class="relative hidden md:block">
           <aside class="pointer-events-none absolute left-4 top-1/2 z-10 max-w-[280px] -translate-y-1/2 md:left-10">

@@ -1,0 +1,195 @@
+---
+import { cardImageWrap, cardBadge } from '../../lib/cardStyles';
+
+/**
+ * Carrusel "arco" para Últimas entradas en mobile — reemplaza a SwipeCard.tsx
+ * (framer-motion) tras reportes repetidos de que el mazo quedaba trabado al soltar una
+ * card. Adaptado de una referencia HTML/JS standalone (arco 3D con rueda de tarjetas
+ * arrastrable, ver historial) a Astro + GSAP + este design system, sin React: no hace
+ * falta una isla, es más liviano.
+ *
+ * Geometría: cada tarjeta se posiciona según su "distancia lógica" (con wrap circular)
+ * a una posición central `pos.value` — X separa, Y arma la parábola del arco, Z empuja
+ * hacia el fondo, rotateY/rotateZ dan el giro e inclinación de abanico. Un solo
+ * `gsap.quickTo` anima `pos.value` con inercia al soltar (releva al lerp manual del
+ * original); mientras se arrastra, la posición seguí 1:1 al dedo, sin ease — mismo
+ * criterio que el resto del sitio (NumeroSequence, categorías): arrastre = seguimiento
+ * directo, soltar = animación suave hacia el objetivo.
+ *
+ * El render de cada tarjeta corre desde el propio `onUpdate` del tween/drag, no en un
+ * requestAnimationFrame infinito: en reposo no hay ningún loop corriendo. La
+ * inicialización se difiere con IntersectionObserver (equivalente hecho a mano al
+ * client:visible que tenía la versión en React).
+ *
+ * touch-action: pan-y (no `none` como la referencia) — deja pasar el scroll vertical
+ * de la página y solo reclama el gesto horizontal, mismo criterio ya establecido en
+ * NumeroSequence/CategoriasCarousel tras el bug de scroll bloqueado de esa sección.
+ */
+export interface UltimaEntradaItem {
+  title: string;
+  authorName: string;
+  categoryName: string;
+  slug: string;
+  coverImage?: string;
+}
+
+interface Props {
+  items: UltimaEntradaItem[];
+}
+
+const { items } = Astro.props;
+---
+
+{
+  items.length > 0 && (
+    <div class="entradas-arco-scene" id="entradas-arco-scene">
+      <div class="entradas-arco-carousel" id="entradas-arco-carousel">
+        {items.map((item, i) => (
+          <a href={`/entrada/${item.slug}`} class="entradas-arco-card" data-index={i}>
+            <div class="flex h-full w-full overflow-hidden border border-ink/15 bg-surface">
+              <div class={cardImageWrap}>
+                {item.coverImage && (
+                  <img
+                    src={item.coverImage}
+                    alt=""
+                    class="pointer-events-none h-full w-full object-cover grayscale contrast-125"
+                    loading="lazy"
+                    draggable="false"
+                  />
+                )}
+                <span class={cardBadge}>{item.categoryName}</span>
+              </div>
+              <div class="flex w-3/5 flex-col justify-center gap-1 p-3">
+                <h3 class="font-headline text-sm uppercase leading-[1.05] text-ink line-clamp-2">
+                  {item.title}
+                </h3>
+                <p class="font-mono text-[9px] uppercase tracking-widest text-ink-muted">
+                  Por {item.authorName}
+                </p>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+<style>
+  .entradas-arco-scene {
+    position: relative;
+    width: 100%;
+    height: 16rem;
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1400px;
+    touch-action: pan-y;
+  }
+
+  .entradas-arco-carousel {
+    position: relative;
+    width: 18rem;
+    height: 12rem;
+    transform-style: preserve-3d;
+  }
+
+  .entradas-arco-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 18rem;
+    height: 12rem;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-user-drag: none;
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap';
+  import { Observer } from 'gsap/Observer';
+
+  gsap.registerPlugin(Observer);
+
+  const SPACING_X = 110;
+  const ARCH_HEIGHT = 11;
+  const DEPTH = 90;
+  const YAW = 24;
+  const ROLL = 7;
+  const DRAG_SENSITIVITY = 0.012;
+
+  // Distancia circular más corta entre un índice y la posición actual — el mismo
+  // índice puede quedar "más cerca" rodeando por el otro lado de la rueda.
+  function shortestDistance(index: number, position: number, total: number) {
+    let dist = (((index - position) % total) + total) % total;
+    if (dist > total / 2) dist -= total;
+    return dist;
+  }
+
+  function initEntradasArco() {
+    const scene = document.getElementById('entradas-arco-scene');
+    if (!(scene instanceof HTMLElement)) return;
+    if (window.matchMedia('(min-width: 768px)').matches) return;
+
+    const cards = Array.from(scene.querySelectorAll<HTMLElement>('.entradas-arco-card'));
+    const total = cards.length;
+    if (total === 0) return;
+
+    const pos = { value: 0 };
+
+    function render() {
+      cards.forEach((card, i) => {
+        const dist = shortestDistance(i, pos.value, total);
+        const absDist = Math.abs(dist);
+
+        gsap.set(card, {
+          x: dist * SPACING_X,
+          y: -(dist * dist) * ARCH_HEIGHT,
+          z: -absDist * DEPTH,
+          rotateY: dist * -YAW,
+          rotateZ: dist * ROLL,
+          opacity: Math.max(0.2, 1 - absDist * 0.28),
+          zIndex: Math.round(100 - absDist * 10),
+        });
+      });
+    }
+
+    const snapTo = gsap.quickTo(pos, 'value', {
+      duration: 0.55,
+      ease: 'power3.out',
+      onUpdate: render,
+    });
+
+    render();
+
+    Observer.create({
+      target: scene,
+      type: 'touch,pointer',
+      preventDefault: true,
+      onPress: () => gsap.killTweensOf(pos),
+      onChange: (self) => {
+        pos.value -= self.deltaX * DRAG_SENSITIVITY;
+        render();
+      },
+      onRelease: () => snapTo(Math.round(pos.value)),
+    });
+  }
+
+  const scene = document.getElementById('entradas-arco-scene');
+  if (scene && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          initEntradasArco();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(scene);
+  } else {
+    initEntradasArco();
+  }
+</script>

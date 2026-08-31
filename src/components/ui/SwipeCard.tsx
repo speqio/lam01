@@ -64,6 +64,7 @@ function DraggableCard({ children, onSendToBack }: DraggableCardProps) {
         // al fondo del mazo (moveToBack, vía el estado `order` del padre); en los dos
         // casos la posición/tilt vuelve a cero con el mismo tween.
         const overThreshold = Math.abs(this.x) > DRAG_THRESHOLD || Math.abs(this.y) > DRAG_THRESHOLD;
+        const instance = this;
         gsap.to(el, {
           x: 0,
           y: 0,
@@ -72,6 +73,16 @@ function DraggableCard({ children, onSendToBack }: DraggableCardProps) {
           scale: 1,
           duration: 0.45,
           ease: 'power3.out',
+          // Este tween mueve el elemento por fuera del propio mecanismo de Draggable,
+          // así que hay que avisarle que su x/y interno (con el que calcula el
+          // PRÓXIMO arrastre) tiene que releerse de la posición real — si no,
+          // Draggable sigue pensando que el elemento quedó donde lo soltaste, y el
+          // próximo drag arranca saltando desde ese punto viejo (la tarjeta se "queda
+          // pegada"/salta en vez de volver limpia al centro). onUpdate cubre el caso
+          // de volver a agarrar la tarjeta a mitad de este tween; onComplete garantiza
+          // el resync final aunque ese caso no ocurra.
+          onUpdate: () => instance.update(),
+          onComplete: () => instance.update(),
         });
         if (overThreshold) onSendToBackRef.current();
       },

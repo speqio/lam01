@@ -8,16 +8,13 @@ import type { CollectionEntry } from 'astro:content';
  * categoría, como links reales, en loop horizontal continuo — sin fotos, sin
  * tarjetas/bordes/rectángulos, mismo mecanismo en todos los tamaños de pantalla.
  *
- * Es CSS puro (`@keyframes` + `translateX(-50%)`, la pista duplica la lista de
- * categorías una vez para el loop sin costura) en mobile — ahí no hace falta más: sin
- * fotos que decodificar/pintar, no hay ninguna razón para que esto le cueste nada al
- * hilo principal. Se pausa con :hover (mouse) y :focus-within (teclado); en touch no
- * hace falta pausar nada porque tocar un link no compite con la animación.
- *
- * En desktop (md+) un script chico le suma navegación con la rueda del mouse/trackpad
- * estando encima — apaga la animación CSS y pasa a manejar el mismo translateX con
- * rAF (autoplay + offset acumulado por wheel), igual que el resto de las secciones
- * scroll-driven del sitio: la rueda se captura en el contenedor, nunca en window.
+ * El movimiento lo maneja GSAP por completo (sin CSS @keyframes ni requestAnimationFrame
+ * manual): un solo tween infinito (`xPercent` 0→-50, la pista duplica la lista de
+ * categorías una vez para el loop sin costura) que se pausa con :hover/:focus-within y
+ * retoma solo. En desktop (md+), el plugin `Observer` de GSAP captura la rueda del
+ * mouse/trackpad sobre el contenedor (nunca en window) y "scrubea" el mismo tween
+ * escribiendo directamente su `totalTime` — GSAP resuelve el wrap del loop infinito
+ * solo, no hace falta acumular ni normalizar un offset a mano.
  *
  * Los nombres se pasan por `.toLocaleUpperCase('es')` en vez de usar `uppercase` de
  * CSS: en algunos navegadores mobile, pedirle al motor de render que transforme a
@@ -112,119 +109,16 @@ const { categorias } = Astro.props;
     align-items: baseline;
     width: max-content;
     white-space: nowrap;
-    animation: categorias-ticker-scroll 34s linear infinite;
-  }
-
-  .categorias-ticker-view:hover .categorias-ticker-track,
-  .categorias-ticker-track:has(:focus-visible) {
-    animation-play-state: paused;
-  }
-
-  @keyframes categorias-ticker-scroll {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      /* La mitad del ancho total = el largo exacto del primer set (misma lista
-         duplicada una vez más abajo). */
-      transform: translateX(-50%);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .categorias-ticker-track {
-      animation: none;
-    }
   }
 </style>
 
 <script>
+  import { gsap } from 'gsap';
+  import { Observer } from 'gsap/Observer';
+
+  gsap.registerPlugin(Observer);
+
   const AUTOPLAY_DURATION_S = 34;
-
-  function initDesktopWheel(view: HTMLElement, track: HTMLElement) {
-    // Apaga el @keyframes de CSS: de acá en más el transform lo escribe este script
-    // (autoplay en rAF + offset acumulado por wheel), único responsable en desktop.
-    track.style.animation = 'none';
-
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    let setWidth = 0;
-    let offset = 0;
-    let isInteracting = false;
-    let lastTime: number | null = null;
-
-    function measure() {
-      const width = track.scrollWidth;
-      setWidth = width > 0 ? width / 2 : 0;
-      if (setWidth <= 0) return;
-      offset = ((offset % setWidth) + setWidth) % setWidth;
-      render();
-    }
-
-    function render() {
-      if (!setWidth) return;
-      track.style.transform = `translateX(${-offset}px)`;
-    }
-
-    // La rueda se captura en el contenedor, nunca en window — mismo criterio que el
-    // resto de las secciones scroll-driven del sitio, así no secuestra el scroll de
-    // la página cuando el cursor pasa por encima.
-    view.addEventListener(
-      'wheel',
-      (event) => {
-        event.preventDefault();
-        const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-        if (!delta || !setWidth) return;
-        offset = ((offset + delta) % setWidth + setWidth) % setWidth;
-        render();
-      },
-      { passive: false }
-    );
-
-    view.addEventListener('mouseenter', () => {
-      isInteracting = true;
-    });
-    view.addEventListener('mouseleave', () => {
-      isInteracting = false;
-    });
-    view.addEventListener('focusin', () => {
-      isInteracting = true;
-    });
-    view.addEventListener('focusout', () => {
-      isInteracting = false;
-    });
-
-    if (reduceMotion) {
-      measure();
-      render();
-      return;
-    }
-
-    function tick(now: number) {
-      if (lastTime === null) lastTime = now;
-      const dt = Math.min((now - lastTime) / 1000, 0.05);
-      lastTime = now;
-
-      if (!isInteracting && setWidth > 0) {
-        const velocity = setWidth / AUTOPLAY_DURATION_S;
-        offset = ((offset + velocity * dt) % setWidth + setWidth) % setWidth;
-        render();
-      }
-
-      requestAnimationFrame(tick);
-    }
-
-    measure();
-    render();
-    window.addEventListener('resize', measure, { passive: true });
-
-    if ('ResizeObserver' in window) {
-      const resizeObserver = new ResizeObserver(() => measure());
-      resizeObserver.observe(view);
-    }
-
-    requestAnimationFrame(tick);
-  }
 
   function initCategoriasTicker() {
     const view = document.getElementById('categorias-ticker');
@@ -233,9 +127,59 @@ const { categorias } = Astro.props;
     const track = view.querySelector('.categorias-ticker-track');
     if (!(track instanceof HTMLElement)) return;
 
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const isDesktop = window.matchMedia('(min-width: 768px)').matches;
-    // En mobile no se toca nada: el @keyframes de CSS ya lo resuelve solo.
-    if (isDesktop) initDesktopWheel(view, track);
+
+    // Tween infinito único: es la única fuente de verdad de la posición, en todos los
+    // tamaños de pantalla. Con reduced-motion arranca pausado (se queda en el estado
+    // "from", xPercent 0) pero igual puede recibir scrub por wheel en desktop — la
+    // idea de reduced-motion es no animar solo, no bloquear un gesto que el usuario
+    // mismo inició.
+    const tween = gsap.to(track, {
+      xPercent: -50,
+      duration: AUTOPLAY_DURATION_S,
+      ease: 'none',
+      repeat: -1,
+      paused: reduceMotion,
+    });
+
+    if (!reduceMotion) {
+      view.addEventListener('mouseenter', () => tween.pause());
+      view.addEventListener('mouseleave', () => tween.play());
+      view.addEventListener('focusin', () => tween.pause());
+      view.addEventListener('focusout', () => tween.play());
+    }
+
+    if (isDesktop) {
+      // La mitad del scrollWidth = el largo de un set (la pista duplica la lista de
+      // categorías una vez para el loop sin costura).
+      let setWidth = track.scrollWidth / 2;
+      const measure = () => {
+        setWidth = track.scrollWidth / 2;
+      };
+
+      // Observer normaliza wheel/trackpad y se captura sobre el contenedor, nunca en
+      // window — mismo criterio que el resto de las secciones scroll-driven del
+      // sitio, así no secuestra el scroll de la página cuando el cursor pasa encima.
+      Observer.create({
+        target: view,
+        type: 'wheel',
+        preventDefault: true,
+        onChange: (self) => {
+          const delta = Math.abs(self.deltaX) > Math.abs(self.deltaY) ? self.deltaX : self.deltaY;
+          if (!delta || !setWidth) return;
+          // Scrubea el tween escribiendo su totalTime directamente: GSAP ya resuelve
+          // el wrap del loop infinito solo (repeat: -1), no hace falta acumular ni
+          // normalizar un offset a mano.
+          tween.totalTime(tween.totalTime() + delta / (setWidth / AUTOPLAY_DURATION_S));
+        },
+      });
+
+      window.addEventListener('resize', measure, { passive: true });
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(measure).observe(view);
+      }
+    }
   }
 
   initCategoriasTicker();

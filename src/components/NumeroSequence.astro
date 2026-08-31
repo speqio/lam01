@@ -1,18 +1,23 @@
 ---
 /**
  * Secuencia editorial para la página de un número — adaptada de un CodePen de
- * referencia (pista vertical infinita con `wheel`/`touch` + rAF). Mismo lenguaje visual
- * en todas las pantallas (info fija + tarjetas fluyendo), pero con DOS mecanismos de
+ * referencia (pista vertical infinita con `wheel`/`touch`). Mismo lenguaje visual en
+ * todas las pantallas (info fija + tarjetas fluyendo), pero con DOS mecanismos de
  * entrada distintos según el tamaño, a propósito:
  *
- * - Desktop (md+): el mecanismo original de la referencia — `wheel` sobre la sección
- *   mueve un "scroll virtual" que reposiciona las tarjetas en loop infinito y compacta
- *   el título (todo interpolado desde la custom property `--seq-progress`). El listener
- *   va en el contenedor, no en `window` como en la referencia — la referencia era una
- *   demo de una sola pantalla que podía capturar todo el scroll del documento; acá hay
- *   header/footer/resto del sitio, así que capturar scroll global dejaría al usuario
- *   atrapado. Al escuchar en el elemento, el navegador solo dispara el evento cuando el
- *   cursor está físicamente encima — mover el mouse afuera devuelve el scroll normal.
+ * - Desktop (md+): el mecanismo original de la referencia — `wheel`/`touch` sobre la
+ *   sección mueve un "scroll virtual" que reposiciona las tarjetas en loop infinito y
+ *   compacta el título (todo interpolado desde la custom property `--seq-progress`).
+ *   La captura la hace el plugin `Observer` de GSAP apuntando al contenedor, nunca a
+ *   `window` como en la referencia — la referencia era una demo de una sola pantalla
+ *   que podía capturar todo el scroll del documento; acá hay header/footer/resto del
+ *   sitio, así que capturar scroll global dejaría al usuario atrapado. Al apuntar
+ *   Observer al elemento, el navegador solo dispara el evento cuando el cursor está
+ *   físicamente encima — mover el mouse afuera devuelve el scroll normal. El loop de
+ *   render (posición/escala/opacidad de cada tarjeta según distancia al centro, y el
+ *   lerp de `--seq-progress`) corre sobre `gsap.ticker` en vez de un
+ *   `requestAnimationFrame` manual, y el lerp puntual usa `gsap.quickTo` en vez de un
+ *   `+= (target - actual) * factor` a mano.
  *
  * - Mobile: el mismo truco (capturar `touchmove`/`wheel` y bloquear el scroll real) NO
  *   es seguro acá — no existe "mover el dedo afuera" para soltarlo, y la sección ocupa
@@ -167,6 +172,11 @@ const runwayVh = entradas.length === 0 ? 65 : Math.max(120, 70 + entradas.length
 </style>
 
 <script>
+  import { gsap } from 'gsap';
+  import { Observer } from 'gsap/Observer';
+
+  gsap.registerPlugin(Observer);
+
   const stage = document.getElementById('numero-sequence');
 
   if (stage) {
@@ -178,38 +188,41 @@ const runwayVh = entradas.length === 0 ? 65 : Math.max(120, 70 + entradas.length
       const SHRINK_DISTANCE = 320;
 
       let scrollOffset = 0;
-      let infoProgress = 0;
+
+      // Lerp de `--seq-progress` (achica el título / desvanece la descripción) vía
+      // GSAP en vez de un `+= (target - actual) * 0.12` a mano cada frame: mismo
+      // "frenado suave" pero independiente del framerate, y `quickTo` está pensado
+      // justo para esto — llamarlo de nuevo en cada frame con un target que cambia
+      // (acá, `infoTarget`) sin que la animación arranque de cero cada vez.
+      const infoProxy = { value: 0 };
+      const animateInfoProgress = gsap.quickTo(infoProxy, 'value', {
+        duration: 0.4,
+        ease: 'power3',
+        onUpdate: () => stage.style.setProperty('--seq-progress', infoProxy.value.toFixed(3)),
+      });
 
       if (isDesktop) {
-        // Desktop: scroll virtual — wheel/touch capturados y bloqueados (preventDefault),
-        // seguro porque el listener vive en el elemento, no en window (ver comentario del
-        // frontmatter).
-        stage.addEventListener(
-          'wheel',
-          (event) => {
-            event.preventDefault();
-            scrollOffset = Math.max(0, scrollOffset + event.deltaY * 0.5);
+        // Desktop: scroll virtual — wheel/touch capturados y bloqueados (preventDefault
+        // en wheel), seguro porque Observer apunta al elemento, no a window (ver
+        // comentario del frontmatter). Dos Observer separados (no un solo
+        // `type: 'wheel,touch'`) para mantener el multiplicador y el preventDefault
+        // distintos que tenía cada gesto originalmente.
+        Observer.create({
+          target: stage,
+          type: 'wheel',
+          preventDefault: true,
+          onChange: (self) => {
+            scrollOffset = Math.max(0, scrollOffset + self.deltaY * 0.5);
           },
-          { passive: false }
-        );
+        });
 
-        let touchStartY = 0;
-        stage.addEventListener(
-          'touchstart',
-          (event) => {
-            touchStartY = event.touches[0].clientY;
+        Observer.create({
+          target: stage,
+          type: 'touch',
+          onChange: (self) => {
+            scrollOffset = Math.max(0, scrollOffset + self.deltaY * 0.8);
           },
-          { passive: true }
-        );
-        stage.addEventListener(
-          'touchmove',
-          (event) => {
-            const deltaY = touchStartY - event.touches[0].clientY;
-            scrollOffset = Math.max(0, scrollOffset + deltaY * 0.8);
-            touchStartY = event.touches[0].clientY;
-          },
-          { passive: true }
-        );
+        });
       } else {
         // Mobile: scroll real y pasivo — nunca preventDefault, el navegador scrollea
         // normal siempre. El carril alto + la pista `sticky` (CSS) hacen que, mientras
@@ -249,8 +262,7 @@ const runwayVh = entradas.length === 0 ? 65 : Math.max(120, 70 + entradas.length
 
         if (isDesktop) {
           const infoTarget = Math.min(scrollOffset / SHRINK_DISTANCE, 1);
-          infoProgress += (infoTarget - infoProgress) * 0.12;
-          stage.style.setProperty('--seq-progress', infoProgress.toFixed(3));
+          animateInfoProgress(infoTarget);
         }
 
         cards.forEach((card, i) => {
@@ -263,15 +275,14 @@ const runwayVh = entradas.length === 0 ? 65 : Math.max(120, 70 + entradas.length
           const opacity = Math.max(0, 1 - distanceNormalized * 1.2);
           const zIndex = Math.round(100 - Math.abs(progress));
 
-          card.style.transform = `translate3d(-50%, calc(-50% + ${progress}px), 0) scale(${scale})`;
-          card.style.opacity = String(opacity);
-          card.style.zIndex = String(zIndex);
+          // xPercent/yPercent (centrado) + y en px (desplazamiento) se combinan en un
+          // solo transform — GSAP arma el equivalente a translate3d(-50%, calc(-50% +
+          // Npx), 0) solo, sin necesidad de armar el string a mano.
+          gsap.set(card, { xPercent: -50, yPercent: -50, y: progress, scale, opacity, zIndex });
         });
-
-        requestAnimationFrame(update);
       };
 
-      update();
+      gsap.ticker.add(update);
     }
   }
 </script>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { gsap } from 'gsap';
 import { cardImageWrap, cardBadge } from '../../lib/cardStyles';
 
 /**
@@ -9,6 +9,15 @@ import { cardImageWrap, cardBadge } from '../../lib/cardStyles';
  * los tokens del design system actual — cero clases ni colores del original (que usaba
  * fotos de stock hardcodeadas y una paleta neón). Uso: isla de "últimas entradas" en
  * desktop, como contraparte de SwipeCard.tsx (que cumple el mismo rol en mobile).
+ *
+ * Migrado de framer-motion a GSAP (`gsap.to`/`gsap.set` sobre un ref por tarjeta,
+ * disparado desde un `useEffect`): las springs `{stiffness, damping}` del original se
+ * tradujeron a duration/ease conservando el mismo carácter — {300,20} (frente/reposo)
+ * queda poco amortiguada, con leve rebote (`back.out`); {300,50} (abanico al hover) va
+ * bien amortiguada, sin rebote (`power3.out`). El `delay` escalonado por índice se
+ * mantiene igual. El `whileHover` puntual del original (la tarjeta se levanta un poco
+ * más si el mouse pasa por ENCIMA de ella, además del abanico general del contenedor)
+ * se replica con un estado de hover propio por tarjeta.
  *
  * Sin drop-shadows (el design system actual es plano): la tarjeta al frente se separa
  * visualmente con un borde acid-flash en vez de una sombra debajo.
@@ -38,9 +47,57 @@ interface CardProps {
   onClick: (index: number) => void;
 }
 
+const EASE_SNAPPY = 'back.out(1.4)';
+const EASE_SMOOTH = 'power3.out';
+
 function Card({ item, index, total, isHovered, isFirstCard, isFront, frontIndex, onClick }: CardProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const mounted = useRef(false);
+  const [isSelfHovered, setIsSelfHovered] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    let target: gsap.TweenVars;
+    if (isFront) {
+      target = { rotateY: 0, x: 0, y: -100, scale: 1.15, duration: 0.5, ease: EASE_SNAPPY, delay: 0 };
+    } else if (isHovered) {
+      target = {
+        rotateY: -45,
+        x: index * 75,
+        y: isSelfHovered ? (isFirstCard ? 0 : -100) : index * -8,
+        scale: 1.05,
+        duration: 0.4,
+        ease: EASE_SMOOTH,
+        delay: index * 0.1,
+      };
+    } else {
+      target = {
+        rotateY: 0,
+        x: 0,
+        y: isSelfHovered ? (isFirstCard ? 0 : -100) : 0,
+        scale: 1,
+        duration: 0.5,
+        ease: EASE_SNAPPY,
+        delay: (total - index) * 0.1,
+      };
+    }
+
+    if (!mounted.current) {
+      // Equivalente a `initial={rotateY:0,x:0,y:0,scale:1}`: el primer render aplica
+      // el estado de reposo sin transición.
+      gsap.set(el, { rotateY: 0, x: 0, y: 0, scale: 1 });
+      mounted.current = true;
+      return;
+    }
+
+    gsap.to(el, target);
+  }, [isFront, isHovered, isSelfHovered, isFirstCard, index, total]);
+
   return (
-    <motion.div
+    <div
+      ref={ref}
       className={`absolute flex h-64 w-96 cursor-pointer overflow-hidden border bg-surface transition-colors lg:h-80 lg:w-[32rem] ${
         isFront ? 'z-20 border-accent' : 'border-ink/15'
       }`}
@@ -50,43 +107,8 @@ function Card({ item, index, total, isHovered, isFirstCard, isFront, frontIndex,
         zIndex: isFront ? 20 : total - index,
         filter: isFront || frontIndex === null ? 'none' : 'blur(4px)',
       }}
-      initial={{
-        rotateY: 0,
-        x: 0,
-        y: 0,
-        scale: 1,
-      }}
-      animate={
-        isFront
-          ? {
-              scale: 1.15,
-              rotateY: 0,
-              x: 0,
-              y: -100,
-              transition: { type: 'spring', stiffness: 300, damping: 20 },
-            }
-          : isHovered
-            ? {
-                rotateY: -45,
-                x: index * 75,
-                y: index * -8,
-                scale: 1.05,
-                transition: { type: 'spring', stiffness: 300, damping: 50, delay: index * 0.1 },
-              }
-            : {
-                rotateY: 0,
-                x: 0,
-                y: 0,
-                scale: 1,
-                transition: {
-                  type: 'spring',
-                  stiffness: 300,
-                  damping: 20,
-                  delay: (total - index) * 0.1,
-                },
-              }
-      }
-      whileHover={{ y: isFirstCard ? 0 : -100 }}
+      onMouseEnter={() => setIsSelfHovered(true)}
+      onMouseLeave={() => setIsSelfHovered(false)}
       onClick={() => onClick(index)}
       role="button"
       tabIndex={0}
@@ -118,7 +140,7 @@ function Card({ item, index, total, isHovered, isFirstCard, isFront, frontIndex,
           </a>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 

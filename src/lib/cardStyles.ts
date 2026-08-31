@@ -17,7 +17,7 @@ export const cardImageWrap = 'relative h-full w-2/5 shrink-0 bg-surface';
 // cual sea la foto de fondo (clara, oscura, con texto encima, lo que sea), así que va
 // opaco en vez de dejar que el acid-flash/canvas-80% se mezcle con la imagen.
 export const cardBadge =
-  'absolute left-2 top-2 bg-accent px-2.5 py-1.5 font-mono text-[10px] font-black uppercase tracking-widest text-canvas';
+  'absolute left-2 top-2 bg-accent px-3 py-2 font-mono text-[12px] font-black uppercase tracking-[0.2em] text-canvas drop-shadow-[0_0_1.2px_rgba(0,0,0,0.95)] md:text-sm';
 
 // Variante de card completa (EntryCard, /numeros): imagen que reacciona al hover del
 // link que envuelve toda la card.

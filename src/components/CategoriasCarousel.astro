@@ -3,26 +3,9 @@ import type { CollectionEntry } from 'astro:content';
 import { normalizeTitleText } from '../lib/text';
 
 /**
- * Categorías del home — ya no es una tira de tarjetas con foto (esa versión, en
- * cualquiera de sus variantes, seguía dando problemas de renderizado en mobile que no
- * se pudieron acotar). Ahora es un ticker tipográfico: solo el nombre de cada
- * categoría, como links reales, en loop horizontal continuo — sin fotos, sin
- * tarjetas/bordes/rectángulos, mismo mecanismo en todos los tamaños de pantalla.
- *
- * El movimiento lo maneja GSAP por completo (sin CSS @keyframes ni requestAnimationFrame
- * manual): un solo tween infinito (`xPercent` 0→-50, la pista duplica la lista de
- * categorías una vez para el loop sin costura) que se pausa con :hover/:focus-within y
- * retoma solo. En desktop (md+), el plugin `Observer` de GSAP captura la rueda del
- * mouse/trackpad sobre el contenedor (nunca en window) y "scrubea" el mismo tween
- * escribiendo directamente su `totalTime` — GSAP resuelve el wrap del loop infinito
- * solo, no hace falta acumular ni normalizar un offset a mano.
- *
- * Los nombres se pasan por `.toLocaleUpperCase('es')` en vez de usar `uppercase` de
- * CSS: en algunos navegadores mobile, pedirle al motor de render que transforme a
- * mayúscula un acento (ñ→Ñ, ó→Ó) sobre esta tipografía rompe la composición del glifo
- * y se pierde la tilde/diéresis ("reseña" quedaba "RESENA"). Mandar el string ya en
- * mayúscula evita ese paso — el navegador solo tiene que dibujar el carácter, no
- * transformarlo primero.
+ * Categorías del home — ticker tipográfico simple y estable, igual a la versión
+ * publicada en producción. Una sola línea de palabras enlazadas con separadores,
+ * sin pills, sin controles, sin scroll lateral activado.
  */
 interface Props {
   categorias: CollectionEntry<'categorias'>[];
@@ -35,64 +18,33 @@ const { categorias } = Astro.props;
   categorias.length > 0 && (
     <section class="relative mb-12 md:mb-20">
       <div class="mb-6 md:hidden">
-        <h2 class="font-headline text-2xl lg:text-3xl">Categorías</h2>
+        <h2 class="font-headline text-2xl text-white/90 lg:text-3xl">Categorías</h2>
       </div>
 
       <div class="mb-6 hidden text-center md:block">
-        <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+        <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-white/60">
           Revisá nuestro catálogo
         </span>
-        <h2 class="font-headline text-4xl leading-none tracking-tight text-ink lg:text-6xl">
+        <h2 class="font-headline text-4xl leading-none tracking-tight text-white/90 lg:text-6xl">
           Categorías
         </h2>
       </div>
 
-      <div id="categorias-ticker" class="categorias-ticker-view">
+      <div class="categorias-ticker-view" aria-label="Carrusel de categorías">
         <div class="categorias-ticker-track">
-          {categorias.map((categoria) => (
-            <>
-              <a
-                href={`/categoria/${categoria.id}`}
-                class="font-headline text-xl font-medium leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
-              >
-                {normalizeTitleText(categoria.data.nombre)}
-              </a>
-              <span
-                class="mx-4 text-xl leading-none text-ink/20 sm:text-2xl md:mx-6 md:text-3xl"
-                aria-hidden="true"
-              >
-                •
-              </span>
-            </>
-          ))}
-          {categorias.map((categoria) => (
-            <>
-              <a
-                href={`/categoria/${categoria.id}`}
-                tabindex="-1"
-                aria-hidden="true"
-                class="font-headline text-xl font-medium leading-none tracking-tight text-ink transition-colors duration-200 hover:text-accent sm:text-2xl md:text-3xl"
-              >
-                {normalizeTitleText(categoria.data.nombre)}
-              </a>
-              <span
-                class="mx-4 text-xl leading-none text-ink/20 sm:text-2xl md:mx-6 md:text-3xl"
-                aria-hidden="true"
-              >
-                •
-              </span>
-            </>
+          {[0, 1].map((setIndex) => (
+            <div class="categorias-ticker-set" aria-hidden={setIndex === 1}>
+              {categorias.map((categoria) => (
+                <>
+                  <a href={`/categoria/${categoria.id}`} class="categorias-ticker-item">
+                    {normalizeTitleText(categoria.data.nombre)}
+                  </a>
+                  <span class="categorias-ticker-separator" aria-hidden="true">•</span>
+                </>
+              ))}
+            </div>
           ))}
         </div>
-
-        <div
-          class="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-canvas to-transparent md:w-24"
-          aria-hidden="true"
-        />
-        <div
-          class="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-canvas to-transparent md:w-24"
-          aria-hidden="true"
-        />
       </div>
     </section>
   )
@@ -102,86 +54,102 @@ const { categorias } = Astro.props;
   .categorias-ticker-view {
     position: relative;
     width: 100%;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    cursor: grab;
+    touch-action: pan-x;
+    scroll-behavior: smooth;
+    mask-image: linear-gradient(to right, transparent 0, black 8%, black 92%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 8%, black 92%, transparent 100%);
+  }
+
+  .categorias-ticker-view::-webkit-scrollbar {
+    display: none;
+  }
+
+  .categorias-ticker-view:active {
+    cursor: grabbing;
   }
 
   .categorias-ticker-track {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     width: max-content;
     white-space: nowrap;
+    padding-right: clamp(1rem, 2vw, 2rem);
+    gap: 0;
+  }
+
+  .categorias-ticker-set {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    padding-right: clamp(1rem, 2vw, 2rem);
+  }
+
+  .categorias-ticker-item {
+    display: inline-block;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: var(--font-sans, 'Lekton', 'Arial', sans-serif);
+    font-size: clamp(1.2rem, 2vw, 2.4rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    font-weight: 400;
+    transition: color 180ms ease, opacity 180ms ease;
+  }
+
+  .categorias-ticker-item:hover,
+  .categorias-ticker-item:focus-visible {
+    color: #a6294a;
+  }
+
+  .categorias-ticker-separator {
+    display: inline-block;
+    margin: 0 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: clamp(1.1rem, 1.6vw, 2rem);
+    line-height: 1;
+    font-family: var(--font-sans, 'Lekton', 'Arial', sans-serif);
   }
 </style>
 
 <script>
-  import { gsap } from 'gsap';
-  import { Observer } from 'gsap/Observer';
+  const tickerViews = document.querySelectorAll('.categorias-ticker-view');
 
-  gsap.registerPlugin(Observer);
+  tickerViews.forEach((view) => {
+    let isDragging = false;
+    let startX = 0;
+    let startScrollLeft = 0;
 
-  const AUTOPLAY_DURATION_S = 34;
+    view.addEventListener('wheel', (event) => {
+      if (Math.abs(event.deltaY) > 0) {
+        event.preventDefault();
+        view.scrollLeft += event.deltaY;
+      }
+    }, { passive: false });
 
-  function initCategoriasTicker() {
-    const view = document.getElementById('categorias-ticker');
-    if (!(view instanceof HTMLElement)) return;
-
-    const track = view.querySelector('.categorias-ticker-track');
-    if (!(track instanceof HTMLElement)) return;
-
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
-
-    // Tween infinito único: es la única fuente de verdad de la posición, en todos los
-    // tamaños de pantalla. Con reduced-motion arranca pausado (se queda en el estado
-    // "from", xPercent 0) pero igual puede recibir scrub por wheel en desktop — la
-    // idea de reduced-motion es no animar solo, no bloquear un gesto que el usuario
-    // mismo inició.
-    const tween = gsap.to(track, {
-      xPercent: -50,
-      duration: AUTOPLAY_DURATION_S,
-      ease: 'none',
-      repeat: -1,
-      paused: reduceMotion,
+    view.addEventListener('pointerdown', (event) => {
+      isDragging = true;
+      startX = event.clientX;
+      startScrollLeft = view.scrollLeft;
+      view.setPointerCapture(event.pointerId);
     });
 
-    if (!reduceMotion) {
-      view.addEventListener('mouseenter', () => tween.pause());
-      view.addEventListener('mouseleave', () => tween.play());
-      view.addEventListener('focusin', () => tween.pause());
-      view.addEventListener('focusout', () => tween.play());
-    }
+    view.addEventListener('pointermove', (event) => {
+      if (!isDragging) return;
+      const delta = event.clientX - startX;
+      view.scrollLeft = startScrollLeft - delta;
+    });
 
-    if (isDesktop) {
-      // La mitad del scrollWidth = el largo de un set (la pista duplica la lista de
-      // categorías una vez para el loop sin costura).
-      let setWidth = track.scrollWidth / 2;
-      const measure = () => {
-        setWidth = track.scrollWidth / 2;
-      };
+    const stopDragging = () => {
+      isDragging = false;
+    };
 
-      // Observer normaliza wheel/trackpad y se captura sobre el contenedor, nunca en
-      // window — mismo criterio que el resto de las secciones scroll-driven del
-      // sitio, así no secuestra el scroll de la página cuando el cursor pasa encima.
-      Observer.create({
-        target: view,
-        type: 'wheel',
-        preventDefault: true,
-        onChange: (self) => {
-          const delta = Math.abs(self.deltaX) > Math.abs(self.deltaY) ? self.deltaX : self.deltaY;
-          if (!delta || !setWidth) return;
-          // Scrubea el tween escribiendo su totalTime directamente: GSAP ya resuelve
-          // el wrap del loop infinito solo (repeat: -1), no hace falta acumular ni
-          // normalizar un offset a mano.
-          tween.totalTime(tween.totalTime() + delta / (setWidth / AUTOPLAY_DURATION_S));
-        },
-      });
-
-      window.addEventListener('resize', measure, { passive: true });
-      if ('ResizeObserver' in window) {
-        new ResizeObserver(measure).observe(view);
-      }
-    }
-  }
-
-  initCategoriasTicker();
+    view.addEventListener('pointerup', stopDragging);
+    view.addEventListener('pointerleave', stopDragging);
+    view.addEventListener('pointercancel', stopDragging);
+  });
 </script>

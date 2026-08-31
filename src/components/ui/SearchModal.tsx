@@ -108,9 +108,6 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
             <path d="m21 21-4.3-4.3" />
           </svg>
           <span className="hidden sm:inline">Buscar</span>
-          <kbd className="hidden border border-ink/20 px-1.5 py-0.5 font-mono text-[10px] text-ink-muted sm:inline">
-            Ctrl K
-          </kbd>
         </button>
       )}
 

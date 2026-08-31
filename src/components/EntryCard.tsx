@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { normalizeTitleText } from '../lib/text';
 import {
   cardShell,
   cardImageWrap,
@@ -64,15 +65,17 @@ export default function EntryCard({
     };
   }, []);
 
+  const normalizedTitle = normalizeTitleText(title);
+
   return (
     <a ref={ref} href={`/entrada/${slug}`} className={cardShell}>
       <div className={cardImageWrap}>
-        {coverImage && <img src={coverImage} alt={title} className={cardImage} />}
+        {coverImage && <img src={coverImage} alt={normalizedTitle} className={cardImage} />}
         <span className={cardBadge}>{categoryName}</span>
       </div>
 
       <div className={cardBody}>
-        <h2 className={cardTitle}>{title}</h2>
+        <h2 className={cardTitle}>{normalizedTitle}</h2>
         <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">
           Por {authorName}
         </p>

@@ -1,4 +1,6 @@
 ---
+import { normalizeTitleText } from '../lib/text';
+
 /**
  * Secuencia editorial para la página de un número.
  *
@@ -23,6 +25,7 @@ interface Props {
 }
 
 const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
+const tituloNormalizado = normalizeTitleText(titulo);
 ---
 
 <section
@@ -31,7 +34,7 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
 >
   <div class="numero-sequence-info flex flex-col justify-center px-4 md:sticky md:top-20 md:z-10 md:min-w-0 md:self-start md:px-0">
     <p class="font-mono text-xs uppercase tracking-widest text-ink-muted">{fechaFormateada}</p>
-    <h1 class="numero-sequence-title mt-2 font-headline leading-[0.9] text-ink">{titulo}</h1>
+    <h1 class="numero-sequence-title mt-2 font-headline leading-[0.9] text-ink">{tituloNormalizado}</h1>
     {
       descripcion && (
         <p class="numero-sequence-desc mt-4 max-w-md overflow-hidden font-serif text-ink-muted">
@@ -67,8 +70,8 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
             <p class="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-muted">
               Por {item.autorNombre}
             </p>
-            <h3 class="font-headline text-2xl uppercase leading-none tracking-tight text-ink">
-              {item.titulo}
+            <h3 class="font-headline text-2xl leading-none tracking-tight text-ink">
+              {normalizeTitleText(item.titulo)}
             </h3>
             <span class="inline-block font-mono text-[10px] uppercase tracking-[0.25em] text-accent">
               Leer entrada
@@ -102,8 +105,8 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
                 </span>
               </div>
               <div class="flex w-3/5 flex-col gap-1 p-4 md:gap-2 md:p-6">
-                <h3 class="font-headline text-lg uppercase leading-[1.05] text-ink md:text-2xl lg:text-3xl">
-                  {item.titulo}
+                <h3 class="font-headline text-lg leading-[1.05] text-ink md:text-2xl lg:text-3xl">
+                  {normalizeTitleText(item.titulo)}
                 </h3>
                 <p class="font-mono text-[10px] uppercase tracking-widest text-ink-muted md:text-xs">
                   Por {item.autorNombre}
@@ -122,9 +125,6 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
 
 <style>
   #numero-sequence {
-    /* Mobile: arranca directo en compacto (1) — sin scroll virtual ni sticky ahí, el
-       título ya se ve en su tamaño final desde el principio. Desktop la pisa con 0 y
-       la anima el script en base al wheel. */
     --seq-progress: 1;
   }
 
@@ -134,9 +134,6 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
     }
   }
 
-  /* Todo lo que depende del progreso del scroll se interpola en CSS a partir de la
-     custom property que el script actualiza cada frame — el script solo escribe un
-     número, nunca toca font-size/opacity directamente. */
   .numero-sequence-title {
     font-size: clamp(1.75rem, calc(4rem - var(--seq-progress) * 2.1rem), 4.5rem);
   }
@@ -182,13 +179,8 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
   import { Observer } from 'gsap/Observer';
 
   gsap.registerPlugin(ScrollTrigger);
-
   gsap.registerPlugin(Observer);
 
-  // Este componente ahora es desktop-only para el carrusel (mobile usa
-  // NumeroEntradasDial.astro, ver frontmatter) — bail-out temprano evita trabajo de
-  // más sobre las `.numero-sequence-card`, que siguen en el DOM en mobile (ocultas
-  // por CSS vía `hidden md:block` en el contenedor, no removidas del documento).
   const isDesktop = window.matchMedia('(min-width: 768px)').matches;
   const stage = document.getElementById('numero-sequence');
 
@@ -232,11 +224,6 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
 
       let scrollOffset = 0;
 
-      // Lerp de `--seq-progress` (achica el título / desvanece la descripción) vía
-      // GSAP en vez de un `+= (target - actual) * 0.12` a mano cada frame: mismo
-      // "frenado suave" pero independiente del framerate, y `quickTo` está pensado
-      // justo para esto — llamarlo de nuevo en cada frame con un target que cambia
-      // (acá, `infoTarget`) sin que la animación arranque de cero cada vez.
       const infoProxy = { value: 0 };
       const animateInfoProgress = gsap.quickTo(infoProxy, 'value', {
         duration: 0.4,
@@ -244,10 +231,6 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
         onUpdate: () => stage.style.setProperty('--seq-progress', infoProxy.value.toFixed(3)),
       });
 
-      // wheel/touch capturados y bloqueados (preventDefault en wheel), seguro porque
-      // Observer apunta al elemento, no a window (ver comentario del frontmatter). Dos
-      // Observer separados (no un solo `type: 'wheel,touch'`) para mantener el
-      // multiplicador y el preventDefault distintos que tenía cada gesto originalmente.
       Observer.create({
         target: stage,
         type: 'wheel',
@@ -281,9 +264,6 @@ const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
           const opacity = Math.max(0, 1 - distanceNormalized * 1.2);
           const zIndex = Math.round(100 - Math.abs(progress));
 
-          // xPercent/yPercent (centrado) + y en px (desplazamiento) se combinan en un
-          // solo transform — GSAP arma el equivalente a translate3d(-50%, calc(-50% +
-          // Npx), 0) solo, sin necesidad de armar el string a mano.
           gsap.set(card, { xPercent: -50, yPercent: -50, y: progress, scale, opacity, zIndex });
         });
       };

@@ -199,19 +199,21 @@
       0.2
     );
 
-  gsap.fromTo(
-    [title, kicker],
-    { autoAlpha: 0, y: 18, rotateX: 70 },
-    {
-      autoAlpha: 1,
-      y: 0,
-      rotateX: 0,
-      duration: 1.2,
-      ease: 'power3.out',
-      stagger: 0.2,
-      delay: 0.4,
-    }
-  );
+  if (title && kicker) {
+    gsap.fromTo(
+      [title, kicker],
+      { autoAlpha: 0, y: 18, rotateX: 70 },
+      {
+        autoAlpha: 1,
+        y: 0,
+        rotateX: 0,
+        duration: 1.2,
+        ease: 'power3.out',
+        stagger: 0.2,
+        delay: 0.4,
+      }
+    );
+  }
 
   stage.addEventListener('click', () => {
     master.restart();

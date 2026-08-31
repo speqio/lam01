@@ -1,6 +1,7 @@
 ---
 import { getCollection, getEntry, render } from 'astro:content';
 import PostLayout from '../../layouts/PostLayout.astro';
+import { normalizeTitleText } from '../../lib/text';
 
 export async function getStaticPaths() {
   const entradas = await getCollection('entradas');
@@ -15,6 +16,7 @@ const { Content } = await render(entrada);
 
 const autor = await getEntry('autores', entrada.data.autor);
 const categoria = await getEntry('categorias', entrada.data.categoria);
+const tituloEntrada = normalizeTitleText(entrada.data.titulo);
 
 const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
   year: 'numeric',
@@ -24,7 +26,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
 });
 ---
 
-<PostLayout title={entrada.data.titulo} description={entrada.data.extracto}>
+<PostLayout title={tituloEntrada} description={entrada.data.extracto}>
   <header class="not-prose mb-8 text-center">
     {
       categoria && (
@@ -37,7 +39,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
       )
     }
     <h1 class="font-headline text-5xl leading-[0.9] md:text-6xl">
-      {entrada.data.titulo}
+      {tituloEntrada}
     </h1>
     <p class="mt-4 font-mono text-xs uppercase tracking-widest text-ink-muted">
       Por{' '}
@@ -59,7 +61,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
       <div class="not-prose relative mb-10 aspect-[16/9] w-full overflow-hidden border border-ink/15">
         <img
           src={entrada.data.portada}
-          alt={entrada.data.titulo}
+          alt={tituloEntrada}
           data-pagefind-meta="image[src]"
           class="h-full w-full object-cover grayscale contrast-125"
         />
@@ -80,7 +82,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
             <div class="relative aspect-square overflow-hidden border border-ink/15">
               <img
                 src={imagen}
-                alt={entrada.data.titulo}
+                alt={tituloEntrada}
                 class="h-full w-full object-cover grayscale contrast-125"
               />
             </div>

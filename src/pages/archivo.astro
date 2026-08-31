@@ -2,6 +2,7 @@
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/ui/PageHeader.astro';
+import { normalizeTitleText } from '../lib/text';
 
 const todasLasEntradas = await getCollection('entradas');
 
@@ -44,24 +45,27 @@ const anios = [...porAnio.keys()].sort((a, b) => b - a);
           {anio}
         </h2>
         <ul>
-          {porAnio.get(anio)!.map(({ entrada, autor, categoria }) => (
-            <li class="flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-              <a
-                href={`/entrada/${entrada.id}`}
-                class="font-serif text-lg text-ink no-underline transition-colors hover:text-accent"
-              >
-                {entrada.data.titulo}
-              </a>
-              <span class="shrink-0 font-sans text-sm text-ink-muted">
-                {categoria?.data.nombre} &middot; {autor?.data.nombre} &middot;{' '}
-                {entrada.data.fecha.toLocaleDateString('es-ES', {
-                  day: 'numeric',
-                  month: 'short',
-                  timeZone: 'UTC',
-                })}
-              </span>
-            </li>
-          ))}
+          {porAnio.get(anio)!.map(({ entrada, autor, categoria }) => {
+            const tituloEntrada = normalizeTitleText(entrada.data.titulo);
+            return (
+              <li class="flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                <a
+                  href={`/entrada/${entrada.id}`}
+                  class="font-serif text-lg text-ink no-underline transition-colors hover:text-accent"
+                >
+                  {tituloEntrada}
+                </a>
+                <span class="shrink-0 font-sans text-sm text-ink-muted">
+                  {categoria?.data.nombre} &middot; {autor?.data.nombre} &middot;{' '}
+                  {entrada.data.fecha.toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'short',
+                    timeZone: 'UTC',
+                  })}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </section>
     ))

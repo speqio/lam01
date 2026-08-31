@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { cardImageWrap, cardBadge } from '../../lib/cardStyles';
+import { normalizeTitleText } from '../../lib/text';
 
 /**
  * Adaptado de `npx @ayushmxxn/serenity-ui@latest add flipcard3d` — mazo de tapas que se
@@ -95,6 +96,8 @@ function Card({ item, index, total, isHovered, isFirstCard, isFront, frontIndex,
     gsap.to(el, target);
   }, [isFront, isHovered, isSelfHovered, isFirstCard, index, total]);
 
+  const normalizedTitle = normalizeTitleText(item.title);
+
   return (
     <div
       ref={ref}
@@ -124,8 +127,8 @@ function Card({ item, index, total, isHovered, isFirstCard, isFront, frontIndex,
         <span className={cardBadge}>{item.categoryName}</span>
       </div>
       <div className="flex w-3/5 flex-col gap-1 p-4 lg:gap-2 lg:p-6">
-        <h3 className="font-headline text-lg uppercase leading-[1.05] text-ink lg:text-2xl">
-          {item.title}
+        <h3 className="font-headline text-lg leading-[1.05] text-ink lg:text-2xl">
+          {normalizedTitle}
         </h3>
         <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted lg:text-xs">
           Por {item.authorName}

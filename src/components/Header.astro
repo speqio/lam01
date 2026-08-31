@@ -3,11 +3,11 @@ import SearchModal from './ui/SearchModal.tsx';
 import { navItems } from '../data/navItems';
 ---
 
-<header class="hidden md:block md:sticky md:top-0 md:z-20 md:bg-canvas">
+<header class="pointer-events-none absolute inset-x-0 top-0 z-20 hidden md:block">
   <!-- Masthead -->
-  <div class="border-b border-ink/10 bg-surface/90 backdrop-blur">
-    <div class="container mx-auto flex h-20 items-center justify-between gap-4 px-4">
-      <nav class="hidden items-center gap-6 font-mono text-xs uppercase tracking-widest md:flex">
+  <div class="pointer-events-auto border-b border-transparent bg-transparent backdrop-blur-none">
+    <div class="mx-auto flex h-20 max-w-[1600px] items-center justify-between gap-4 px-4 md:px-8 lg:px-12">
+      <nav class="hidden items-center gap-6 font-mono text-xs uppercase tracking-widest text-ink md:flex">
         {
           navItems.map((item) => (
             <a href={item.url} class="group relative text-ink transition-colors hover:text-accent">

@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { normalizeTitleText } from '../lib/text';
 
 /**
  * "Archivo": galería de paneles expandibles, adaptada de una demo en GSAP (CDN) que
@@ -94,7 +95,7 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
     <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
       Explorá el archivo
     </span>
-    <h2 class="font-headline text-4xl uppercase leading-none tracking-tight text-ink lg:text-6xl">
+    <h2 class="font-headline text-4xl leading-none tracking-tight text-ink lg:text-6xl">
       Archivo
     </h2>
   </div>
@@ -118,8 +119,8 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
 
           <div class="archivo-explorer-expanded pointer-events-none absolute inset-0 flex flex-col justify-center gap-3 p-6 opacity-0 md:p-10">
             <span class="font-mono text-xs uppercase tracking-widest text-ink/50">{filtro.label}</span>
-            <h3 class="font-headline text-3xl uppercase leading-none tracking-tight text-ink lg:text-4xl">
-              {filtro.titulo}
+            <h3 class="font-headline text-3xl leading-none tracking-tight text-ink lg:text-4xl">
+              {normalizeTitleText(filtro.titulo)}
             </h3>
             <p class="max-w-xs font-serif text-sm italic leading-relaxed text-ink/70">
               {filtro.descripcion}

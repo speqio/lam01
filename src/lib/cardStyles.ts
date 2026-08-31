@@ -29,7 +29,7 @@ export const cardImage =
 
 export const cardBody = 'flex w-3/5 flex-col gap-1 p-4 lg:gap-2 lg:p-6';
 
-export const cardTitle = 'font-headline text-lg uppercase leading-[1.05] text-ink lg:text-xl';
+export const cardTitle = 'font-headline text-lg leading-[1.05] text-ink lg:text-xl';
 
 export const cardCta =
   'mt-auto font-mono text-xs font-medium uppercase tracking-widest text-accent transition-colors group-hover:underline';

@@ -1,6 +1,7 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { normalizeTitleText } from '../lib/text';
 import UltimasEntradasCarousel from '../components/ui/UltimasEntradasCarousel.astro';
 import EntryFlipCard3D from '../components/ui/EntryFlipCard3D.tsx';
 import HeroAnagram from '../components/HeroAnagram.astro';
@@ -31,7 +32,7 @@ todasConRelaciones.sort(
 const ultimasEntradas = todasConRelaciones.slice(0, 6);
 
 const swipeItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
-  title: entrada.data.titulo,
+  title: normalizeTitleText(entrada.data.titulo),
   authorName: autor?.data.nombre ?? '',
   categoryName: categoria?.data.nombre ?? '',
   slug: entrada.id,
@@ -40,7 +41,7 @@ const swipeItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
 }));
 
 const flipItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
-  title: entrada.data.titulo,
+  title: normalizeTitleText(entrada.data.titulo),
   authorName: autor?.data.nombre ?? '',
   categoryName: categoria?.data.nombre ?? '',
   excerpt: entrada.data.extracto,
@@ -80,7 +81,7 @@ const categorias = await getCollection('categorias');
             <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
               Recién publicado
             </span>
-            <h2 class="mb-3 font-headline text-4xl uppercase leading-none tracking-tight text-ink lg:text-6xl">
+            <h2 class="mb-3 font-headline text-4xl leading-none tracking-tight text-ink lg:text-6xl">
               Últimas entradas
             </h2>
           </aside>

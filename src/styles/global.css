@@ -13,20 +13,31 @@
 @layer base {
   body {
     @apply bg-canvas text-ink font-sans antialiased;
+    letter-spacing: -0.015em;
   }
 
-  /* Titulares en bold real (Lekton sí lo trae) con tracking amplio — así lee el
-     sistema de tipos de Riptype para su escala "display". */
   h1,
   h2,
   h3 {
-    @apply font-headline font-bold leading-[0.95] tracking-tight;
+    @apply font-headline font-normal leading-[0.95] tracking-[-0.04em];
   }
 
   h4,
   h5,
   h6 {
-    @apply font-sans font-normal uppercase tracking-wide;
+    @apply font-sans font-normal tracking-wide;
+  }
+
+  .font-headline,
+  .font-mono,
+  .font-sans {
+    font-weight: 400 !important;
+  }
+
+  .font-medium,
+  .font-bold,
+  .font-semibold {
+    font-weight: 400 !important;
   }
 }
 

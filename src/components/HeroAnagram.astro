@@ -1,198 +1,219 @@
 ---
 /**
- * Efecto "anagrama tipográfico" para el hero de la home: un set de frases literarias
- * se van reordenando letra por letra usando GSAP Flip — las letras que ya estaban en
- * pantalla se mueven a su nueva posición (no se destruyen y recrean), y solo las que
- * sobran/faltan hacen fade in/out. El emparejamiento "qué letra vieja se convierte en
- * cuál letra nueva" lo resuelve @algorithm.ts/lcs (longest common subsequence) sobre
- * los códigos ASCII de ambas palabras — el mismo mecanismo del CodePen original.
+ * Hero principal de la home inspirada en la referencia "Lam Flama": un bloque negro
+ * muy limpio con capas de gradiente rojo animadas y tipografía editorial en la parte
+ * inferior. Está pensado para funcionar en todos los tamaños de pantalla: móvil,
+ * tablet y desktop, sin depender de una lógica pesada ni de una estructura compleja.
  *
- * Es un componente 100% Astro/vanilla JS (sin React): no hay estado de UI que React
- * necesite manejar, es una animación DOM directa sobre un único <h1> — encaja mejor
- * con un <script> nativo que con una isla.
+ * Se mantiene el sistema visual del sitio (canvas/ink/accent, tipografía de cabecera,
+ * monospace para etiquetas) y se usa GSAP para la animación del gradiente y del texto,
+ * pero con una sola timeline simple y un render muy liviano.
  */
 ---
 
-<div class="w-full overflow-hidden py-6">
-  <h1
-    id="hero-anagram-title"
-    class="relative min-h-[4.5rem] w-full text-center font-normal leading-none text-ink text-[min(9vw,6.5rem)] sm:min-h-[7rem] lg:min-h-[8rem]"
-  ></h1>
+<div class="lam-flama-hero">
+  <div class="lam-flama-stage" id="lam-flama-stage">
+    <div class="lam-flama-overlay" aria-hidden="true"></div>
+    <div class="lam-flama-grads" aria-hidden="true"></div>
+
+    <div class="lam-flama-copy">
+      <p class="lam-flama-kicker font-mono uppercase tracking-[0.28em] text-ink/70">
+        Agosto de 2026
+      </p>
+      <h1 class="lam-flama-title font-headline leading-[0.9] tracking-[-0.05em] text-ink">
+        Número 3: <span class="text-accent">Ciudades</span>
+      </h1>
+    </div>
+  </div>
 </div>
 
 <style is:global>
-  /* La fuente (Lekton) ya viene del stack global del sitio (font-sans), no hace falta
-     declararla acá — se auto-hospeda vía @fontsource, no por Google Fonts. */
-
-  /* Las letras se inyectan por JS (document.createElement), así que estas reglas no
-     pueden ir en el bloque de estilos con scope de Astro — no le llegaría el atributo
-     de scoping a nodos creados dinámicamente. Los nombres de clase son lo bastante
-     específicos como para no chocar con el resto del sitio. */
-  #hero-anagram-title .char {
-    position: relative;
-    display: inline-block;
+  .lam-flama-hero {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 0.5rem 0 0;
   }
 
-  #hero-anagram-title .out {
-    display: none;
+  .lam-flama-stage {
+    position: relative;
+    width: min(100%, 1200px);
+    min-height: 72vh;
+    height: min(78vh, 800px);
+    overflow: hidden;
+    background: #121212;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    isolation: isolate;
+    cursor: pointer;
+  }
+
+  .lam-flama-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: transparent;
+    mix-blend-mode: overlay;
+    filter: url('#lam-flama-noise');
+    pointer-events: none;
+  }
+
+  .lam-flama-grads {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+  }
+
+  .lam-flama-row {
+    height: clamp(22px, 3.1vw, 34px);
+    width: 130%;
+    margin-left: -15%;
+    opacity: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 70, 70, 0) 0%,
+      rgba(255, 70, 70, 0.025) 4%,
+      rgba(255, 70, 70, 0.08) 8%,
+      rgba(255, 70, 70, 0.16) 12%,
+      rgba(255, 70, 70, 0.25) 17%,
+      rgba(255, 70, 70, 0.38) 22%,
+      rgba(255, 70, 70, 0.52) 28%,
+      rgba(255, 70, 70, 0.68) 34%,
+      rgba(255, 70, 70, 0.84) 42%,
+      rgba(255, 70, 70, 1) 50%,
+      rgba(255, 70, 70, 0.84) 58%,
+      rgba(255, 70, 70, 0.68) 66%,
+      rgba(255, 70, 70, 0.52) 72%,
+      rgba(255, 70, 70, 0.38) 78%,
+      rgba(255, 70, 70, 0.25) 83%,
+      rgba(255, 70, 70, 0.16) 88%,
+      rgba(255, 70, 70, 0.08) 92%,
+      rgba(255, 70, 70, 0.025) 96%,
+      rgba(255, 70, 70, 0) 100%
+    );
+    transform: translateX(-28%);
+  }
+
+  .lam-flama-copy {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    padding: 1.25rem 1rem 1rem;
+    transform: translateZ(0);
+  }
+
+  .lam-flama-kicker {
+    font-size: 0.62rem;
+  }
+
+  .lam-flama-title {
+    font-size: clamp(2.8rem, 9vw, 7.2rem);
+    letter-spacing: -0.06em;
+    line-height: 0.9;
+    max-width: 11ch;
+    text-transform: none;
+  }
+
+  @media (min-width: 768px) {
+    .lam-flama-stage {
+      min-height: 70vh;
+      height: 78vh;
+    }
+
+    .lam-flama-copy {
+      padding: 1.5rem 1.25rem 1.25rem;
+    }
+
+    .lam-flama-kicker {
+      font-size: 0.7rem;
+    }
   }
 </style>
 
+<svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+  <filter id="lam-flama-noise">
+    <feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="1" result="noise" />
+    <feColorMatrix in="noise" type="saturate" values="0" />
+  </filter>
+</svg>
+
 <script>
   import { gsap } from 'gsap';
-  import { Flip } from 'gsap/Flip';
-  import { lcs_dp } from '@algorithm.ts/lcs';
 
-  gsap.registerPlugin(Flip);
-
-  // Frases literarias con letras en común a propósito, para que el reordenamiento
-  // visual (en vez de un simple fundido) se note.
-  const options = [
-    'la antorcha magacin',
-    'pensamiento',
-    'arte',
-    'literatura',
-  ];
-
-  const title = document.getElementById('hero-anagram-title');
-
-  if (title) {
-    const nameMap: Record<string, string> = { ' ': 'space', '.': 'dot' };
-    const charMap: Record<string, string> = { ' ': '&nbsp;' };
-
-    let tl: gsap.core.Timeline | null = null;
-    let round = 0;
-    let step = 0;
-
-    const setTitle = (titleString: string) => {
-      title.setAttribute('aria-label', titleString);
-
-      const doTheFlip = () => {
-        round++;
-
-        const state = Flip.getState('#hero-anagram-title .char');
-
-        const counts: Record<string, number> = {};
-        const currentChars = [...title.querySelectorAll<HTMLElement>('.char')];
-        const lastWord = currentChars
-          .filter((d) => Number(d.dataset['round']) === round - 1)
-          .map((d) => {
-            const char = d.dataset['char'] ?? '';
-            return {
-              char,
-              ascii: char.charCodeAt(0),
-              id: d.dataset['flipId'],
-            };
-          });
-
-        currentChars.forEach((char) => {
-          char.classList.add('out');
-        });
-
-        tl = gsap.timeline();
-
-        tl.to(currentChars, {
-          opacity: 0,
-          stagger: 0.01,
-          y: -60,
-          scale: 0,
-          duration: 0.4,
-          rotation: 'random(-90, 90)',
-          ease: 'power2.in',
-        });
-
-        const newChars = titleString.split('');
-        const newWord = newChars.map((char) => {
-          const name = nameMap[char] || char;
-
-          if (!counts[name]) counts[name] = 1;
-          else counts[name]++;
-
-          return {
-            char,
-            name,
-            ascii: char.charCodeAt(0),
-            id: `${name}-${round}-${counts[name]}`,
-          };
-        });
-
-        const s1 = lastWord.map((d) => d.ascii);
-        const s2 = newWord.map((d) => d.ascii);
-
-        const lcsMap = lcs_dp(s1.length, s2.length, (x, y) => s1[x] === s2[y]);
-
-        newWord.forEach((wordChar, i) => {
-          let id = wordChar.id;
-          if (lcsMap.length && lcsMap[0][1] === i) {
-            const match = lcsMap.shift()!;
-            id = lastWord[match[0]].id ?? id;
-          }
-
-          const span = document.createElement('span');
-          span.classList.add('char');
-          span.dataset['flipId'] = id;
-          span.dataset['char'] = wordChar.char;
-          span.dataset['round'] = String(round);
-          span.setAttribute('aria-hidden', 'true');
-          span.innerHTML = charMap[wordChar.char] || wordChar.char;
-
-          title.append(span);
-        });
-
-        tl.add(
-          Flip.from(state, {
-            duration: 1,
-            ease: 'back.inOut(1.7)',
-            absolute: true,
-            targets: '#hero-anagram-title .char',
-            scale: true,
-            toggleClass: 'flipping',
-            onEnter: (elements) =>
-              gsap.fromTo(
-                elements,
-                { opacity: 0, scale: 0.5, y: 60, rotation: 'random(-90, 90)' },
-                {
-                  duration: 0.6,
-                  y: 0,
-                  rotation: 0,
-                  delay: 0.6,
-                  scale: 1,
-                  opacity: 1,
-                  stagger: 0.05,
-                  ease: 'back.out(1.7)',
-                }
-              ),
-          }),
-          0.1
-        );
-
-        tl.add(() => {
-          currentChars.forEach((d) => d.remove());
-        });
-
-        tl.add(() => {
-          step++;
-          setTitle(options[step % options.length]);
-        }, '+=1');
-      };
-
-      if (tl && tl.progress() < 1) {
-        tl.add(() => doTheFlip());
-        if (tl.timeScale() === 1) {
-          tl.timeScale(3);
-        } else {
-          tl.progress(1);
-        }
-      } else {
-        doTheFlip();
-      }
-    };
-
-    async function start() {
-      await document.fonts.ready;
-      setTitle(options[0]);
-    }
-
-    start();
+  const stage = document.getElementById('lam-flama-stage');
+  if (!stage) {
+    throw new Error('lam-flama-stage element not found');
   }
+
+  const grads = Array.from({ length: 18 }, (_, index) => {
+    const row = document.createElement('div');
+    row.className = 'lam-flama-row';
+    row.style.opacity = '0';
+    row.style.zIndex = String(index + 1);
+    return row;
+  });
+
+  const gradsContainer = stage.querySelector('.lam-flama-grads');
+  if (!gradsContainer) {
+    throw new Error('lam-flama-grads container not found');
+  }
+
+  grads.forEach((row) => gradsContainer.appendChild(row));
+
+  const rows = Array.from(stage.querySelectorAll<HTMLElement>('.lam-flama-row'));
+
+  const title = stage.querySelector<HTMLElement>('.lam-flama-title');
+  const kicker = stage.querySelector<HTMLElement>('.lam-flama-kicker');
+
+  const master = gsap.timeline({ repeat: -1, repeatDelay: 0.2 });
+
+  master
+    .fromTo(
+      rows,
+      { opacity: 0 },
+      {
+        opacity: 1,
+        duration: 1.1,
+        ease: 'sine.inOut',
+        stagger: 0.12,
+      }
+    )
+    .fromTo(
+      rows,
+      { x: '-32%' },
+      {
+        x: '32%',
+        duration: 3.2,
+        ease: 'sine.inOut',
+        stagger: {
+          each: 0.15,
+          repeat: -1,
+          yoyo: true,
+        },
+      },
+      0.2
+    );
+
+  gsap.fromTo(
+    [title, kicker],
+    { autoAlpha: 0, y: 18, rotateX: 70 },
+    {
+      autoAlpha: 1,
+      y: 0,
+      rotateX: 0,
+      duration: 1.2,
+      ease: 'power3.out',
+      stagger: 0.2,
+      delay: 0.4,
+    }
+  );
+
+  stage.addEventListener('click', () => {
+    master.restart();
+  });
 </script>

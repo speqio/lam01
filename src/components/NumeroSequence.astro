@@ -50,22 +50,50 @@ const tituloNormalizado = normalizeTitleText(titulo);
        scroll vertical cuando un número tiene muchas entradas) sin repetir la clase de
        bug que tuvieron los intentos anteriores. Cada tarjeta usa EntryCard.tsx (mismo
        componente que /categoria y /autor) envuelta en un ancho fijo para que el
-       scroll-snap tenga contra qué encastrar. */
+       scroll-snap tenga contra qué encastrar.
+
+       Debajo va un indicador tipo "dial": una franja delgada donde un segmento (ancho
+       proporcional a 1/total) se desplaza en función de `scrollLeft` del carril, más un
+       contador "02 / 12". Es puramente de LECTURA del scroll nativo (scroll listener +
+       gsap.to para suavizar), no reimplementa el gesto — evita la clase de bug de los
+       carruseles anteriores porque no hay ningún Draggable/Observer controlando el
+       carril, solo un observador pasivo de su posición. */
   }
-  <div class="numero-entradas-scroll mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:hidden">
+  <div class="numero-entradas-mobile mt-8 flex min-h-[54vh] flex-col justify-center gap-5 md:hidden">
+    <div
+      class="numero-entradas-scroll flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2"
+      data-entradas-scroll
+    >
+      {
+        entradas.map((item) => (
+          <div class="w-[85vw] max-w-sm shrink-0 snap-center" data-entrada-slide>
+            <EntryCard
+              client:visible
+              title={item.titulo}
+              authorName={item.autorNombre}
+              categoryName={item.categoriaNombre}
+              slug={item.slug}
+              coverImage={item.portada}
+            />
+          </div>
+        ))
+      }
+    </div>
+
     {
-      entradas.map((item) => (
-        <div class="w-[85vw] max-w-sm shrink-0 snap-center">
-          <EntryCard
-            client:visible
-            title={item.titulo}
-            authorName={item.autorNombre}
-            categoryName={item.categoriaNombre}
-            slug={item.slug}
-            coverImage={item.portada}
-          />
+      entradas.length > 1 && (
+        <div class="numero-dial flex items-center gap-3 px-4">
+          <span
+            class="numero-dial-count shrink-0 font-mono text-xs tabular-nums tracking-widest text-ink-muted"
+            data-dial-count
+          >
+            {`01 / ${String(entradas.length).padStart(2, '0')}`}
+          </span>
+          <div class="numero-dial-track relative h-[3px] flex-1 overflow-hidden rounded-full bg-ink/15">
+            <div class="numero-dial-thumb absolute inset-y-0 left-0 rounded-full bg-accent" data-dial-thumb />
+          </div>
         </div>
-      ))
+      )
     }
   </div>
 
@@ -166,6 +194,50 @@ const tituloNormalizado = normalizeTitleText(titulo);
 
   const isDesktop = window.matchMedia('(min-width: 768px)').matches;
   const stage = document.getElementById('numero-sequence');
+
+  if (stage && !isDesktop) {
+    const scrollEl = stage.querySelector<HTMLElement>('[data-entradas-scroll]');
+    const thumb = stage.querySelector<HTMLElement>('[data-dial-thumb]');
+    const countEl = stage.querySelector<HTMLElement>('[data-dial-count]');
+    const slides = Array.from(stage.querySelectorAll<HTMLElement>('[data-entrada-slide]'));
+
+    if (scrollEl && thumb && slides.length > 1) {
+      const total = slides.length;
+      const track = thumb.parentElement as HTMLElement;
+      thumb.style.width = `${100 / total}%`;
+
+      const updateDial = () => {
+        const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+        const ratio = maxScroll > 0 ? scrollEl.scrollLeft / maxScroll : 0;
+        const trackWidth = track.clientWidth;
+        const thumbWidth = trackWidth / total;
+        const x = ratio * (trackWidth - thumbWidth);
+
+        gsap.to(thumb, { x, duration: 0.2, ease: 'power2.out', overwrite: true });
+
+        if (countEl) {
+          const activeIndex = Math.round(ratio * (total - 1));
+          countEl.textContent = `${String(activeIndex + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
+        }
+      };
+
+      let ticking = false;
+      scrollEl.addEventListener(
+        'scroll',
+        () => {
+          if (ticking) return;
+          ticking = true;
+          requestAnimationFrame(() => {
+            updateDial();
+            ticking = false;
+          });
+        },
+        { passive: true }
+      );
+
+      updateDial();
+    }
+  }
 
   if (stage && isDesktop) {
     const cards = Array.from(stage.querySelectorAll<HTMLElement>('.numero-sequence-card'));

@@ -17,6 +17,35 @@ const numeros = await getCollection('numeros');
 const numerosOrdenados = numeros.sort(
   (a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf()
 );
+
+/**
+ * Chips para filtrar por rango ("1–5", "6–10", ...) en vez de listar los números todos
+ * juntos — pensado para cuando haya varias decenas de ediciones, no solo las pocas que
+ * hay hoy. El número de cada edición sale de su slug (`numero-9`, `numero-13`,...), no
+ * del título (que puede llevar subtítulo, mayúsculas, etc.) porque el slug es el único
+ * dato garantizado numérico y estable. Los rangos se calculan a partir del número más
+ * alto que exista — no están hardcodeados a "hasta 30" — así que agregar más números
+ * más adelante simplemente agrega más chips, sin tocar este archivo.
+ */
+const RANGO_SIZE = 5;
+
+function numeroIndice(numero: (typeof numerosOrdenados)[number]) {
+  const match = numero.id.match(/(\d+)/);
+  return match ? parseInt(match[0], 10) : 0;
+}
+
+const indices = numerosOrdenados.map(numeroIndice);
+const maxIndice = indices.length > 0 ? Math.max(...indices) : 0;
+const totalRangos = Math.max(1, Math.ceil(maxIndice / RANGO_SIZE));
+
+const rangos = Array.from({ length: totalRangos }, (_, i) => ({
+  id: i,
+  desde: i * RANGO_SIZE + 1,
+  hasta: i * RANGO_SIZE + RANGO_SIZE,
+}));
+
+const chipClass =
+  'numeros-chip rounded-full border border-ink/20 px-4 py-1.5 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:border-ink/40 data-[active=true]:border-accent data-[active=true]:bg-accent data-[active=true]:text-canvas';
 ---
 
 <BaseLayout
@@ -25,12 +54,32 @@ const numerosOrdenados = numeros.sort(
 >
   <PageHeader eyebrow="Ediciones" title="Números" />
 
+  {
+    rangos.length > 1 && (
+      <div
+        class="numeros-chips mb-8 flex flex-wrap justify-center gap-2"
+        role="group"
+        aria-label="Filtrar números por rango"
+      >
+        <button type="button" class={chipClass} data-rango-filter="all" data-active="true">
+          Todos
+        </button>
+        {rangos.map((rango) => (
+          <button type="button" class={chipClass} data-rango-filter={rango.id}>
+            {rango.desde}–{rango.hasta}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
     {
       numerosOrdenados.map((numero) => {
         const { titulo, subtitulo } = splitNumeroTitle(numero.data.titulo);
+        const rangoId = Math.floor((numeroIndice(numero) - 1) / RANGO_SIZE);
         return (
-        <a href={`/numero/${numero.id}`} class={cardShell}>
+        <a href={`/numero/${numero.id}`} class={cardShell} data-numero-rango={rangoId}>
           <div class={cardImageWrap}>
             {numero.data.portada && (
               <img src={numero.data.portada} alt={titulo} class={cardImage} />
@@ -70,3 +119,26 @@ const numerosOrdenados = numeros.sort(
     )
   }
 </BaseLayout>
+
+<script>
+  // Filtro por chips: solo esconde/muestra cards ya renderizadas (sin fetch ni
+  // reordenar el DOM), comparando el rango del chip activo contra data-numero-rango de
+  // cada card. Nada de GSAP acá — es un toggle de visibilidad, no una animación.
+  const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('.numeros-chip'));
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-numero-rango]'));
+
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const filtro = chip.dataset.rangoFilter;
+
+      chips.forEach((c) => {
+        c.dataset.active = String(c === chip);
+      });
+
+      cards.forEach((card) => {
+        const coincide = filtro === 'all' || card.dataset.numeroRango === filtro;
+        card.classList.toggle('hidden', !coincide);
+      });
+    });
+  });
+</script>

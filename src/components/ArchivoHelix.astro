@@ -12,21 +12,24 @@ import { normalizeTitleText } from '../lib/text';
  * cada card es un `<a>` normal posicionado con `transform: translate3d(...) rotateY(...)`
  * dentro de un grupo con `transform-style: preserve-3d`, no una malla 3D real.
  *
- * Interacción, adaptada del original con un cambio deliberado de seguridad para mobile:
- * el original controlaba la velocidad VERTICAL con el mismo arrastre que la rotación
- * horizontal (deltaY del drag) — en mobile eso significa capturar el gesto vertical
- * dentro de un componente a pantalla completa sin ninguna vía de escape, exactamente la
- * clase de trampa que este proyecto evita a propósito (ver nota sobre mobile/desktop en
- * CLAUDE.md). Acá el arrastre SOLO rota la hélice (eje horizontal); el desplazamiento
- * vertical es un flujo ambiente automático que el wheel puede acelerar (sin
- * preventDefault, así que scrollear sobre la hélice sigue scrolleando la página) — este
- * mismo criterio es el que ya usan NumeroSequence/CategoriasCarousel/UltimasEntradas
- * (`touch-action: pan-y`, capturar solo el eje horizontal).
+ * Interacción: arrastrar (touch/mouse) o scrollear (wheel) sobre la hélice la recorre
+ * verticalmente — a pedido explícito, es un scroll real, no solo un empujón ambiente —
+ * y arrastrar horizontalmente la rota. A diferencia del resto de los carruseles del
+ * sitio (que dejan pasar el eje vertical con `touch-action: pan-y` para no atrapar el
+ * scroll de la página en mobile, ver CLAUDE.md), acá se captura también el vertical
+ * (`touch-action: none`) porque es justo el gesto que se pidió. Se compensa por tamaño:
+ * el componente nunca es pantalla completa (se achica en mobile, ver `<style>` más
+ * abajo), así que siempre queda margen arriba/abajo para scrollear la página tocando
+ * fuera de la hélice.
+ *
+ * Geometría (radio, paso vertical) derivada en runtime del tamaño real de la card ya
+ * renderizada — cambia sola entre el breakpoint mobile/desktop del CSS sin duplicar
+ * constantes a mano, y se recalcula en resize.
  *
  * Cantidad de cards limitada (ver prop `items`, se pasa ya recortado desde
  * /archivo.astro) — con cientos de entradas en el archivo real, renderizar todas como
  * nodos 3D sería un problema de performance; esta vista es un "vistazo" curado, no un
- * listado completo (el listado completo por año sigue debajo, sin límite).
+ * listado completo.
  */
 export interface ArchivoHelixItem {
   slug: string;
@@ -79,11 +82,20 @@ const { items } = Astro.props;
      propio) el recorte vuelve a ser confiable. */
   .archivo-helix-clip {
     position: relative;
-    width: 100%;
-    height: 70vh;
-    max-height: 640px;
+    /* Angosta y centrada en mobile a propósito: con el mismo ancho que el texto de al
+       lado (que en mobile ni se muestra) el espiral se veía como un abanico ancho y
+       chato en vez de una torre — recortando el ancho se nota mucho más que es un
+       espiral vertical. */
+    width: 62vw;
+    max-width: 210px;
+    margin-inline: auto;
+    height: 52vh;
+    max-height: 420px;
     overflow: hidden;
-    touch-action: pan-y;
+    /* El gesto vertical (scroll/swipe) lo captura el propio componente para desplazarse
+       por la hélice — ver el script más abajo — así que acá no queda ningún eje suelto
+       para que el navegador maneje de forma nativa. */
+    touch-action: none;
     cursor: grab;
     /* Mismo recurso que el carrusel de Últimas entradas en mobile (ahí en los lados,
        acá arriba/abajo): las cards se desvanecen hacia los bordes en vez de cortarse en
@@ -100,6 +112,15 @@ const { items } = Astro.props;
 
   .archivo-helix-clip:active {
     cursor: grabbing;
+  }
+
+  @media (min-width: 768px) {
+    .archivo-helix-clip {
+      width: 100%;
+      max-width: none;
+      height: 70vh;
+      max-height: 640px;
+    }
   }
 
   .archivo-helix-scene {
@@ -122,10 +143,10 @@ const { items } = Astro.props;
     position: absolute;
     left: 0;
     top: 0;
-    width: 10rem;
-    height: 13rem;
-    margin-left: -5rem;
-    margin-top: -6.5rem;
+    width: 5rem;
+    height: 6.5rem;
+    margin-left: -2.5rem;
+    margin-top: -3.25rem;
     display: block;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.15);
@@ -135,15 +156,31 @@ const { items } = Astro.props;
     -webkit-user-drag: none;
   }
 
+  @media (min-width: 768px) {
+    .archivo-helix-card {
+      width: 10rem;
+      height: 13rem;
+      margin-left: -5rem;
+      margin-top: -6.5rem;
+    }
+  }
+
   .archivo-helix-title {
     position: absolute;
     inset: auto 0 0 0;
-    padding: 0.6rem 0.6rem 0.5rem;
+    padding: 0.4rem 0.4rem 0.35rem;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
     font-family: 'Lekton', monospace;
-    font-size: 0.8rem;
+    font-size: 0.65rem;
     line-height: 1.1;
     color: #fff;
+  }
+
+  @media (min-width: 768px) {
+    .archivo-helix-title {
+      padding: 0.6rem 0.6rem 0.5rem;
+      font-size: 0.8rem;
+    }
   }
 
   .archivo-helix-hint {
@@ -183,52 +220,93 @@ const { items } = Astro.props;
     const total = cards.length;
     if (total === 0) return;
 
-    const RADIUS = 340;
     const TURNS = total > 12 ? 3 : 2;
-    const HEIGHT_SPAN = Math.max(600, total * 46);
-    const BASE_VERTICAL_SPEED = 0.35;
-    const DRAG_SENSITIVITY = 0.25;
-    const WHEEL_SENSITIVITY = 0.6;
+    const DRAG_SENSITIVITY_X = 0.25;
+    const DRAG_SENSITIVITY_Y = 0.35;
+    const WHEEL_SENSITIVITY = 0.35;
+    const AMBIENT_SPIRAL_SPEED = 0.35;
+    // Techo de velocidad: sin esto, una seguidilla de wheel/drag fuertes puede acumular
+    // más velocidad de la que el lerp de abajo llega a asentar entre frame y frame, y el
+    // giro se ve entrecortado/lento en vez de fluido — el techo evita que se dispare.
+    const MAX_SPIRAL_VELOCITY = 5;
+    const MAX_VIEW_VELOCITY = 6;
 
+    function clamp(value: number, limit: number) {
+      return Math.max(-limit, Math.min(limit, value));
+    }
+
+    // Geometría derivada de la card ya renderizada (su tamaño real, el que aplique el
+    // media query de CSS) y del ancho del propio contenedor — así el radio y el paso
+    // vertical se recalculan solos entre mobile y desktop en vez de hardcodear dos
+    // juegos de números a mano.
+    let RADIUS = 0;
+    let HEIGHT_SPAN = 0;
+    // Pasos verticales por cada grado de giro — el mismo paso "de fábrica" con el que
+    // ya está armada la forma en espiral (TURNS vueltas a lo largo de HEIGHT_SPAN), así
+    // que desplazarse por acá sigue exactamente la rosca en vez de una proporción
+    // inventada aparte.
+    let PITCH = 0;
+
+    // Dos rotaciones que se suman: `view` es "mirar alrededor" (arrastre horizontal,
+    // no mueve nada verticalmente, decae a 0 al soltar) y `spiral` es "recorrer la
+    // rosca" (scroll/arrastre vertical, mueve rotación Y altura juntas — un giro real
+    // de espiral). `spiral` nunca decae a 0: se asienta en una velocidad ambiente baja,
+    // así que al soltar sigue girando en espiral, solo que más lento.
     const state = {
-      rotation: 0,
-      rotationVelocity: 0,
-      targetRotationVelocity: 0,
-      verticalVelocity: BASE_VERTICAL_SPEED,
-      targetVerticalVelocity: BASE_VERTICAL_SPEED,
+      viewRotation: 0,
+      viewVelocity: 0,
+      targetViewVelocity: 0,
+      spiralProgress: 0,
+      spiralVelocity: AMBIENT_SPIRAL_SPEED,
+      targetSpiralVelocity: AMBIENT_SPIRAL_SPEED,
     };
 
-    const cardData = cards.map((card, i) => {
-      const angle = (i / total) * 360 * TURNS;
-      const y = (i / total) * HEIGHT_SPAN - HEIGHT_SPAN / 2;
-      return { card, angle, y };
-    });
+    const cardData = cards.map((card, i) => ({ card, angle: (i / total) * 360 * TURNS, baseY: 0 }));
+
+    function layout() {
+      const cardRect = cards[0].getBoundingClientRect();
+      const cardW = cardRect.width || 160;
+      const cardH = cardRect.height || 208;
+
+      RADIUS = Math.min(sceneEl.clientWidth * 0.4, cardW * 1.8);
+      HEIGHT_SPAN = Math.max(cardH * 3, total * cardH * 0.24);
+      PITCH = HEIGHT_SPAN / (TURNS * 360);
+
+      cardData.forEach((data, i) => {
+        data.baseY = (i / total) * HEIGHT_SPAN - HEIGHT_SPAN / 2;
+      });
+    }
+
+    layout();
+
+    function wrap(value: number, span: number) {
+      return ((((value + span / 2) % span) + span) % span) - span / 2;
+    }
 
     function render() {
-      groupEl.style.transform = `translate(-50%, -50%) rotateY(${state.rotation}deg)`;
+      const rotation = state.viewRotation + state.spiralProgress;
+      groupEl.style.transform = `translate(-50%, -50%) rotateY(${rotation}deg)`;
 
       cardData.forEach((data) => {
         const rad = (data.angle * Math.PI) / 180;
         const x = RADIUS * Math.sin(rad);
         const z = RADIUS * Math.cos(rad);
-        data.card.style.transform = `translate3d(${x}px, ${data.y}px, ${z}px) rotateY(${data.angle}deg)`;
+        const y = wrap(data.baseY + state.spiralProgress * PITCH, HEIGHT_SPAN);
+        data.card.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${data.angle}deg)`;
       });
     }
 
     function tick() {
-      state.rotationVelocity += (state.targetRotationVelocity - state.rotationVelocity) * 0.08;
-      state.verticalVelocity += (state.targetVerticalVelocity - state.verticalVelocity) * 0.05;
+      state.viewVelocity += (state.targetViewVelocity - state.viewVelocity) * 0.08;
+      state.spiralVelocity += (state.targetSpiralVelocity - state.spiralVelocity) * 0.08;
 
-      state.targetRotationVelocity *= 0.92;
-      state.targetVerticalVelocity += (BASE_VERTICAL_SPEED - state.targetVerticalVelocity) * 0.02;
+      state.targetViewVelocity *= 0.92;
+      state.targetSpiralVelocity += (AMBIENT_SPIRAL_SPEED - state.targetSpiralVelocity) * 0.02;
+      state.targetViewVelocity = clamp(state.targetViewVelocity, MAX_VIEW_VELOCITY);
+      state.targetSpiralVelocity = clamp(state.targetSpiralVelocity, MAX_SPIRAL_VELOCITY);
 
-      state.rotation += state.rotationVelocity;
-
-      cardData.forEach((data) => {
-        data.y += state.verticalVelocity;
-        if (data.y > HEIGHT_SPAN / 2) data.y -= HEIGHT_SPAN;
-        else if (data.y < -HEIGHT_SPAN / 2) data.y += HEIGHT_SPAN;
-      });
+      state.viewRotation += state.viewVelocity;
+      state.spiralProgress += state.spiralVelocity;
 
       render();
     }
@@ -236,25 +314,48 @@ const { items } = Astro.props;
     render();
     gsap.ticker.add(tick);
 
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(layout, 150);
+    });
+
+    // Arrastre: horizontal es "mirar alrededor" (view, no mueve nada vertical);
+    // vertical es recorrer la rosca (spiral: gira Y sube/baja a la vez, como un
+    // espiral de verdad). Capturamos ambos ejes (touch-action: none en CSS) en vez de
+    // dejar pasar el vertical como en los otros carruseles del sitio — el componente no
+    // es pantalla completa (se achica en mobile), así que siempre queda margen
+    // arriba/abajo para scrollear la página tocando fuera de la hélice.
     Observer.create({
       target: sceneEl,
       type: 'touch,pointer',
       preventDefault: true,
       onPress: () => {
-        state.targetRotationVelocity = 0;
+        state.targetViewVelocity = 0;
       },
       onChange: (self) => {
-        state.targetRotationVelocity = self.deltaX * DRAG_SENSITIVITY;
+        state.targetViewVelocity = clamp(self.deltaX * DRAG_SENSITIVITY_X, MAX_VIEW_VELOCITY);
+        state.targetSpiralVelocity = clamp(
+          AMBIENT_SPIRAL_SPEED - self.deltaY * DRAG_SENSITIVITY_Y,
+          MAX_SPIRAL_VELOCITY
+        );
       },
     });
 
-    sceneEl.addEventListener(
-      'wheel',
-      (event) => {
-        state.targetVerticalVelocity += event.deltaY * WHEEL_SENSITIVITY * 0.01;
+    // Wheel: mismo recorrido de espiral que el arrastre vertical, preventDefault para
+    // que scrollear sobre la hélice la recorra a ella y no a la página — mismo criterio
+    // que ya usa NumeroSequence en desktop para su propio scroll virtual.
+    Observer.create({
+      target: sceneEl,
+      type: 'wheel',
+      preventDefault: true,
+      onChange: (self) => {
+        state.targetSpiralVelocity = clamp(
+          AMBIENT_SPIRAL_SPEED + self.deltaY * WHEEL_SENSITIVITY,
+          MAX_SPIRAL_VELOCITY
+        );
       },
-      { passive: true }
-    );
+    });
   }
 
   const scene = document.getElementById('archivo-helix-scene');

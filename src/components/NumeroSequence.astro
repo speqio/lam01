@@ -38,23 +38,33 @@ const tituloNormalizado = normalizeTitleText(titulo);
   </div>
 
   {
-    /* Mobile: lista vertical simple y centrada, cada tarjeta se revela sola al
-       entrar en viewport (EntryCard.tsx, mismo componente que /categoria y /autor) —
-       sin carrusel. Se probaron tres mecánicas de carrusel para esta sección en mobile
-       (scroll virtual con carril medido en JS, arco arrastrable, dial circular) y
-       ninguna terminó de andar bien — se abandona la idea de carrusel del todo acá. */
+    /* Mobile: carrusel horizontal con scroll-snap NATIVO del navegador — nada de
+       drag/rotación a mano. Se probaron tres mecánicas de carrusel custom para esta
+       sección en mobile (scroll virtual con carril medido en JS, arco arrastrable,
+       dial circular) y ninguna terminó de andar bien; el problema de fondo en las tres
+       era la física de arrastre hecha a mano. `overflow-x-auto` + `scroll-snap` deja
+       que el navegador maneje el gesto táctil, el momentum y el encastre — sin
+       posibilidad de que una tarjeta quede "acoplada" con otra porque no hay ninguna
+       transformación 3D ni posición absoluta calculada por JS, cada tarjeta es un
+       elemento normal en flujo horizontal. Sigue resolviendo el problema real (mucho
+       scroll vertical cuando un número tiene muchas entradas) sin repetir la clase de
+       bug que tuvieron los intentos anteriores. Cada tarjeta usa EntryCard.tsx (mismo
+       componente que /categoria y /autor) envuelta en un ancho fijo para que el
+       scroll-snap tenga contra qué encastrar. */
   }
-  <div class="mx-auto mt-8 flex w-full max-w-md flex-col gap-6 px-4 md:hidden">
+  <div class="numero-entradas-scroll mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:hidden">
     {
       entradas.map((item) => (
-        <EntryCard
-          client:visible
-          title={item.titulo}
-          authorName={item.autorNombre}
-          categoryName={item.categoriaNombre}
-          slug={item.slug}
-          coverImage={item.portada}
-        />
+        <div class="w-[85vw] max-w-sm shrink-0 snap-center">
+          <EntryCard
+            client:visible
+            title={item.titulo}
+            authorName={item.autorNombre}
+            categoryName={item.categoriaNombre}
+            slug={item.slug}
+            coverImage={item.portada}
+          />
+        </div>
       ))
     }
   </div>
@@ -101,6 +111,16 @@ const tituloNormalizado = normalizeTitleText(titulo);
 </section>
 
 <style>
+  /* Oculta la scrollbar nativa del carril horizontal en mobile — el gesto de scroll
+     sigue siendo el nativo del navegador, esto es puramente cosmético. */
+  .numero-entradas-scroll {
+    scrollbar-width: none;
+  }
+
+  .numero-entradas-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
   #numero-sequence {
     --seq-progress: 1;
   }

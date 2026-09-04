@@ -90,7 +90,7 @@ const { categorias } = Astro.props;
   .categorias-fan-scene {
     position: relative;
     width: 100%;
-    height: 19rem;
+    height: 23rem;
     overflow: hidden;
     touch-action: pan-y;
     cursor: grab;
@@ -113,9 +113,9 @@ const { categorias } = Astro.props;
     top: 0;
     display: block;
     overflow: hidden;
-    width: 7.5rem;
+    width: 9.5rem;
     aspect-ratio: 0.62;
-    margin-left: -3.75rem;
+    margin-left: -4.75rem;
     user-select: none;
     -webkit-user-drag: none;
     /* Misma diagramación que las cards de entrada/número (cardShell/cardImage/
@@ -246,7 +246,14 @@ const { categorias } = Astro.props;
 
   gsap.registerPlugin(Observer);
 
-  const ANGLE_STEP = 18;
+  // Ángulo entre cards contiguas: como el pivote está muy por debajo (transform-origin
+  // 50% 275%), un ángulo chico ya separa bastante — 18° en desktop deja las cards casi
+  // borde con borde, pero en mobile se busca el efecto contrario, que la del medio se
+  // vea completa con solo la mitad de las de al lado asomando como pista de que hay
+  // más para navegar. Con la proporción de card actual (aspect-ratio 0.62), ~8° da esa
+  // media-card de superposición.
+  const ANGLE_STEP_MOBILE = 8;
+  const ANGLE_STEP_DESKTOP = 18;
   const WHEEL_SENSITIVITY = 0.012;
   const DRAG_SENSITIVITY = 0.014;
 
@@ -272,6 +279,7 @@ const { categorias } = Astro.props;
     const allCards = Array.from(wrapper.querySelectorAll<HTMLElement>('.categorias-fan-card'));
     const isMobile = !window.matchMedia('(min-width: 768px)').matches;
     const visibleCount = isMobile ? Math.min(MOBILE_VISIBLE_LIMIT, allCards.length) : allCards.length;
+    const ANGLE_STEP = isMobile ? ANGLE_STEP_MOBILE : ANGLE_STEP_DESKTOP;
 
     const cards = allCards.slice(0, visibleCount);
     allCards.slice(visibleCount).forEach((card) => card.setAttribute('data-fan-hidden', ''));

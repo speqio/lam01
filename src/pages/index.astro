@@ -2,7 +2,6 @@
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { normalizeTitleText } from '../lib/text';
-import UltimasEntradasCarousel from '../components/ui/UltimasEntradasCarousel.astro';
 import EntradasCarousel3D from '../components/ui/EntradasCarousel3D.astro';
 import HeroAnagram from '../components/HeroAnagram.astro';
 import ArchivoExplorer from '../components/ArchivoExplorer.astro';
@@ -29,17 +28,6 @@ todasConRelaciones.sort(
   (a, b) => b.entrada.data.fecha.valueOf() - a.entrada.data.fecha.valueOf()
 );
 
-const ultimasEntradas = todasConRelaciones.slice(0, 6);
-
-const swipeItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
-  title: normalizeTitleText(entrada.data.titulo),
-  authorName: autor?.data.nombre ?? '',
-  categoryName: categoria?.data.nombre ?? '',
-  slug: entrada.id,
-  coverImage: entrada.data.portada,
-  excerpt: entrada.data.extracto,
-}));
-
 const carousel3DItems = todasConRelaciones.slice(0, 8).map(({ entrada, autor, categoria }) => ({
   title: normalizeTitleText(entrada.data.titulo),
   authorName: autor?.data.nombre ?? '',
@@ -63,28 +51,25 @@ const categorias = await getCollection('categorias');
   }
 
   {
-    swipeItems.length > 0 && (
+    carousel3DItems.length > 0 && (
       <section class="mb-16 md:mb-20">
-        <div class="md:hidden">
+        {/* Carrusel 3D arrastrable (círculo/onda/grilla) — único componente para todos
+            los dispositivos, como Categorías. Antes había una versión de arco aparte
+            para mobile (UltimasEntradasCarousel.astro); queda desactivada (no borrada)
+            por si este reemplazo da problemas en algún dispositivo real. */}
+        <div class="mb-6 md:hidden">
           <h2 class="font-headline text-2xl lg:text-3xl">Últimas entradas</h2>
         </div>
+        <div class="mb-6 hidden text-center md:block">
+          <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-white/60">
+            Recién publicado
+          </span>
+          <h2 class="font-headline text-4xl leading-none tracking-tight text-white/90 lg:text-6xl">
+            Últimas entradas
+          </h2>
+        </div>
 
-        {/* Mobile: carrusel de arco (GSAP, sin isla de React). Desktop: carrusel 3D
-            arrastrable (círculo/onda/grilla), centrado igual que Categorías/Archivo. */}
-        <div class="mt-8 md:hidden">
-          <UltimasEntradasCarousel items={swipeItems} />
-        </div>
-        <div class="hidden md:block">
-          <div class="mb-6 text-center">
-            <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-white/60">
-              Recién publicado
-            </span>
-            <h2 class="font-headline text-4xl leading-none tracking-tight text-white/90 lg:text-6xl">
-              Últimas entradas
-            </h2>
-          </div>
-          <EntradasCarousel3D items={carousel3DItems} />
-        </div>
+        <EntradasCarousel3D items={carousel3DItems} />
       </section>
     )
   }

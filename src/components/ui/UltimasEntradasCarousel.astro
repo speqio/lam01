@@ -88,6 +88,19 @@ const { items } = Astro.props;
     overflow: hidden;
     perspective: 1400px;
     touch-action: pan-y;
+    /* Las cards de los extremos del abanico quedaban tapadas de golpe por el borde de
+       la escena (overflow: hidden, necesario para que no generen scroll horizontal en
+       la página, ver UltimasEntradasCarousel). Con esta máscara se desvanecen hacia los
+       costados en vez de cortarse en seco — mismo recurso que ya usa
+       CategoriasCarousel para su ticker. */
+    mask-image: linear-gradient(to right, transparent 0, black 12%, black 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 12%,
+      black 88%,
+      transparent 100%
+    );
   }
 
   .entradas-arco-carousel {

@@ -1,6 +1,6 @@
 ---
 import { normalizeTitleText } from '../lib/text';
-import NumeroEntradasDial from './NumeroEntradasDial.astro';
+import EntryCard from './EntryCard.tsx';
 
 interface EntradaItem {
   slug: string;
@@ -25,20 +25,38 @@ const tituloNormalizado = normalizeTitleText(titulo);
   id="numero-sequence"
   class="relative w-full overflow-hidden md:grid md:h-[75vh] md:grid-cols-2 md:gap-10"
 >
-  <div class="numero-sequence-info flex flex-col justify-center px-4 md:sticky md:top-20 md:z-10 md:min-w-0 md:self-start md:px-0">
+  <div class="numero-sequence-info flex flex-col items-center justify-center px-4 text-center md:sticky md:top-20 md:z-10 md:min-w-0 md:items-start md:self-start md:px-0 md:text-left">
     <p class="font-mono text-xs uppercase tracking-widest text-ink-muted">{fechaFormateada}</p>
     <h1 class="numero-sequence-title mt-2 font-headline leading-[0.9] text-ink">{tituloNormalizado}</h1>
     {
       descripcion && (
-        <p class="numero-sequence-desc mt-4 max-w-md overflow-hidden font-serif text-ink-muted">
+        <p class="numero-sequence-desc mx-auto mt-4 max-w-md overflow-hidden font-serif text-ink-muted md:mx-0">
           {descripcion}
         </p>
       )
     }
   </div>
 
-  <div class="md:hidden">
-    <NumeroEntradasDial entradas={entradas} />
+  {
+    /* Mobile: lista vertical simple y centrada, cada tarjeta se revela sola al
+       entrar en viewport (EntryCard.tsx, mismo componente que /categoria y /autor) —
+       sin carrusel. Se probaron tres mecánicas de carrusel para esta sección en mobile
+       (scroll virtual con carril medido en JS, arco arrastrable, dial circular) y
+       ninguna terminó de andar bien — se abandona la idea de carrusel del todo acá. */
+  }
+  <div class="mx-auto mt-8 flex w-full max-w-md flex-col gap-6 px-4 md:hidden">
+    {
+      entradas.map((item) => (
+        <EntryCard
+          client:visible
+          title={item.titulo}
+          authorName={item.autorNombre}
+          categoryName={item.categoriaNombre}
+          slug={item.slug}
+          coverImage={item.portada}
+        />
+      ))
+    }
   </div>
 
   <div class="numero-sequence-runway relative hidden w-full md:block md:h-full">
@@ -97,10 +115,22 @@ const tituloNormalizado = normalizeTitleText(titulo);
     font-size: clamp(1.75rem, calc(4rem - var(--seq-progress) * 2.1rem), 4.5rem);
   }
 
+  /* En mobile --seq-progress vale 1 fijo (no hay scroll virtual que lo anime, ver
+     arriba) — la fórmula de abajo asume que progress va de 0 a 1 con el scroll de
+     desktop, así que aplicada tal cual en mobile la descripción quedaba siempre en
+     opacity 0 / max-height 0, invisible sin importar el contenido. Visible sin más en
+     mobile; la fórmula que la esconde a medida que se scrollea solo corre en desktop. */
   .numero-sequence-desc {
-    opacity: calc(1 - var(--seq-progress) * 1.6);
-    max-height: calc((1 - var(--seq-progress)) * 10rem);
-    transition: opacity 0.1s linear;
+    opacity: 1;
+    max-height: none;
+  }
+
+  @media (min-width: 768px) {
+    .numero-sequence-desc {
+      opacity: calc(1 - var(--seq-progress) * 1.6);
+      max-height: calc((1 - var(--seq-progress)) * 10rem);
+      transition: opacity 0.1s linear;
+    }
   }
 
   .numero-sequence-card {

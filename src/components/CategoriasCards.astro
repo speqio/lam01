@@ -52,9 +52,9 @@ const { categorias } = Astro.props;
               ) : (
                 <div class="h-full w-full bg-surface" />
               )}
-              <span class={cardBadge}>{categoria.entryCount} entradas</span>
+              <span class={cardBadge}>{normalizeTitleText(categoria.nombre)}</span>
               <div class="categorias-fan-card-overlay" />
-              <span class="categorias-fan-card-title">{normalizeTitleText(categoria.nombre)}</span>
+              <span class="categorias-fan-card-title">{categoria.entryCount} entradas</span>
             </a>
           ))}
         </div>
@@ -65,23 +65,20 @@ const { categorias } = Astro.props;
         <div class="categorias-fan-fade categorias-fan-fade--left" aria-hidden="true" />
         <div class="categorias-fan-fade categorias-fan-fade--right" aria-hidden="true" />
         <div class="categorias-fan-fade-bottom" aria-hidden="true" />
-
-        {/* El arco deja un hueco vacío abajo al centro (las cards se abren hacia los
-            costados) — el dial de paginación va justo ahí en vez de debajo de todo el
-            componente. */}
-        {
-          categorias.length > 1 && (
-            <div class={`categorias-fan-dial ${dialWrap}`}>
-              <span class={dialCount} data-dial-count>
-                {`01 / ${String(categorias.length).padStart(2, '0')}`}
-              </span>
-              <div class={dialTrack}>
-                <div class={dialThumb} data-dial-thumb />
-              </div>
-            </div>
-          )
-        }
       </div>
+
+      {
+        categorias.length > 1 && (
+          <div class={`categorias-fan-dial ${dialWrap}`}>
+            <span class={dialCount} data-dial-count>
+              {`01 / ${String(categorias.length).padStart(2, '0')}`}
+            </span>
+            <div class={dialTrack}>
+              <div class={dialThumb} data-dial-thumb />
+            </div>
+          </div>
+        )
+      }
     </div>
   )
 }
@@ -154,13 +151,12 @@ const { categorias } = Astro.props;
     display: none;
   }
 
+  /* Fuera de .categorias-fan-scene (que tiene overflow:hidden) a propósito: en mobile
+     tiene que quedar bien separado del abanico, y eso significa más espacio del que
+     entra dentro del hueco que dejan las cards sin salirse del contenedor recortado. */
   .categorias-fan-dial {
-    position: absolute;
-    left: 50%;
-    bottom: 1.25rem;
     width: min(70%, 16rem);
-    transform: translateX(-50%);
-    z-index: 6;
+    margin: 2.5rem auto 0;
   }
 
   .categorias-fan-fade {
@@ -216,7 +212,7 @@ const { categorias } = Astro.props;
     }
 
     .categorias-fan-dial {
-      bottom: 2rem;
+      margin-top: 1rem;
     }
 
     .categorias-fan-fade-bottom {

@@ -1,0 +1,481 @@
+---
+import { cardBadge } from '../../lib/cardStyles';
+import { normalizeTitleText } from '../../lib/text';
+
+/**
+ * Reemplaza a EntryFlipCard3D.tsx (isla de React) para "Últimas entradas" en desktop.
+ * Adaptado de un demo standalone (GSAP Draggable + InertiaPlugin, tarjetas dispuestas
+ * en círculo/onda/grilla intercambiables con botones) — de los 7 patrones del original
+ * (reset/circle/wave/stagger/grid/fan/3d depth) solo se conservan reset/circle/wave/
+ * grid, pedido explícito; sin fan ni 3D depth se simplifica bastante la máquina de
+ * transiciones del original (esos dos patrones eran los que complicaban la normalización
+ * de rotación al cambiar de modo).
+ *
+ * Draggable + InertiaPlugin vienen incluidos gratis en gsap desde que Core hizo el
+ * catálogo entero libre — no hace falta un club/membresía aparte.
+ *
+ * A diferencia del demo (fullscreen, cards con URLs de stock), acá el carrusel vive
+ * contenido dentro de la sección del home y las cards son las portadas reales de las
+ * entradas, con el mismo tratamiento visual que el resto del sitio (imagen grayscale +
+ * badge de categoría con cardBadge de cardStyles.ts + overlay con título/autor).
+ *
+ * Es un <script> de Astro (sin isla de React): no hace falta reactividad de UI más allá
+ * de togglear una clase en los botones, y así se evita el bundle de React solo para
+ * esto — mismo criterio que UltimasEntradasCarousel.astro en mobile.
+ */
+export interface EntradaCarouselItem {
+  title: string;
+  authorName: string;
+  categoryName: string;
+  coverImage?: string;
+  href: string;
+}
+
+interface Props {
+  items: EntradaCarouselItem[];
+}
+
+const { items } = Astro.props;
+
+const PATTERNS = [
+  { key: 'reset', label: 'Reset' },
+  { key: 'circle', label: 'Círculo' },
+  { key: 'wave', label: 'Onda' },
+  { key: 'grid', label: 'Grilla' },
+] as const;
+---
+
+{
+  items.length > 0 && (
+    <div class="entradas-3d-outer">
+      <div class="entradas-3d-container" id="entradas-3d-container">
+        <div class="entradas-3d-items" id="entradas-3d-items">
+          {items.map((item, index) => (
+            <a href={item.href} class="entradas-3d-card" data-index={index}>
+              {item.coverImage ? (
+                <img
+                  src={item.coverImage}
+                  alt=""
+                  class="h-full w-full object-cover grayscale contrast-125"
+                  loading="lazy"
+                  draggable="false"
+                />
+              ) : (
+                <div class="h-full w-full bg-surface" />
+              )}
+              <div class="entradas-3d-overlay" />
+              <span class={cardBadge}>{item.categoryName}</span>
+              <div class="entradas-3d-info">
+                <h3 class="entradas-3d-title">{normalizeTitleText(item.title)}</h3>
+                <p class="entradas-3d-author">Por {item.authorName}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div class="entradas-3d-switch" id="entradas-3d-switch">
+        {PATTERNS.map(({ key, label }) => (
+          <button
+            type="button"
+            class={`entradas-3d-switch-btn ${key === 'circle' ? 'is-current' : ''}`}
+            data-pattern={key}
+          >
+            <span class="entradas-3d-dot" />
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+<style>
+  .entradas-3d-outer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .entradas-3d-container {
+    --card-w: 11rem;
+    --card-h: 15.5rem;
+    position: relative;
+    width: 100%;
+    height: 34rem;
+    overflow: hidden;
+    perspective: 2000px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .entradas-3d-items {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transform-origin: center center;
+    user-select: none;
+  }
+
+  .entradas-3d-items.is-draggable {
+    cursor: grab;
+  }
+
+  .entradas-3d-items.is-draggable:active {
+    cursor: grabbing;
+  }
+
+  .entradas-3d-card {
+    position: absolute;
+    display: block;
+    width: var(--card-w);
+    height: var(--card-h);
+    transform: translate(-50%, -50%);
+    transform-origin: center center;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: #292929;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .entradas-3d-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(18, 18, 18, 0.92), transparent 55%);
+    pointer-events: none;
+  }
+
+  .entradas-3d-info {
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .entradas-3d-title {
+    font-family: var(--font-headline, 'Lekton', 'Arial', sans-serif);
+    font-size: 0.95rem;
+    line-height: 1.1;
+    color: #ffffff;
+  }
+
+  .entradas-3d-author {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #a0a0a0;
+  }
+
+  .entradas-3d-switch {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .entradas-3d-switch-btn {
+    position: relative;
+    padding: 0.35rem 0.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #a0a0a0;
+    transition: color 200ms ease;
+  }
+
+  .entradas-3d-switch-btn:hover,
+  .entradas-3d-switch-btn.is-current {
+    color: #a6294a;
+  }
+
+  .entradas-3d-dot {
+    position: absolute;
+    left: -0.7rem;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #a6294a;
+    opacity: 0;
+    transform: translateY(-50%);
+    transition: opacity 200ms ease;
+  }
+
+  .entradas-3d-switch-btn:hover .entradas-3d-dot,
+  .entradas-3d-switch-btn.is-current .entradas-3d-dot {
+    opacity: 1;
+  }
+
+  @media (min-width: 768px) {
+    .entradas-3d-container {
+      --card-w: 14rem;
+      --card-h: 19.5rem;
+      height: 40rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .entradas-3d-container {
+      --card-w: 17rem;
+      --card-h: 23.5rem;
+      height: 48rem;
+    }
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap';
+  import { Draggable } from 'gsap/Draggable';
+  import { InertiaPlugin } from 'gsap/InertiaPlugin';
+
+  gsap.registerPlugin(Draggable, InertiaPlugin);
+
+  type Pattern = 'circle' | 'wave' | 'grid';
+
+  function initEntradas3D() {
+    const container = document.getElementById('entradas-3d-container');
+    const itemsEl = document.getElementById('entradas-3d-items');
+    const switchEl = document.getElementById('entradas-3d-switch');
+    if (!(container instanceof HTMLElement) || !(itemsEl instanceof HTMLElement)) return;
+    if (!window.matchMedia('(min-width: 768px)').matches) return;
+
+    const cards = Array.from(itemsEl.querySelectorAll<HTMLAnchorElement>('.entradas-3d-card'));
+    const total = cards.length;
+    if (total === 0) return;
+
+    let currentPattern: Pattern = 'circle';
+    let draggable: Draggable | null = null;
+    const activeTweens: (gsap.core.Tween | gsap.core.Timeline)[] = [];
+
+    function killActive() {
+      gsap.killTweensOf(cards);
+      gsap.killTweensOf(itemsEl);
+      activeTweens.forEach((tween) => tween.kill());
+      activeTweens.length = 0;
+    }
+
+    function setupDraggable() {
+      if (draggable) {
+        draggable.kill();
+        draggable = null;
+      }
+      itemsEl!.classList.add('is-draggable');
+      const [instance] = Draggable.create(itemsEl, {
+        type: 'rotation',
+        inertia: true,
+        throwResistance: 4000,
+        onDrag: updateCardRotations,
+        onThrowUpdate: updateCardRotations,
+      });
+      draggable = instance;
+    }
+
+    function killDraggable() {
+      if (draggable) {
+        draggable.kill();
+        draggable = null;
+      }
+      itemsEl!.classList.remove('is-draggable');
+    }
+
+    function updateCardRotations(this: Draggable) {
+      if (currentPattern !== 'circle') return;
+      const wheelRotation = this.rotation || 0;
+      cards.forEach((card) => gsap.set(card, { rotation: -wheelRotation }));
+    }
+
+    const CIRCLE_SCALE = 0.85;
+
+    function setupCirclePositions(animate: boolean) {
+      const rect = container!.getBoundingClientRect();
+      // offsetWidth/offsetHeight (no getBoundingClientRect): tamaño real de layout de
+      // la card sin el transform que le haya dejado puesto otro patrón — mismo
+      // criterio que setupGridPositions. El radio se limita a lo que realmente entra
+      // sin que la card, ya escalada, se salga del contenedor (overflow: hidden la
+      // cortaba arriba/abajo apenas el dial se movía).
+      const cardHalf = (Math.max(cards[0].offsetWidth, cards[0].offsetHeight) * CIRCLE_SCALE) / 2;
+      const radius = Math.max(Math.min(rect.width, rect.height) / 2 - cardHalf, cardHalf);
+      const angleStep = (2 * Math.PI) / total;
+      const currentWheelRotation = (gsap.getProperty(itemsEl, 'rotation') as number) || 0;
+      const currentWheelRotationRad = currentWheelRotation * (Math.PI / 180);
+      const timeline = gsap.timeline();
+
+      cards.forEach((card, i) => {
+        const angle = i * angleStep + currentWheelRotationRad;
+        const x = radius * Math.cos(angle);
+        const y = radius * Math.sin(angle);
+        const vars = { x, y, rotation: -currentWheelRotation, scale: CIRCLE_SCALE, opacity: 1 };
+        if (animate) {
+          timeline.to(card, { ...vars, duration: 1.2, ease: 'power2.inOut' }, 0);
+        } else {
+          gsap.set(card, vars);
+        }
+      });
+      return timeline;
+    }
+
+    function setupWavePositions() {
+      const rect = container!.getBoundingClientRect();
+      const cardWidth = cards[0].offsetWidth || 176;
+      const lineWidth = Math.min(rect.width * 0.85, total * cardWidth * 0.55);
+      const cardSpacing = total > 1 ? lineWidth / (total - 1) : 0;
+      const waveHeight = Math.min(rect.height * 0.16, 70);
+      const timeline = gsap.timeline();
+
+      cards.forEach((card, index) => {
+        const xPos = (index - (total - 1) / 2) * cardSpacing;
+        const yPos = total > 1 ? Math.sin((index / (total - 1)) * Math.PI * 2) * waveHeight : 0;
+        timeline.to(
+          card,
+          { x: xPos, y: yPos, rotation: 0, scale: 0.75, opacity: 1, duration: 1.2, ease: 'power2.inOut' },
+          0
+        );
+      });
+      return timeline;
+    }
+
+    function startWaveDrift() {
+      const rect = container!.getBoundingClientRect();
+      const waveHeight = Math.min(rect.height * 0.16, 70);
+      return gsap.to(cards, {
+        y: (i) => (total > 1 ? Math.sin((i / (total - 1)) * Math.PI * 2 + Math.PI) * waveHeight : 0),
+        duration: 1.6,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut',
+      });
+    }
+
+    function setupGridPositions() {
+      const rect = container!.getBoundingClientRect();
+      // offsetWidth/offsetHeight, no getBoundingClientRect: el rect SÍ refleja el
+      // `scale` que haya dejado puesto el patrón anterior (circle/wave achican las
+      // cards), así que medir con eso hacía que la grilla calculara su propio "scale"
+      // sobre una base ya achicada y terminara superponiendo las cards en vez de
+      // separarlas. offset* da el tamaño real de layout, sin transform.
+      const cardW = cards[0].offsetWidth;
+      const cardH = cards[0].offsetHeight;
+      const cols = Math.ceil(Math.sqrt(total));
+      const rows = Math.ceil(total / cols);
+      const GAP_RATIO = 1.12;
+      const scale = Math.min(
+        0.85,
+        (rect.width * 0.94) / (cols * cardW * GAP_RATIO),
+        (rect.height * 0.94) / (rows * cardH * GAP_RATIO)
+      );
+      const xSpacing = cardW * scale * GAP_RATIO;
+      const ySpacing = cardH * scale * GAP_RATIO;
+      const timeline = gsap.timeline();
+
+      cards.forEach((card, index) => {
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        const colsInRow = Math.min(cols, total - row * cols);
+        const xPos = (col - (colsInRow - 1) / 2) * xSpacing;
+        const yPos = (row - (rows - 1) / 2) * ySpacing;
+        timeline.to(
+          card,
+          { x: xPos, y: yPos, rotation: 0, scale, opacity: 1, duration: 1.2, ease: 'power2.inOut' },
+          0
+        );
+      });
+      return timeline;
+    }
+
+    function updateSwitchState(pattern: Pattern | 'reset') {
+      switchEl?.querySelectorAll<HTMLButtonElement>('.entradas-3d-switch-btn').forEach((button) => {
+        button.classList.toggle('is-current', button.dataset.pattern === pattern);
+      });
+    }
+
+    function goToPattern(pattern: Pattern) {
+      killActive();
+      killDraggable();
+      updateSwitchState(pattern);
+
+      const prevPattern = currentPattern;
+      currentPattern = pattern;
+
+      const timeline = gsap.timeline({
+        onComplete: () => {
+          if (pattern === 'circle') setupDraggable();
+          else if (pattern === 'wave') activeTweens.push(startWaveDrift());
+        },
+      });
+
+      if (prevPattern === 'circle' && pattern !== 'circle') {
+        timeline.to(itemsEl, { rotation: 0, duration: 0.6, ease: 'power2.inOut' }, 0);
+      }
+
+      let patternTimeline: gsap.core.Timeline;
+      if (pattern === 'circle') patternTimeline = setupCirclePositions(true);
+      else if (pattern === 'wave') patternTimeline = setupWavePositions();
+      else patternTimeline = setupGridPositions();
+
+      timeline.add(patternTimeline, 0);
+      activeTweens.push(timeline);
+    }
+
+    function playIntro() {
+      killActive();
+      killDraggable();
+      gsap.set(cards, { x: 0, y: 0, rotation: 0, scale: 0, opacity: 0 });
+
+      const timeline = gsap.timeline({
+        onComplete: () => {
+          currentPattern = 'circle';
+          updateSwitchState('circle');
+          setupDraggable();
+        },
+      });
+
+      cards.forEach((card, i) => {
+        const delay = (total - 1 - i) * 0.08;
+        gsap.set(card, { zIndex: 100 + (total - 1 - i) });
+        timeline.to(card, { opacity: 1, scale: 0.85, duration: 0.4, ease: 'power2.out' }, delay);
+      });
+
+      const circleTimeline = setupCirclePositions(true);
+      timeline.add(circleTimeline);
+      activeTweens.push(timeline);
+    }
+
+    switchEl?.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>('.entradas-3d-switch-btn');
+      if (!button) return;
+      const pattern = button.dataset.pattern as Pattern | 'reset' | undefined;
+      if (pattern === 'reset') playIntro();
+      else if (pattern) goToPattern(pattern);
+    });
+
+    playIntro();
+  }
+
+  const container = document.getElementById('entradas-3d-container');
+  if (container && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          initEntradas3D();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(container);
+  } else {
+    initEntradas3D();
+  }
+</script>

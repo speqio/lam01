@@ -1,0 +1,347 @@
+---
+import { normalizeTitleText } from '../lib/text';
+import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
+import { cardBadge } from '../lib/cardStyles';
+
+/**
+ * Ramillete de categorías — abanico plano (cards que rotan alrededor de un pivote muy
+ * por debajo de ellas mismas, `transform-origin: 50% 275%`, adaptado de un demo de
+ * referencia) pero controlado con el mismo criterio que el resto de los carruseles del
+ * sitio: rueda del mouse o arrastre 1:1 mientras se sostiene, más un snap con inercia
+ * al soltar (`gsap.quickTo`) — nada de temporizadores ni reordenar el DOM.
+ *
+ * La distancia circular más corta de cada card a `pos.value` (mismo patrón que
+ * UltimasEntradasCarousel/ArchivoHelix) determina su ángulo de rotación; como todas
+ * comparten el mismo pivote, no hace falta mover cada card en X/Y aparte: alcanza con
+ * rotarlas para que se abran en abanico. Un único componente para todos los
+ * breakpoints — no hace falta versión aparte por dispositivo.
+ */
+export interface CategoriaCardItem {
+  slug: string;
+  nombre: string;
+  coverImage?: string;
+  entryCount: number;
+}
+
+interface Props {
+  categorias: CategoriaCardItem[];
+}
+
+const { categorias } = Astro.props;
+---
+
+{
+  categorias.length > 0 && (
+    <div class="categorias-fan-outer">
+      <div class="categorias-fan-scene" id="categorias-fan-scene">
+        <div class="categorias-fan-wrapper" id="categorias-fan-wrapper">
+          {categorias.map((categoria, index) => (
+            <a
+              href={`/categoria/${categoria.slug}`}
+              class="categorias-fan-card"
+              data-index={index}
+            >
+              {categoria.coverImage ? (
+                <img
+                  src={categoria.coverImage}
+                  alt=""
+                  class="h-full w-full object-cover grayscale contrast-125"
+                  loading="lazy"
+                  draggable="false"
+                />
+              ) : (
+                <div class="h-full w-full bg-surface" />
+              )}
+              <span class={cardBadge}>{categoria.entryCount} entradas</span>
+              <div class="categorias-fan-card-overlay" />
+              <span class="categorias-fan-card-title">{normalizeTitleText(categoria.nombre)}</span>
+            </a>
+          ))}
+        </div>
+
+        {/* Difuminado en las esquinas inferiores, donde el abanico se corta contra el
+            borde de la escena — no un degradé de lado a lado, solo donde el recorte
+            realmente pasa. */}
+        <div class="categorias-fan-fade categorias-fan-fade--left" aria-hidden="true" />
+        <div class="categorias-fan-fade categorias-fan-fade--right" aria-hidden="true" />
+        <div class="categorias-fan-fade-bottom" aria-hidden="true" />
+
+        {/* El arco deja un hueco vacío abajo al centro (las cards se abren hacia los
+            costados) — el dial de paginación va justo ahí en vez de debajo de todo el
+            componente. */}
+        {
+          categorias.length > 1 && (
+            <div class={`categorias-fan-dial ${dialWrap}`}>
+              <span class={dialCount} data-dial-count>
+                {`01 / ${String(categorias.length).padStart(2, '0')}`}
+              </span>
+              <div class={dialTrack}>
+                <div class={dialThumb} data-dial-thumb />
+              </div>
+            </div>
+          )
+        }
+      </div>
+    </div>
+  )
+}
+
+<style>
+  .categorias-fan-scene {
+    position: relative;
+    width: 100%;
+    height: 16rem;
+    overflow: hidden;
+    touch-action: pan-y;
+    cursor: grab;
+  }
+
+  .categorias-fan-scene:active {
+    cursor: grabbing;
+  }
+
+  .categorias-fan-wrapper {
+    position: absolute;
+    left: 50%;
+    top: 24%;
+    transform: translate(-50%, -50%);
+  }
+
+  .categorias-fan-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block;
+    overflow: hidden;
+    width: 5.5rem;
+    aspect-ratio: 0.6;
+    margin-left: -2.75rem;
+    user-select: none;
+    -webkit-user-drag: none;
+    /* Misma diagramación que las cards de entrada/número (cardShell/cardImage/
+       cardBadge en cardStyles.ts): imagen con badge superpuesto, superficie oscura de
+       respaldo, borde tenue, acento solo como señal en hover. */
+    background: #292929;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: border-color 200ms ease;
+    transform-origin: 50% 275%;
+  }
+
+  .categorias-fan-card:hover,
+  .categorias-fan-card:focus-visible {
+    border-color: #a6294a;
+  }
+
+  .categorias-fan-card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(18, 18, 18, 0.9), transparent 55%);
+    pointer-events: none;
+  }
+
+  .categorias-fan-card-title {
+    position: absolute;
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    font-family: var(--font-headline, 'Lekton', 'Arial', sans-serif);
+    font-size: 0.8rem;
+    line-height: 1.1;
+    color: #ffffff;
+  }
+
+  .categorias-fan-dial {
+    position: absolute;
+    left: 50%;
+    bottom: 1.25rem;
+    width: min(70%, 16rem);
+    transform: translateX(-50%);
+    z-index: 6;
+  }
+
+  .categorias-fan-fade {
+    position: absolute;
+    bottom: 0;
+    width: 30%;
+    height: 55%;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .categorias-fan-fade--left {
+    left: 0;
+    background: radial-gradient(circle at 0% 100%, #121212 0%, #121212 20%, transparent 72%);
+  }
+
+  .categorias-fan-fade--right {
+    right: 0;
+    background: radial-gradient(circle at 100% 100%, #121212 0%, #121212 20%, transparent 72%);
+  }
+
+  /* El corte real está a lo largo de todo el borde inferior de la escena (las cards
+     más grandes ya lo tocan de punta a punta, no solo en las esquinas) — un degradé
+     de ancho completo lo disuelve contra el fondo de la página. */
+  .categorias-fan-fade-bottom {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 4.5rem;
+    pointer-events: none;
+    z-index: 5;
+    background: linear-gradient(to bottom, transparent, #121212 85%);
+  }
+
+  @media (min-width: 768px) {
+    .categorias-fan-scene {
+      height: 30rem;
+    }
+
+    .categorias-fan-wrapper {
+      top: 22%;
+    }
+
+    .categorias-fan-card {
+      width: 11rem;
+      margin-left: -5.5rem;
+    }
+
+    .categorias-fan-card-title {
+      left: 0.9rem;
+      right: 0.9rem;
+      bottom: 0.9rem;
+      font-size: 1.3rem;
+    }
+
+    .categorias-fan-dial {
+      bottom: 2rem;
+    }
+
+    .categorias-fan-fade-bottom {
+      height: 7rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .categorias-fan-scene {
+      height: 36rem;
+    }
+
+    .categorias-fan-card {
+      width: 13rem;
+      margin-left: -6.5rem;
+    }
+
+    .categorias-fan-card-title {
+      font-size: 1.5rem;
+    }
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap';
+  import { Observer } from 'gsap/Observer';
+
+  gsap.registerPlugin(Observer);
+
+  const ANGLE_STEP = 18;
+  const WHEEL_SENSITIVITY = 0.012;
+  const DRAG_SENSITIVITY = 0.014;
+
+  // Distancia circular más corta entre un índice y la posición actual — el mismo
+  // criterio que UltimasEntradasCarousel/ArchivoHelix, así el abanico da la vuelta
+  // completa (de la última categoría se pasa a la primera sin tope).
+  function shortestDistance(index: number, position: number, total: number) {
+    let dist = (((index - position) % total) + total) % total;
+    if (dist > total / 2) dist -= total;
+    return dist;
+  }
+
+  function initCategoriasFan() {
+    const scene = document.getElementById('categorias-fan-scene');
+    const wrapper = document.getElementById('categorias-fan-wrapper');
+    if (!(scene instanceof HTMLElement) || !(wrapper instanceof HTMLElement)) return;
+
+    const cards = Array.from(wrapper.querySelectorAll<HTMLElement>('.categorias-fan-card'));
+    const total = cards.length;
+    if (total === 0) return;
+
+    const outer = scene.closest('.categorias-fan-outer');
+    const thumb = outer?.querySelector<HTMLElement>('[data-dial-thumb]') ?? null;
+    const countEl = outer?.querySelector<HTMLElement>('[data-dial-count]') ?? null;
+    const track = thumb?.parentElement ?? null;
+    if (thumb && track) {
+      thumb.style.width = `${100 / total}%`;
+    }
+
+    const pos = { value: 0 };
+
+    function render() {
+      cards.forEach((card, i) => {
+        const dist = shortestDistance(i, pos.value, total);
+        const absDist = Math.abs(dist);
+
+        gsap.set(card, {
+          rotate: gsap.utils.clamp(-90, 90, dist * ANGLE_STEP),
+          opacity: Math.max(0.25, 1 - absDist * 0.12),
+          zIndex: Math.round(100 - absDist * 10),
+        });
+      });
+
+      if (thumb && track && countEl) {
+        const activeIndex = ((Math.round(pos.value) % total) + total) % total;
+        const ratio = activeIndex / total;
+        const trackWidth = track.clientWidth;
+        const thumbWidth = trackWidth / total;
+        gsap.to(thumb, { x: ratio * (trackWidth - thumbWidth), duration: 0.2, ease: 'power2.out', overwrite: true });
+        countEl.textContent = `${String(activeIndex + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
+      }
+    }
+
+    const snapTo = gsap.quickTo(pos, 'value', {
+      duration: 0.55,
+      ease: 'power3.out',
+      onUpdate: render,
+    });
+
+    render();
+
+    Observer.create({
+      target: scene,
+      type: 'wheel',
+      preventDefault: true,
+      onChangeY: (self) => {
+        gsap.killTweensOf(pos);
+        pos.value += self.deltaY * WHEEL_SENSITIVITY;
+        render();
+      },
+      onStop: () => snapTo(Math.round(pos.value)),
+    });
+
+    Observer.create({
+      target: scene,
+      type: 'touch,pointer',
+      preventDefault: true,
+      onPress: () => gsap.killTweensOf(pos),
+      onChange: (self) => {
+        pos.value -= self.deltaX * DRAG_SENSITIVITY;
+        render();
+      },
+      onRelease: () => snapTo(Math.round(pos.value)),
+    });
+  }
+
+  const scene = document.getElementById('categorias-fan-scene');
+  if (scene && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          initCategoriasFan();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(scene);
+  } else {
+    initCategoriasFan();
+  }
+</script>

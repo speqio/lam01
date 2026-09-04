@@ -1,5 +1,6 @@
 ---
-import { normalizeTitleText } from '../lib/text';
+import { normalizeTitleText, splitNumeroTitle } from '../lib/text';
+import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
 import EntryCard from './EntryCard.tsx';
 
 interface EntradaItem {
@@ -18,7 +19,7 @@ interface Props {
 }
 
 const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
-const tituloNormalizado = normalizeTitleText(titulo);
+const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
 ---
 
 <section
@@ -27,7 +28,14 @@ const tituloNormalizado = normalizeTitleText(titulo);
 >
   <div class="numero-sequence-info flex flex-col items-center justify-center px-4 text-center md:sticky md:top-20 md:z-10 md:min-w-0 md:items-start md:self-start md:px-0 md:text-left">
     <p class="font-mono text-xs uppercase tracking-widest text-ink-muted">{fechaFormateada}</p>
-    <h1 class="numero-sequence-title mt-2 font-headline leading-[0.9] text-ink">{tituloNormalizado}</h1>
+    <h1 class="numero-sequence-title mt-2 font-headline leading-[0.9] text-ink">{tituloPrincipal}</h1>
+    {
+      subtitulo && (
+        <p class="numero-sequence-subtitle mt-1 font-serif italic leading-tight text-ink/70">
+          {subtitulo}
+        </p>
+      )
+    }
     {
       descripcion && (
         <p class="numero-sequence-desc mx-auto mt-4 max-w-md overflow-hidden font-serif text-ink-muted md:mx-0">
@@ -82,15 +90,12 @@ const tituloNormalizado = normalizeTitleText(titulo);
 
     {
       entradas.length > 1 && (
-        <div class="numero-dial flex items-center gap-3 px-4">
-          <span
-            class="numero-dial-count shrink-0 font-mono text-xs tabular-nums tracking-widest text-ink-muted"
-            data-dial-count
-          >
+        <div class={dialWrap}>
+          <span class={dialCount} data-dial-count>
             {`01 / ${String(entradas.length).padStart(2, '0')}`}
           </span>
-          <div class="numero-dial-track relative h-[3px] flex-1 overflow-hidden rounded-full bg-ink/15">
-            <div class="numero-dial-thumb absolute inset-y-0 left-0 rounded-full bg-accent" data-dial-thumb />
+          <div class={dialTrack}>
+            <div class={dialThumb} data-dial-thumb />
           </div>
         </div>
       )
@@ -161,6 +166,14 @@ const tituloNormalizado = normalizeTitleText(titulo);
 
   .numero-sequence-title {
     font-size: clamp(1.75rem, calc(4rem - var(--seq-progress) * 2.1rem), 4.5rem);
+  }
+
+  /* Subtítulo (el "acompañamiento" que antes iba pegado al título después de ":")
+     escala en proporción al título usando el mismo --seq-progress, pero a una fracción
+     de su tamaño — jerarquía tipográfica explícita en vez de una sola línea con dos
+     puntos en el medio. */
+  .numero-sequence-subtitle {
+    font-size: clamp(1.1rem, calc(1.9rem - var(--seq-progress) * 0.9rem), 2.1rem);
   }
 
   /* En mobile --seq-progress vale 1 fijo (no hay scroll virtual que lo anime, ver

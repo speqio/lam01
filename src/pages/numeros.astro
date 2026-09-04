@@ -11,6 +11,7 @@ import {
   cardTitle,
   cardCta,
 } from '../lib/cardStyles';
+import { splitNumeroTitle } from '../lib/text';
 
 const numeros = await getCollection('numeros');
 const numerosOrdenados = numeros.sort(
@@ -26,11 +27,13 @@ const numerosOrdenados = numeros.sort(
 
   <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
     {
-      numerosOrdenados.map((numero) => (
+      numerosOrdenados.map((numero) => {
+        const { titulo, subtitulo } = splitNumeroTitle(numero.data.titulo);
+        return (
         <a href={`/numero/${numero.id}`} class={cardShell}>
           <div class={cardImageWrap}>
             {numero.data.portada && (
-              <img src={numero.data.portada} alt={numero.data.titulo} class={cardImage} />
+              <img src={numero.data.portada} alt={titulo} class={cardImage} />
             )}
             <span class={cardBadge}>
               {numero.data.fecha.toLocaleDateString('es-ES', {
@@ -42,7 +45,12 @@ const numerosOrdenados = numeros.sort(
           </div>
 
           <div class={cardBody}>
-            <h2 class={cardTitle}>{numero.data.titulo}</h2>
+            <div>
+              <h2 class={cardTitle}>{titulo}</h2>
+              {subtitulo && (
+                <p class="font-serif text-sm italic text-ink/70">{subtitulo}</p>
+              )}
+            </div>
             {numero.data.descripcion && (
               <p class="line-clamp-3 font-serif text-sm italic leading-relaxed text-ink-muted">
                 {numero.data.descripcion}
@@ -51,7 +59,8 @@ const numerosOrdenados = numeros.sort(
             <span class={cardCta}>Ver número</span>
           </div>
         </a>
-      ))
+        );
+      })
     }
   </div>
 

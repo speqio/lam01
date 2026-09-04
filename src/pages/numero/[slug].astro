@@ -2,6 +2,7 @@
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import NumeroSequence from '../../components/NumeroSequence.astro';
+import { splitNumeroTitle } from '../../lib/text';
 
 export async function getStaticPaths() {
   const numeros = await getCollection('numeros');
@@ -35,9 +36,12 @@ const formattedDate = numero.data.fecha.toLocaleDateString('es-ES', {
   month: 'long',
   timeZone: 'UTC',
 });
+
+const { titulo: tituloPagina, subtitulo: subtituloPagina } = splitNumeroTitle(numero.data.titulo);
+const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : tituloPagina;
 ---
 
-<BaseLayout title={`${numero.data.titulo} — Blog Literario`} description={numero.data.descripcion}>
+<BaseLayout title={`${tituloCompleto} — Blog Literario`} description={numero.data.descripcion}>
   <NumeroSequence
     titulo={numero.data.titulo}
     descripcion={numero.data.descripcion}

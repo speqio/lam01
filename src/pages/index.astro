@@ -59,7 +59,7 @@ const categorias = await getCollection('categorias');
 
   {
     ultimoNumero && (
-      <HoverRevealHero titulo="-número 28-" href={`/numero/${ultimoNumero.id}`} />
+      <HoverRevealHero titulo={ultimoNumero.data.titulo} href={`/numero/${ultimoNumero.id}`} />
     )
   }
 

@@ -90,7 +90,7 @@ const { categorias } = Astro.props;
   .categorias-fan-scene {
     position: relative;
     width: 100%;
-    height: 16rem;
+    height: 19rem;
     overflow: hidden;
     touch-action: pan-y;
     cursor: grab;
@@ -113,9 +113,9 @@ const { categorias } = Astro.props;
     top: 0;
     display: block;
     overflow: hidden;
-    width: 5.5rem;
-    aspect-ratio: 0.6;
-    margin-left: -2.75rem;
+    width: 7.5rem;
+    aspect-ratio: 0.62;
+    margin-left: -3.75rem;
     user-select: none;
     -webkit-user-drag: none;
     /* Misma diagramación que las cards de entrada/número (cardShell/cardImage/
@@ -141,13 +141,17 @@ const { categorias } = Astro.props;
 
   .categorias-fan-card-title {
     position: absolute;
-    left: 0.5rem;
-    right: 0.5rem;
-    bottom: 0.5rem;
+    left: 0.6rem;
+    right: 0.6rem;
+    bottom: 0.6rem;
     font-family: var(--font-headline, 'Lekton', 'Arial', sans-serif);
-    font-size: 0.8rem;
-    line-height: 1.1;
+    font-size: 0.95rem;
+    line-height: 1.15;
     color: #ffffff;
+  }
+
+  .categorias-fan-card[data-fan-hidden] {
+    display: none;
   }
 
   .categorias-fan-dial {
@@ -255,12 +259,23 @@ const { categorias } = Astro.props;
     return dist;
   }
 
+  // En mobile las cards son más grandes en proporción a la pantalla — mostrar las 10
+  // categorías completas ahí achica todo hasta que la diagramación (badge + overlay +
+  // título) deja de entrar. Mejor mostrar menos, más grandes y legibles.
+  const MOBILE_VISIBLE_LIMIT = 6;
+
   function initCategoriasFan() {
     const scene = document.getElementById('categorias-fan-scene');
     const wrapper = document.getElementById('categorias-fan-wrapper');
     if (!(scene instanceof HTMLElement) || !(wrapper instanceof HTMLElement)) return;
 
-    const cards = Array.from(wrapper.querySelectorAll<HTMLElement>('.categorias-fan-card'));
+    const allCards = Array.from(wrapper.querySelectorAll<HTMLElement>('.categorias-fan-card'));
+    const isMobile = !window.matchMedia('(min-width: 768px)').matches;
+    const visibleCount = isMobile ? Math.min(MOBILE_VISIBLE_LIMIT, allCards.length) : allCards.length;
+
+    const cards = allCards.slice(0, visibleCount);
+    allCards.slice(visibleCount).forEach((card) => card.setAttribute('data-fan-hidden', ''));
+
     const total = cards.length;
     if (total === 0) return;
 

@@ -99,13 +99,12 @@ const PATTERNS = [
   }
 
   .entradas-3d-container {
-    --card-w: 7rem;
-    --card-h: 9.7rem;
+    --card-w: 11rem;
+    --card-h: 15.5rem;
     position: relative;
     width: 100%;
-    height: 22rem;
+    height: 34rem;
     overflow: hidden;
-    touch-action: pan-y;
     perspective: 2000px;
     display: flex;
     align-items: center;
@@ -250,6 +249,7 @@ const PATTERNS = [
     const itemsEl = document.getElementById('entradas-3d-items');
     const switchEl = document.getElementById('entradas-3d-switch');
     if (!(container instanceof HTMLElement) || !(itemsEl instanceof HTMLElement)) return;
+    if (!window.matchMedia('(min-width: 768px)').matches) return;
 
     const cards = Array.from(itemsEl.querySelectorAll<HTMLAnchorElement>('.entradas-3d-card'));
     const total = cards.length;

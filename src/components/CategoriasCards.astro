@@ -118,8 +118,8 @@ const { categorias } = Astro.props;
     /* Misma diagramación que las cards de entrada/número (cardShell/cardImage/
        cardBadge en cardStyles.ts): imagen con badge superpuesto, superficie oscura de
        respaldo, borde tenue, acento solo como señal en hover. */
-    background: #292929;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-ink) / 0.15);
     transition: border-color 200ms ease;
     transform-origin: 50% 275%;
   }
@@ -132,7 +132,7 @@ const { categorias } = Astro.props;
   .categorias-fan-card-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(18, 18, 18, 0.9), transparent 55%);
+    background: linear-gradient(to top, rgb(var(--color-canvas) / 0.9), transparent 55%);
     pointer-events: none;
   }
 
@@ -144,7 +144,7 @@ const { categorias } = Astro.props;
     font-family: var(--font-headline, 'Lekton', 'Arial', sans-serif);
     font-size: 0.95rem;
     line-height: 1.15;
-    color: #ffffff;
+    color: rgb(var(--color-ink));
   }
 
   .categorias-fan-card[data-fan-hidden] {
@@ -170,12 +170,22 @@ const { categorias } = Astro.props;
 
   .categorias-fan-fade--left {
     left: 0;
-    background: radial-gradient(circle at 0% 100%, #121212 0%, #121212 20%, transparent 72%);
+    background: radial-gradient(
+      circle at 0% 100%,
+      rgb(var(--color-canvas)) 0%,
+      rgb(var(--color-canvas)) 20%,
+      transparent 72%
+    );
   }
 
   .categorias-fan-fade--right {
     right: 0;
-    background: radial-gradient(circle at 100% 100%, #121212 0%, #121212 20%, transparent 72%);
+    background: radial-gradient(
+      circle at 100% 100%,
+      rgb(var(--color-canvas)) 0%,
+      rgb(var(--color-canvas)) 20%,
+      transparent 72%
+    );
   }
 
   /* El corte real está a lo largo de todo el borde inferior de la escena (las cards
@@ -187,7 +197,7 @@ const { categorias } = Astro.props;
     height: 4.5rem;
     pointer-events: none;
     z-index: 5;
-    background: linear-gradient(to bottom, transparent, #121212 85%);
+    background: linear-gradient(to bottom, transparent, rgb(var(--color-canvas)) 85%);
   }
 
   @media (min-width: 768px) {
@@ -222,12 +232,12 @@ const { categorias } = Astro.props;
 
   @media (min-width: 1024px) {
     .categorias-fan-scene {
-      height: 36rem;
+      height: 42rem;
     }
 
     .categorias-fan-card {
-      width: 13rem;
-      margin-left: -6.5rem;
+      width: 15rem;
+      margin-left: -7.5rem;
     }
 
     .categorias-fan-card-title {

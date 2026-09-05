@@ -17,16 +17,19 @@ export default {
         headline: ['Lekton', 'monospace'],
       },
       colors: {
-        // Paleta invertida (dark) adaptada de la referencia de diseño Riptype Foundry —
-        // los nombres de rol se conservan (canvas/ink/etc. ya eran roles semánticos, no
-        // colores literales) así que un cambio de paleta no obliga a tocar cada
-        // componente, solo estos valores.
-        canvas: '#121212', // fondo base de página (Workshop Black)
-        surface: '#292929', // superficie elevada: cards, modal, barras de nav (Platen Gray)
-        ink: '#ffffff', // texto/foreground principal (Paper White)
-        'ink-muted': '#a0a0a0', // texto secundario, metadata (Ash)
-        bone: '#d0d0d0', // cuerpo de texto largo en prosa/artículos (Bone)
-        accent: '#a6294a', // único color de señal — CTAs, tags, bordes activos (Burdeo)
+        // Los tokens ya no son colores fijos: cada uno lee una variable CSS (definida en
+        // global.css para :root y para :root[data-theme='light']) para poder alternar
+        // entre modo oscuro y claro sin tocar ninguna clase Tailwind del sitio — los
+        // componentes siguen usando bg-canvas/text-ink/etc. como siempre, el valor real
+        // detrás cambia según el atributo data-theme en <html>. El patrón
+        // "rgb(var(--x) / <alpha-value>)" conserva los modificadores de opacidad
+        // (ink/60, surface/95, etc.) que ya se usan en todo el código.
+        canvas: 'rgb(var(--color-canvas) / <alpha-value>)',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        ink: 'rgb(var(--color-ink) / <alpha-value>)',
+        'ink-muted': 'rgb(var(--color-ink-muted) / <alpha-value>)',
+        bone: 'rgb(var(--color-bone) / <alpha-value>)',
+        accent: 'rgb(var(--color-accent) / <alpha-value>)',
       },
     },
   },

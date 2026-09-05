@@ -11,9 +11,37 @@
 @tailwind utilities;
 
 @layer base {
+  /* Modo oscuro es el default (sin atributo, o data-theme="dark" explícito) — la
+     paleta original del sitio. data-theme="light" (alternado desde ThemeToggle.astro,
+     persistido en localStorage) invierte canvas/surface/ink/ink-muted/bone; accent se
+     mantiene igual en ambos modos, es el único color de señal del design system y no
+     depende de si el fondo es oscuro o claro. Todos los valores van en "R G B" (sin
+     rgb(...)) para que el patrón rgb(var(--x) / <alpha-value>) de tailwind.config.mjs
+     pueda aplicarles opacidad. */
+  :root {
+    --color-canvas: 18 18 18;
+    --color-surface: 41 41 41;
+    --color-ink: 255 255 255;
+    --color-ink-muted: 160 160 160;
+    --color-bone: 208 208 208;
+    --color-accent: 166 41 74;
+    color-scheme: dark;
+  }
+
+  :root[data-theme='light'] {
+    --color-canvas: 245 244 240;
+    --color-surface: 255 255 255;
+    --color-ink: 18 18 18;
+    --color-ink-muted: 90 90 90;
+    --color-bone: 51 51 51;
+    --color-accent: 166 41 74;
+    color-scheme: light;
+  }
+
   body {
     @apply bg-canvas text-ink font-sans antialiased;
     letter-spacing: -0.015em;
+    transition: background-color 200ms ease, color 200ms ease;
   }
 
   h1,

@@ -86,7 +86,10 @@ const filtros = [
 const slugsAzar = entradas.map((entrada) => entrada.id);
 ---
 
-<section id="archivo-explorer" class="relative mb-16 md:mb-20">
+<section
+  id="archivo-explorer"
+  class="relative mb-16 md:mb-32 md:flex md:min-h-[85vh] md:flex-col md:justify-center lg:mb-40"
+>
   <div class="mb-6 md:hidden">
     <h2 class="font-headline text-2xl lg:text-3xl">Archivo</h2>
   </div>
@@ -100,7 +103,7 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
     </h2>
   </div>
 
-  <div class="archivo-explorer-group flex w-full flex-col gap-1 md:h-[60vh] md:flex-row md:items-stretch md:justify-center md:overflow-hidden lg:h-[65vh]">
+  <div class="archivo-explorer-group flex w-full flex-col gap-1 md:h-[70vh] md:flex-row md:items-stretch md:justify-center md:overflow-hidden lg:h-[75vh]">
     {
       filtros.map((filtro) => (
         <div
@@ -146,6 +149,20 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
     }
   </div>
 </section>
+
+<style>
+  /* global.css fuerza font-weight: 400 !important en .font-mono/.font-headline (todo
+     el sitio usa un solo peso) — acá se pisa a propósito solo para las palabras de
+     cada item del archivo (label colapsado, label + título expandidos), porque en
+     modo claro un texto tan fino sobre fondo claro se lee mucho más débil que en modo
+     oscuro sobre fondo negro. Necesita su propio !important para ganarle al de
+     global.css, ya que ninguno de los dos gana por especificidad/orden. */
+  .archivo-explorer-collapsed span,
+  .archivo-explorer-expanded span,
+  .archivo-explorer-expanded h3 {
+    font-weight: 700 !important;
+  }
+</style>
 
 <script>
   import { gsap } from 'gsap';

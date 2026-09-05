@@ -1,5 +1,6 @@
 ---
 import SearchModal from './ui/SearchModal.tsx';
+import ThemeToggle from './ThemeToggle.astro';
 import { navItems } from '../data/navItems';
 ---
 
@@ -18,8 +19,9 @@ import { navItems } from '../data/navItems';
         }
       </nav>
 
-      <div class="hidden md:block">
+      <div class="hidden items-center gap-3 md:flex">
         <SearchModal client:load />
+        <ThemeToggle />
       </div>
     </div>
   </div>

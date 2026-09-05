@@ -1,0 +1,86 @@
+---
+/**
+ * Toggle de modo claro/oscuro. Un solo componente reusado en Header.astro (desktop) y
+ * MobileFloatingNav.astro (mobile) — ambas instancias quedan en el DOM a la vez (una
+ * oculta vía CSS según breakpoint), así que el script se identifica por clase
+ * (".theme-toggle-btn"), no por id, y sincroniza el ícono de las dos en cada click.
+ * El estado real (qué tema está activo) vive en el atributo data-theme de <html>,
+ * fijado tempranamente por el script is:inline de BaseLayout.astro para evitar un
+ * flash del tema equivocado al cargar.
+ */
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+---
+
+<button
+  type="button"
+  class={`theme-toggle-btn group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-ink/20 text-ink transition-colors hover:border-accent hover:text-accent ${className}`}
+  aria-label="Cambiar entre modo claro y oscuro"
+>
+  <svg
+    data-icon-sun
+    width="17"
+    height="17"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+  </svg>
+  <svg
+    data-icon-moon
+    width="17"
+    height="17"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+</button>
+
+<script>
+  const STORAGE_KEY = 'theme';
+
+  function currentTheme(): 'light' | 'dark' {
+    return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  }
+
+  function syncIcons(theme: 'light' | 'dark') {
+    document.querySelectorAll<HTMLElement>('[data-icon-sun]').forEach((el) => {
+      el.style.display = theme === 'light' ? 'none' : 'block';
+    });
+    document.querySelectorAll<HTMLElement>('[data-icon-moon]').forEach((el) => {
+      el.style.display = theme === 'light' ? 'block' : 'none';
+    });
+  }
+
+  function applyTheme(theme: 'light' | 'dark') {
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem(STORAGE_KEY, theme);
+    } catch {
+      // localStorage puede fallar (modo privado, cuota) — no es crítico, el toggle
+      // sigue funcionando dentro de la sesión, solo no persiste entre visitas.
+    }
+    syncIcons(theme);
+  }
+
+  syncIcons(currentTheme());
+
+  document.querySelectorAll<HTMLButtonElement>('.theme-toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      applyTheme(currentTheme() === 'light' ? 'dark' : 'light');
+    });
+  });
+</script>

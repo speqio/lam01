@@ -38,7 +38,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
         </a>
       )
     }
-    <h1 class="font-headline text-5xl leading-[0.9] md:text-6xl">
+    <h1 class="font-headline text-5xl leading-[0.9] text-ink md:text-6xl">
       {tituloEntrada}
     </h1>
     <p class="mt-4 font-mono text-xs uppercase tracking-widest text-ink-muted">
@@ -76,7 +76,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
   {
     entrada.data.galeria && entrada.data.galeria.length > 0 && (
       <div class="not-prose mt-12">
-        <h2 class="mb-4 font-headline text-2xl">Galería</h2>
+        <h2 class="mb-4 font-headline text-2xl text-ink">Galería</h2>
         <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
           {entrada.data.galeria.map((imagen) => (
             <div class="relative aspect-square overflow-hidden border border-ink/15">

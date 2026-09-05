@@ -52,7 +52,7 @@ const categorias = await getCollection('categorias');
 ---
 
 <BaseLayout title="Blog Literario">
-  <section class="py-4 sm:py-6">
+  <section class="py-4 sm:py-6 md:flex md:min-h-[85vh] md:flex-col md:justify-center md:py-0">
     <HeroAnagram />
   </section>
 
@@ -64,7 +64,7 @@ const categorias = await getCollection('categorias');
 
   {
     swipeItems.length > 0 && (
-      <section class="mb-16 md:mb-20">
+      <section class="mb-16 md:mb-32 md:mt-24 md:flex md:min-h-[85vh] md:flex-col md:justify-center lg:mb-40 lg:mt-32">
         <div class="md:hidden">
           <h2 class="font-headline text-2xl lg:text-3xl">Últimas entradas</h2>
         </div>
@@ -76,10 +76,10 @@ const categorias = await getCollection('categorias');
         </div>
         <div class="hidden md:block">
           <div class="mb-6">
-            <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-white/60">
+            <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
               Recién publicado
             </span>
-            <h2 class="font-headline text-4xl leading-none tracking-tight text-white/90 lg:text-6xl">
+            <h2 class="font-headline text-4xl leading-none tracking-tight text-ink lg:text-6xl">
               Últimas entradas
             </h2>
           </div>
@@ -91,16 +91,16 @@ const categorias = await getCollection('categorias');
 
   {
     categorias.length > 0 && (
-      <section class="mb-16 md:mb-20">
+      <section class="mb-16 md:mb-32 md:mt-24 md:flex md:min-h-[85vh] md:flex-col md:justify-center lg:mb-40 lg:mt-32">
         <div class="mb-6 md:hidden">
-          <h2 class="font-headline text-2xl text-white/90 lg:text-3xl">Categorías</h2>
+          <h2 class="font-headline text-2xl text-ink lg:text-3xl">Categorías</h2>
         </div>
 
         <div class="mb-6 hidden md:block">
-          <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-white/60">
+          <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
             Explora nuestro catálogo
           </span>
-          <h2 class="font-headline text-4xl leading-none tracking-tight text-white/90 lg:text-6xl">
+          <h2 class="font-headline text-4xl leading-none tracking-tight text-ink lg:text-6xl">
             Categorías
           </h2>
         </div>

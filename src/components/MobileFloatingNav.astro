@@ -1,5 +1,6 @@
 ---
 import SearchModal from './ui/SearchModal.tsx';
+import ThemeToggle from './ThemeToggle.astro';
 import { navItems } from '../data/navItems';
 
 const currentPath = Astro.url.pathname;
@@ -31,4 +32,7 @@ const currentPath = Astro.url.pathname;
   }
 
   <SearchModal client:load variant="compact" />
+  <div class="flex items-center px-1">
+    <ThemeToggle class="h-8 w-8 border-ink/15" />
+  </div>
 </nav>

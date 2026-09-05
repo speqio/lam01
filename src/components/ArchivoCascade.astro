@@ -111,12 +111,12 @@ const SECONDS_PER_CARD = 7;
 
   .archivo-cascade::before {
     top: 0;
-    background: linear-gradient(to bottom, #121212, transparent);
+    background: linear-gradient(to bottom, rgb(var(--color-canvas)), transparent);
   }
 
   .archivo-cascade::after {
     bottom: 0;
-    background: linear-gradient(to top, #121212, transparent);
+    background: linear-gradient(to top, rgb(var(--color-canvas)), transparent);
   }
 
   .archivo-cascade-col {
@@ -157,14 +157,14 @@ const SECONDS_PER_CARD = 7;
     display: block;
     flex-shrink: 0;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: #292929;
+    border: 1px solid rgb(var(--color-ink) / 0.15);
+    background: rgb(var(--color-surface));
   }
 
   .archivo-cascade-image {
     position: relative;
     aspect-ratio: 4 / 5;
-    background: #292929;
+    background: rgb(var(--color-surface));
   }
 
   .archivo-cascade-body {

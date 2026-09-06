@@ -13,6 +13,18 @@ import {
 } from '../lib/cardStyles';
 import { splitNumeroTitle } from '../lib/text';
 
+// "octubre de 2026" -> "oct·26": abreviatura de mes (3 letras) + separador de viñeta +
+// dos últimos dígitos del año. getUTCMonth/getUTCFullYear, no local, por la misma razón
+// que el resto del archivo usa timeZone:'UTC' — evita que la fecha se lea un día
+// distinto según la zona horaria del navegador.
+const MESES_ABREV = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+function formatoBadgeFecha(fecha: Date) {
+  const mes = MESES_ABREV[fecha.getUTCMonth()];
+  const anio = String(fecha.getUTCFullYear()).slice(-2);
+  return `${mes}·${anio}`;
+}
+
 const numeros = await getCollection('numeros');
 const numerosOrdenados = numeros.sort(
   (a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf()
@@ -45,7 +57,7 @@ const rangos = Array.from({ length: totalRangos }, (_, i) => ({
 }));
 
 const chipClass =
-  'numeros-chip rounded-full border border-ink/20 px-4 py-1.5 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:border-ink/40 data-[active=true]:border-accent data-[active=true]:bg-accent data-[active=true]:text-canvas';
+  'numeros-chip rounded-full border border-ink/20 px-4 py-1.5 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:border-ink/40 data-[active=true]:border-transparent';
 ---
 
 <BaseLayout
@@ -84,13 +96,7 @@ const chipClass =
             {numero.data.portada && (
               <img src={numero.data.portada} alt={titulo} class={cardImage} />
             )}
-            <span class={cardBadge}>
-              {numero.data.fecha.toLocaleDateString('es-ES', {
-                month: 'long',
-                year: 'numeric',
-                timeZone: 'UTC',
-              })}
-            </span>
+            <span class={cardBadge}>{formatoBadgeFecha(numero.data.fecha)}</span>
           </div>
 
           <div class={cardBody}>

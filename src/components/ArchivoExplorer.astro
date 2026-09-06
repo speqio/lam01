@@ -6,8 +6,8 @@ import { normalizeTitleText } from '../lib/text';
  * "Archivo": galería de paneles expandibles, adaptada de una demo en GSAP (CDN) que
  * animaba el `width` de 5 recuadros con fotos de retrato — clickear uno lo expandía y
  * comprimía al resto (`elastic` ease, sin plugins extra). Acá cada panel no es una foto
- * sino una puerta de entrada distinta al archivo: año, autor, categoría, número o una
- * entrada al azar.
+ * sino una puerta de entrada distinta al archivo: catálogo general, autor, categoría,
+ * número o una entrada al azar.
  *
  * Cambios respecto a la referencia:
  * - Los recuadros son 100% CSS/contenido (sin imágenes) y cada uno linkea a una página
@@ -43,11 +43,11 @@ const { entradas } = Astro.props;
 const filtros = [
   {
     key: 'anio',
-    label: 'Año',
-    titulo: 'Por año',
-    descripcion: 'El archivo agrupado por año de publicación, del más reciente al más antiguo.',
+    label: 'Catálogo general',
+    titulo: 'Catálogo general',
+    descripcion: 'Todas las entradas de la revista, con filtros por año, categoría, número y autor.',
     href: '/archivo/',
-    cta: 'Ver por año',
+    cta: 'Ver catálogo',
   },
   {
     key: 'autor',

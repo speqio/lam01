@@ -1,0 +1,316 @@
+---
+import EntryCard from './EntryCard.tsx';
+
+/**
+ * Catálogo completo del archivo, con filtros — único componente de /archivo.astro
+ * (antes convivía debajo de la hélice/cascada 3D, que se sacaron para simplificar la
+ * página a solo esto).
+ *
+ * Sin h2 propio a propósito: la página ya tiene su h1 ("Archivo"), así que acá va solo
+ * una etiqueta de sección ("Todas las entradas"), no otro encabezado que repita
+ * jerarquía con el h1.
+ *
+ * Los filtros de año/categoría/número son un dropdown propio (botón + lista
+ * absolutamente posicionada, ambos con nuestras clases), NO un <select> nativo — se
+ * probó primero con <select> pero el popup de opciones lo dibuja el navegador con su
+ * propio widget de sistema operativo, y ni `color-scheme` ni el color de cada <option>
+ * lo garantizan de forma confiable en todos los navegadores (falló específicamente en
+ * Chrome/Windows, que ignoró el tema oscuro/claro del sitio). Reemplazarlo por un menú
+ * propio (mismo patrón que cualquier otro popover del sitio) es la única forma de
+ * asegurar que los colores coincidan siempre con el design system.
+ *
+ * El buscador de autor sí sigue siendo un <input> + <datalist> nativo — ese popup de
+ * sugerencias de autocompletado sí respeta `color-scheme` de forma confiable (se
+ * verificó que funciona), así que no hace falta reemplazarlo por lo mismo.
+ *
+ * Reusa EntryCard.tsx (misma anatomía de card que /categoria, /autor, /numero) en vez
+ * de reinventar el layout, y el mismo mecanismo de filtro por atributos +
+ * classList.toggle('hidden', ...) que ya usa /numeros.astro para sus chips de rango —
+ * acá extendido a año/categoría/número (dropdown propio, coincidencia exacta) más
+ * autor (texto libre, coincidencia parcial sobre el nombre). Sin fetch, sin reordenar
+ * el DOM, sin GSAP (es un toggle de visibilidad, no una animación).
+ */
+export interface ArchivoCatalogoItem {
+  slug: string;
+  title: string;
+  authorName: string;
+  categoryName: string;
+  coverImage?: string;
+  anio: number;
+  categoriaSlug: string;
+  numeroSlug: string;
+}
+
+interface FiltroOpcion {
+  slug: string;
+  label: string;
+}
+
+interface Props {
+  items: ArchivoCatalogoItem[];
+  anios: number[];
+  categorias: FiltroOpcion[];
+  autorNombres: string[];
+  numeros: FiltroOpcion[];
+}
+
+const { items, anios, categorias, autorNombres, numeros } = Astro.props;
+
+const triggerClass =
+  'archivo-catalogo-trigger inline-flex items-center gap-2 rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:border-ink/40 aria-expanded:border-accent aria-expanded:text-ink focus:outline-none md:text-sm';
+
+const inputClass =
+  'archivo-catalogo-autor rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-ink-muted placeholder:text-ink-muted/70 transition-colors hover:border-ink/40 focus:border-accent focus:outline-none md:text-sm';
+
+const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones: FiltroOpcion[] }> = [
+  { key: 'anio', label: 'Año', ariaLabel: 'Filtrar por año', opciones: anios.map((a) => ({ slug: String(a), label: String(a) })) },
+  { key: 'categoria', label: 'Categoría', ariaLabel: 'Filtrar por categoría', opciones: categorias },
+  { key: 'numero', label: 'Número', ariaLabel: 'Filtrar por número', opciones: numeros },
+];
+---
+
+{
+  items.length > 0 && (
+    <div class="archivo-catalogo mt-12 md:mt-16">
+      <div
+        class="archivo-catalogo-filtros mb-10 flex flex-wrap justify-center gap-3 md:justify-start"
+        role="group"
+        aria-label="Filtrar el archivo"
+      >
+        {dropdowns.map((dropdown) => (
+          <div class="archivo-catalogo-dropdown relative" data-dropdown={dropdown.key} data-value="all">
+            <button
+              type="button"
+              class={triggerClass}
+              data-dropdown-trigger
+              aria-haspopup="listbox"
+              aria-expanded="false"
+            >
+              <span data-dropdown-label>{dropdown.label}</span>
+              <svg
+                class="archivo-catalogo-chevron"
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            <ul class="archivo-catalogo-dropdown-menu" role="listbox" aria-label={dropdown.ariaLabel} hidden>
+              <li role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected="true"
+                  data-value="all"
+                  class="archivo-catalogo-dropdown-option"
+                >
+                  {dropdown.label}
+                </button>
+              </li>
+              {dropdown.opciones.map((opcion) => (
+                <li role="presentation">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected="false"
+                    data-value={opcion.slug}
+                    class="archivo-catalogo-dropdown-option"
+                  >
+                    {opcion.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+
+        <input
+          type="search"
+          class={inputClass}
+          data-filtro-autor
+          list="archivo-catalogo-autores"
+          placeholder="Autor"
+          aria-label="Buscar por autor"
+        />
+        <datalist id="archivo-catalogo-autores">
+          {autorNombres.map((nombre) => (
+            <option value={nombre} />
+          ))}
+        </datalist>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" data-catalogo-grid>
+        {items.map((item) => (
+          <div
+            data-catalogo-item
+            data-anio={item.anio}
+            data-categoria={item.categoriaSlug}
+            data-autor-nombre={item.authorName.toLocaleLowerCase('es')}
+            data-numero={item.numeroSlug}
+          >
+            <EntryCard
+              client:visible
+              title={item.title}
+              authorName={item.authorName}
+              categoryName={item.categoryName}
+              slug={item.slug}
+              coverImage={item.coverImage}
+            />
+          </div>
+        ))}
+      </div>
+
+      <p class="hidden py-12 text-center font-sans text-ink-muted" data-catalogo-vacio>
+        Ningún resultado coincide con estos filtros.
+      </p>
+    </div>
+  )
+}
+
+<style>
+  /* El buscador de autor (<input> + <datalist>) sí respeta color-scheme de forma
+     confiable para el popup de sugerencias — no así el <select> nativo, que por eso ya
+     no se usa acá (ver comentario del frontmatter). */
+  .archivo-catalogo-autor {
+    color-scheme: dark;
+  }
+
+  :root[data-theme='light'] .archivo-catalogo-autor {
+    color-scheme: light;
+  }
+
+  .archivo-catalogo-chevron {
+    transition: transform 200ms ease;
+  }
+
+  .archivo-catalogo-trigger[aria-expanded='true'] .archivo-catalogo-chevron {
+    transform: rotate(180deg);
+  }
+
+  .archivo-catalogo-dropdown-menu {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 0.5rem);
+    z-index: 20;
+    min-width: 100%;
+    max-height: 16rem;
+    overflow-y: auto;
+    background: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-ink) / 0.15);
+    border-radius: 0.75rem;
+    padding: 0.35rem;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.35);
+  }
+
+  .archivo-catalogo-dropdown-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgb(var(--color-ink-muted));
+    background: transparent;
+    white-space: nowrap;
+  }
+
+  .archivo-catalogo-dropdown-option:hover,
+  .archivo-catalogo-dropdown-option:focus-visible {
+    background: rgb(var(--color-ink) / 0.08);
+    color: rgb(var(--color-ink));
+    outline: none;
+  }
+
+  .archivo-catalogo-dropdown-option[aria-selected='true'] {
+    color: rgb(var(--color-accent));
+  }
+</style>
+
+<script>
+  const dropdowns = Array.from(document.querySelectorAll<HTMLElement>('.archivo-catalogo-dropdown'));
+  const autorInput = document.querySelector<HTMLInputElement>('[data-filtro-autor]');
+  const items = Array.from(document.querySelectorAll<HTMLElement>('[data-catalogo-item]'));
+  const vacioMsg = document.querySelector<HTMLElement>('[data-catalogo-vacio]');
+
+  function aplicarFiltros() {
+    const filtros = new Map(dropdowns.map((dropdown) => [dropdown.dataset.dropdown, dropdown.dataset.value ?? 'all']));
+    const busquedaAutor = (autorInput?.value ?? '').trim().toLocaleLowerCase('es');
+
+    let visibles = 0;
+    items.forEach((item) => {
+      const coincideDropdowns = Array.from(filtros.entries()).every(([filtro, valor]) => {
+        if (!filtro || valor === 'all') return true;
+        return item.dataset[filtro] === valor;
+      });
+      const coincideAutor =
+        busquedaAutor === '' || (item.dataset.autorNombre ?? '').includes(busquedaAutor);
+      const coincide = coincideDropdowns && coincideAutor;
+
+      item.classList.toggle('hidden', !coincide);
+      if (coincide) visibles += 1;
+    });
+
+    vacioMsg?.classList.toggle('hidden', visibles > 0);
+  }
+
+  function closeDropdown(dropdown: HTMLElement) {
+    dropdown.querySelector<HTMLButtonElement>('[data-dropdown-trigger]')?.setAttribute('aria-expanded', 'false');
+    const menu = dropdown.querySelector<HTMLElement>('.archivo-catalogo-dropdown-menu');
+    if (menu) menu.hidden = true;
+  }
+
+  function closeAllDropdowns(except?: HTMLElement) {
+    dropdowns.forEach((dropdown) => {
+      if (dropdown !== except) closeDropdown(dropdown);
+    });
+  }
+
+  dropdowns.forEach((dropdown) => {
+    const trigger = dropdown.querySelector<HTMLButtonElement>('[data-dropdown-trigger]');
+    const menu = dropdown.querySelector<HTMLElement>('.archivo-catalogo-dropdown-menu');
+    const label = dropdown.querySelector<HTMLElement>('[data-dropdown-label]');
+    const options = Array.from(
+      dropdown.querySelectorAll<HTMLButtonElement>('.archivo-catalogo-dropdown-option')
+    );
+    if (!trigger || !menu || !label) return;
+
+    trigger.addEventListener('click', () => {
+      const isOpen = trigger.getAttribute('aria-expanded') === 'true';
+      closeAllDropdowns(dropdown);
+      trigger.setAttribute('aria-expanded', String(!isOpen));
+      menu.hidden = isOpen;
+    });
+
+    options.forEach((option) => {
+      option.addEventListener('click', () => {
+        dropdown.dataset.value = option.dataset.value ?? 'all';
+        label.textContent = option.textContent;
+        options.forEach((o) => o.setAttribute('aria-selected', String(o === option)));
+        closeDropdown(dropdown);
+        aplicarFiltros();
+      });
+    });
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Node)) return;
+    dropdowns.forEach((dropdown) => {
+      if (!dropdown.contains(event.target as Node)) closeDropdown(dropdown);
+    });
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeAllDropdowns();
+  });
+
+  autorInput?.addEventListener('input', aplicarFiltros);
+</script>

@@ -12,12 +12,15 @@
 // sólido, texto canvas — es independiente de dónde vaya montada la imagen.
 export const cardImageWrap = 'relative h-full w-2/5 shrink-0 bg-surface';
 
-// Badge de categoría/metadata sobre la imagen: fondo sólido (no translúcido) en el
-// color de acento con letra en canvas (negro) — necesita contraste garantizado sea
-// cual sea la foto de fondo (clara, oscura, con texto encima, lo que sea), así que va
-// opaco en vez de dejar que el acid-flash/canvas-80% se mezcle con la imagen.
+// Badge de categoría/metadata sobre la imagen: fondo sólido (no translúcido) — necesita
+// contraste garantizado sea cual sea la foto de fondo (clara, oscura, con texto
+// encima, lo que sea), así que va opaco en vez de dejar que el acid-flash/canvas-80% se
+// mezcle con la imagen. El color (blanco/negro en oscuro, acento/canvas en claro) lo
+// pone la clase "card-badge" en global.css, no una utilidad de Tailwind acá — así un
+// solo lugar controla el color en todos los badges del sitio (cards de categoría,
+// EntradasCarousel3D, ArchivoCascade, CategoriasCards, /numeros).
 export const cardBadge =
-  'absolute left-2 top-2 bg-accent px-3 py-2 font-mono text-[12px] font-black uppercase tracking-[0.2em] text-canvas drop-shadow-[0_0_1.2px_rgba(0,0,0,0.95)] md:text-sm';
+  'card-badge absolute left-2 top-2 px-3 py-2 font-mono text-[12px] font-black uppercase tracking-[0.2em] drop-shadow-[0_0_1.2px_rgba(0,0,0,0.95)] md:text-sm';
 
 // Variante de card completa (EntryCard, /numeros): imagen que reacciona al hover del
 // link que envuelve toda la card.

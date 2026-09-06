@@ -44,6 +44,16 @@
     transition: background-color 200ms ease, color 200ms ease;
   }
 
+  /* Color de selección de texto (Ctrl/Cmd+A, arrastrar el mouse sobre un párrafo) —
+     reemplaza el azul por defecto del navegador por el acento del design system.
+     Alcanza con una sola regla para los dos modos: accent no cambia entre temas, y
+     canvas ya se invierte solo (oscuro→casi negro, claro→casi blanco), así que el
+     contraste queda resuelto igual que en cualquier otro uso de estos dos tokens. */
+  ::selection {
+    background: rgb(var(--color-accent));
+    color: rgb(var(--color-canvas));
+  }
+
   h1,
   h2,
   h3 {
@@ -79,5 +89,39 @@
     @apply float-left mr-2 mt-1 font-serif font-bold text-accent;
     font-size: 4.5rem;
     line-height: 0.85;
+  }
+
+  /* Badge de categoría/metadata sobre imagen (cardBadge en cardStyles.ts) — un solo
+     lugar controla el color en todos los badges del sitio. Blanco/negro en modo oscuro
+     (pedido explícito, reemplaza el acento rojo + texto casi negro que tenía antes);
+     en modo claro se conserva acento sólido + texto canvas, que ahí no tenía problema
+     de contraste. */
+  .card-badge {
+    background: #ffffff;
+    color: #000000;
+  }
+
+  :root[data-theme='light'] .card-badge {
+    background: rgb(var(--color-accent));
+    color: rgb(var(--color-canvas));
+  }
+
+  /* Chip de filtro seleccionado (FilterChip.astro y los chips de /numeros) — mismo
+     criterio que .card-badge de arriba: blanco/negro en modo oscuro en vez de acento
+     rojo + texto casi negro, acento sólido + texto canvas en modo claro. Los chips de
+     /numeros alternan visualmente vía el atributo `data-active` (puesto por su propio
+     script, no por Astro en build-time), así que ahí no alcanza con una clase — el
+     selector de atributo va directo en vez de depender de una variante de Tailwind
+     (que no puede generar variantes de una clase de @layer components como esta). */
+  .filter-chip-active,
+  .numeros-chip[data-active='true'] {
+    background: #ffffff;
+    color: #000000;
+  }
+
+  :root[data-theme='light'] .filter-chip-active,
+  :root[data-theme='light'] .numeros-chip[data-active='true'] {
+    background: rgb(var(--color-accent));
+    color: rgb(var(--color-canvas));
   }
 }

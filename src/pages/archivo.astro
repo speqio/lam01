@@ -1,8 +1,8 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import ArchivoHelix from '../components/ArchivoHelix.astro';
-import ArchivoCascade from '../components/ArchivoCascade.astro';
+import ArchivoCatalogo from '../components/ArchivoCatalogo.astro';
+import { splitNumeroTitle } from '../lib/text';
 
 const todasLasEntradas = await getCollection('entradas');
 
@@ -18,31 +18,35 @@ entradasConRelaciones.sort(
   (a, b) => b.entrada.data.fecha.valueOf() - a.entrada.data.fecha.valueOf()
 );
 
-// Desktop: hélice 3D (ArchivoHelix), un "vistazo" curado a las últimas entradas — con
-// cientos de entradas en el archivo real, renderizar todas como nodos 3D sería un
-// problema de performance, así que se recorta.
-const HELIX_MAX_ITEMS = 30;
-const helixItems = entradasConRelaciones.slice(0, HELIX_MAX_ITEMS).map(({ entrada, categoria }) => ({
-  slug: entrada.id,
-  title: entrada.data.titulo,
-  categoryName: categoria?.data.nombre ?? '',
-  coverImage: entrada.data.portada,
-}));
-
-// Mobile: columnas en loop automático (ArchivoCascade) en vez de la hélice — un
-// dispositivo mobile siempre va a ser menos capaz de sostener un render 3D a 60fps que
-// un desktop, así que ahí ni se intenta (además es CSS puro, sin transforms 3D por
-// frame). Cada columna repite su lista dos veces en el DOM para el loop sin salto (ver
-// el componente), así que se recorta por la misma razón que la hélice: no queremos
-// duplicar cientos de nodos si el archivo real crece mucho.
-const CASCADE_MAX_ITEMS = 40;
-const cascadeItems = entradasConRelaciones.slice(0, CASCADE_MAX_ITEMS).map(({ entrada, autor, categoria }) => ({
+// Catálogo completo (ArchivoCatalogo.astro): todas las entradas, sin recortar, con
+// filtros de año/categoría/número y buscador de autor.
+const catalogoItems = entradasConRelaciones.map(({ entrada, autor, categoria }) => ({
   slug: entrada.id,
   title: entrada.data.titulo,
   authorName: autor?.data.nombre ?? '',
   categoryName: categoria?.data.nombre ?? '',
   coverImage: entrada.data.portada,
+  anio: entrada.data.fecha.getUTCFullYear(),
+  categoriaSlug: categoria?.id ?? '',
+  numeroSlug: entrada.data.numero,
 }));
+
+const anios = Array.from(new Set(catalogoItems.map((item) => item.anio))).sort((a, b) => b - a);
+
+const todasLasCategorias = await getCollection('categorias');
+const categoriaOpciones = todasLasCategorias
+  .map((categoria) => ({ slug: categoria.id, label: categoria.data.nombre }))
+  .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+
+const todosLosAutores = await getCollection('autores');
+const autorNombres = todosLosAutores
+  .map((autor) => autor.data.nombre)
+  .sort((a, b) => a.localeCompare(b, 'es'));
+
+const todosLosNumeros = await getCollection('numeros');
+const numeroOpciones = todosLosNumeros
+  .map((numero) => ({ slug: numero.id, label: splitNumeroTitle(numero.data.titulo).titulo }))
+  .sort((a, b) => b.slug.localeCompare(a.slug));
 ---
 
 <BaseLayout
@@ -53,26 +57,23 @@ const cascadeItems = entradasConRelaciones.slice(0, CASCADE_MAX_ITEMS).map(({ en
     entradasConRelaciones.length === 0 ? (
       <p class="text-center font-sans text-ink-muted">Todavía no hay entradas en el archivo.</p>
     ) : (
-      <Fragment>
-        <div class="hidden md:grid md:grid-cols-2 md:items-center md:gap-10 md:pt-24">
-          <div>
-            <p class="font-sans text-sm uppercase tracking-widest text-accent">Hemeroteca</p>
-            <h1 class="mt-2 font-headline text-6xl text-ink">Archivo</h1>
-            <p class="mt-4 max-w-xl font-serif text-lg text-ink-muted">
-              Todo lo publicado en la revista, de más reciente a más antiguo.
-            </p>
-          </div>
-
-          <ArchivoHelix items={helixItems} />
+      <>
+        <div class="text-center md:pt-24 md:text-left">
+          <p class="font-sans text-sm uppercase tracking-widest text-accent">Últimas entradas</p>
+          <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Archivo</h1>
+          <p class="mx-auto mt-4 max-w-xl font-serif text-lg text-ink-muted md:mx-0">
+            Todo lo publicado en la revista.
+          </p>
         </div>
 
-        <div class="md:hidden">
-          <p class="font-sans text-sm uppercase tracking-widest text-accent">Hemeroteca</p>
-          <h1 class="mt-2 mb-6 font-headline text-5xl text-ink">Archivo</h1>
-
-          <ArchivoCascade items={cascadeItems} />
-        </div>
-      </Fragment>
+        <ArchivoCatalogo
+          items={catalogoItems}
+          anios={anios}
+          categorias={categoriaOpciones}
+          autorNombres={autorNombres}
+          numeros={numeroOpciones}
+        />
+      </>
     )
   }
 </BaseLayout>

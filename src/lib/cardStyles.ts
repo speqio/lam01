@@ -34,5 +34,14 @@ export const cardBody = 'flex w-3/5 flex-col gap-1 p-4 lg:gap-2 lg:p-6';
 
 export const cardTitle = 'font-headline text-lg leading-[1.05] text-ink lg:text-xl';
 
-export const cardCta =
-  'mt-auto font-mono text-xs font-medium uppercase tracking-widest text-accent transition-colors group-hover:underline';
+// "Leer entrada" (o equivalente) al pie de la card — el subrayado animado (barra que
+// crece de 0 a 100% de ancho) es el mismo recurso que usa la nav del Header en
+// desktop, no un `underline` de un solo golpe: dos spans (texto + barra) dentro de un
+// contenedor `relative`, la card entera ya trae `group` (cardShell) así que alcanza
+// con `group-hover` acá.
+export const cardCtaWrap = 'relative mt-auto inline-block';
+
+export const cardCta = 'font-mono text-xs font-medium uppercase tracking-widest text-accent';
+
+export const cardCtaUnderline =
+  'absolute -bottom-0.5 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full';

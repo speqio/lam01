@@ -10,6 +10,8 @@ import {
   cardBody,
   cardTitle,
   cardCta,
+  cardCtaWrap,
+  cardCtaUnderline,
 } from '../lib/cardStyles';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -79,7 +81,10 @@ export default function EntryCard({
         <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">
           Por {authorName}
         </p>
-        <span className={cardCta}>Leer entrada</span>
+        <span className={cardCtaWrap}>
+          <span className={cardCta}>Leer entrada</span>
+          <span className={cardCtaUnderline} />
+        </span>
       </div>
     </a>
   );

@@ -131,8 +131,11 @@ const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
                 <p class="font-mono text-[10px] uppercase tracking-widest text-ink-muted md:text-xs">
                   Por {item.autorNombre}
                 </p>
-                <span class="mt-auto font-mono text-xs font-medium uppercase tracking-widest text-accent group-hover:underline md:text-sm">
-                  Leer entrada
+                <span class="relative mt-auto inline-block">
+                  <span class="font-mono text-xs font-medium uppercase tracking-widest text-accent md:text-sm">
+                    Leer entrada
+                  </span>
+                  <span class="absolute -bottom-0.5 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
                 </span>
               </div>
             </div>

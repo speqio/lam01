@@ -10,6 +10,8 @@ import {
   cardBody,
   cardTitle,
   cardCta,
+  cardCtaWrap,
+  cardCtaUnderline,
 } from '../lib/cardStyles';
 import { splitNumeroTitle } from '../lib/text';
 
@@ -111,7 +113,10 @@ const chipClass =
                 {numero.data.descripcion}
               </p>
             )}
-            <span class={cardCta}>Ver número</span>
+            <span class={cardCtaWrap}>
+              <span class={cardCta}>Ver número</span>
+              <span class={cardCtaUnderline} />
+            </span>
           </div>
         </a>
         );

@@ -5,6 +5,8 @@ node_modules/
 .astro/
 dist/
 .vercel/
+.wrangler/
+tmp-dry-run/
 
 # Environment files
 .env

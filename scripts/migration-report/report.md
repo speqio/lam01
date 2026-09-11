@@ -1,0 +1,438 @@
+# Reporte de migración WordPress → Keystatic
+
+Generado: 2026-09-07T03:28:01.670Z
+
+## Resumen
+
+- Posts procesados: 324
+- Posts omitidos (sin slug/título): 0
+- Categorías creadas: 0
+- Números creados: 0
+- Posts asignados a "Sin número" (revisar manualmente): 167
+- Posts con categorías múltiples (se descartó todo menos una): 12
+- Posts sin categoría real, resueltos por tag: 221
+- Archivos existentes no sobreescritos: 0
+
+## Posts en "Sin número" — reasignar a mano en Keystatic
+
+- la-exempla-de-sylvia-plath-alejandro-salas
+- clio-minerva-y-prometeo-que-historia-es-necesaria-para-los-movimientos-antisistemicos-actuales1-carlos-antonio-aguirre-rojas
+- 7-poemas
+- 3066
+- klaus-kinski-con-bandurrias
+- las-aves
+- casas-de-luz-para-criaturas-pequenas
+- dos-hermanas
+- bandera-roja
+- deporte
+- bangutot
+- un-paseo-circular
+- el-mudo
+- nunca-tuve-un-cuarto-propio
+- introduccion
+- la-madrugada-de-los-otros
+- la-construccion-de-una-palabra-sobre-nosotros-callaremos-de-enrique-winter
+- defensa-del-marxismo-de-jose-carlos-mariategui-presentacion-a-la-segunda-reedicion
+- el-horizonte-utopico-de-lo-venidero
+- catalejo-30-anos-en-su-propia-tinta
+- 6-poemas-de-morgue
+- sobre-tres-iconos-del-canto-porteno-un-rescate-de-la-musica-bohemia-deheidi-iareski-victor-rojas-farias-y-gabriel-gallardo
+- recuerdos-del-porvenir
+- el-pasado-por-venir
+- yo-le-doy-mi-nombre-de-viviana-ponce-escudero
+- bastian-desidel-escurra
+- micaela-paredes-barraza
+- vianka-ceverino-rusticcini
+- victor-campos-donoso
+- presentacion
+- escribir
+- el-tiempo-del-trabajo
+- la-novela-del-corazon-de-roberto-castillo-sandoval
+- feliz-cumpleanos-vecino-artista
+- septima-encantadora
+- no-neg-ociar-un-par-de-poemas-de-dany-laferriere
+- el-bolero-impudico-de-patricio-contreras
+- godard-y-los-escombros-de-la-historia
+- la-espera-es-mala-consejera
+- too-much-munch
+- las-enfermedades-las-distancias
+- los-reponedores-del-tottus
+- hacia-atras
+- en-la-espalda-del-puerto-cuelgan-ratas-negras
+- piel-y-palabra-memoria-de-un-proyecto-junto-a-makanaky-adn
+- el-patio-de-atras
+- feliz-cumpleanos-sugar-daddy
+- despues-de-las-doce-ya-se-puede-tomar
+- el-pan-y-su-fermento-una-performance
+- allende-y-las-artes-visuales-un-relato-que-anida-en-el-mito
+- intimidad
+- 5-poemas-2
+- el-cerro-cordillera-de-anibal-riquelme-contreras
+- neocarnaval-revuelta-y-telepatia-social
+- otros-caminos-mas-alla-del-lar-una-mirada-a-la-poetica-teillieriana-en-dictadura
+- valparaiso-esta-hecha-para-los-paseantes-presentacion-de-suenos-de-valparaiso-de-jaume-benavente
+- el-jardin-de-manzanos-de-alejandra-wolleter-y-fabiola-narvaez
+- prologo-a-ensayos-en-el-exilio-revista-araucaria-de-chile-1978-1989-de-osvaldo-fernandez-diaz
+- el-bombero-del-mar
+- trizaduras-refracciones-y-silencios-una-poetica-de-la-transparencia-en-objetos-de-vidrio-de-jaime-villanueva-donoso
+- foja-cero-obra-rebelde
+- angel-cappelletti-y-el-caracazo-como-estallido-social
+- los-senores-burke-y-hare-asesinos
+- la-proteccion-de-la-raza-chilena-historias-de-eugenesia-y-profilaxia-social
+- afrodescendientes-en-chile-y-argentina-breve-esbozo-de-su-pasado-y-presente
+- 7-poemas-3
+- lengua-de-cuartel
+- poesia-transactivismos-y-otros-cuentos-analisis-descarrilado-sobre-transpoesia-y-la-guerra-cultural-en-curso
+- de-la-pasion-de-hacer-fragmentos
+- los-perros-y-nicomedes-guzman
+- el-impacto-indefinible-sentir-poesia-leer-poesia-escribir-poesia
+- lo-que-el-ojo-no-ve-la-imaginacion-lo-atraviesa
+- la-urbex-de-la-lengua
+- sobre-proximo-destino-las-afueras-anotaciones-samples-paratextos-de-hugo-herrera-pardo
+- voces-de-mi-voz-de-jean-jacques-pierre-paul
+- altazor-profeta-del-silencio
+- pedaleo-nocturno-un-transito-desde-la-intimidad-hacia-lo-horroroso
+- traccion-a-sangre-de-sergio-guerra-la-intima-victoria-de-lo-comun
+- la-salsa-en-cali-una-tradicion
+- grita-la-lluvia-cantan-las-flores-presentacion-del-libro-objeto-marta-de-mariana-zegers-izquierdo
+- cerro-cordillera-de-valparaiso-en-dictadura-acercamiento-a-un-relato-colectivo
+- poema-y-duelo-sobre-ninos-en-el-rio-de-teofilo-cid
+- que-es-el-pensamiento-politico-radical-algunas-consideraciones-ejecutivas
+- ensayos-desde-la-incertidumbre-de-gonzalo-jara-townsend
+- presentacion-de-que-hay-detras-de-la-ventana-letra-imagen-musica-arte-x-roberto-bolano
+- la-muerte-y-la-costa-conjeturas-sobre-una-travesia
+- postfacio-en-intercepto-intercambio-interrumpido-a-limo-de-natalia-rojas
+- horror-lumpen-y-carnavalizacion-oscura-en-valpore-de-cristobal-gaete
+- socavon-zombi
+- critica-debate-y-oficio-algunas-ideas-sobre-cine-aunque-sea-en-las-ruinas-del-internet
+- derivas-en-las-ciudades-tentaculares-un-dialogo-a-partir-de-traccion-a-sangre-de-sergio-guerra
+- galeria-rectangulo-de-plata-7
+- gandhi-un-asesinato-que-siempre-vuelve
+- los-aeroplanos-de-brescia
+- un-viaje-a-la-selva-peruana
+- 5-poemas-3
+- vivir-sin-lengua-es-tomar-consciencia-de-la-impotencia-del-tiempo-actual-un-dialogo-con-pablo-aravena
+- los-monstruos-del-nuevo-mundo-una-vision-europea
+- bolano-o-la-capacidad-humana-de-danar-un-sondeo-por-su-ficcion-breve
+- el-olvido-de-los-conventillos-la-mirada-elitista-del-valparaiso-patrimonial
+- 5-poemas-6
+- cristina-galvez-martos
+- gabriela-mesones-rojo
+- daniel-camacho-francabandiera
+- yhonais-lemus
+- pamela-rahn-sanchez
+- andres-royer
+- presentacion-zorian-ramirez-espinoza
+- camion-de-carga
+- ckausama-ritos-del-despojo-de-boris-durandeau
+- bandera-negra-al-choque
+- presentacion-de-el-tiempo-del-silencio-las-cartas-de-mi-abuelo-durante-el-exilio-insilio-de-leticia-martinez
+- causa-de-muerte-sobre-el-hombre-de-juan-rulfo
+- folie-a-deux-presentacion-de-vida-y-muerte-de-satan-el-fuego-de-artaud
+- poemas-de-amor-y-muerte-a-proposito-de-dido-la-amante-de-dios-de-santos-lopez
+- docupoesia-y-deseo-de-archivo
+- quimantu-ediciones-para-el-poder-popular
+- 6-poemas-3
+- alfonso-alcalde-y-la-coneja
+- cristobal-gaete-mi-lugar-en-las-letras-nacionales-es-absolutamente-marginal
+- entregarse-por-fin
+- exagium-pesar-el-mundo-con-palabras
+- el-ensayo-como-forma-tragica-mascara-y-mentira
+- volver-a-sorprenderse-una-aproximacion-al-ensayo-desde-la-nocion-de-reencuentro
+- el-ensayo-o-la-escritura-de-la-vanidad
+- en-el-interregno
+- ensayo-filosofico-escritura-desamparada
+- variaciones-del-centauro
+- la-banda-sonora-de-una-generacion
+- bret-easton-ellis-el-monstruo-de-hollywood
+- apocalipsis-cine-2012-y-otros-fines-de-mundo-de-peter-szendy
+- contra-el-aspero-tiempo-presente-sobre-la-ruta-de-la-seda-de-rosabetty-munoz
+- pinocho-metamorfosis-de-una-madera
+- el-soldado-sovietico
+- kit-de-supervivencia-de-ninas-que-usaban-baby-g-amarillo-de-natasha-isabella-martinez
+- performance-y-politica-la-procesion-funebre-de-tierno-galvan
+- petronio-novelista
+- lux-de-rosalia-pop-con-tintes-barroco-luz-artificial-para-tiempos-de-crisis
+- reflexiones-sobre-diversidad-e-interculturalidad-en-la-escuela
+- alfredo-soto-guillen
+- fernanda-tlalolin
+- andrea-rivas
+- emma-vamari
+- descripcion-medica-del-dolor-ajeno
+- brunella-guedea
+- indira-diaz
+- marlon-pv
+- melinna-guerrero
+- olivia-oropeza
+- raul-benjamin-chavez-castillon
+- sebastian-arroy
+- sebastian-escobar-torres
+- coraima-mena
+- presentacion-mijail-lamas
+- galeria-rectangulo-de-plata-10
+- 4-poemas-2
+- y-en-caso-de-que-el-pasado-quiera-decirnos-algo-el-pasado-esta-en-peligro
+- margarita-alvarado-seguimos-confiando-en-la-fotografia-como-evidencia
+- toska
+- preservar-el-anarquismo-la-biblioteca-social-reconstruir-de-mexico
+- la-despedida-es-interminable-sobre-portugal-blues-de-ricardo-olave-montecinos
+- tres-cuentos-cortos
+- ilusion-optica-de-catalina-mena-de-miradas-dobles-reflejos-y-gemelitud
+- venusina-de-maria-rosa-casanova-cuerpo-deseo-y-memoria-de-la-fractura
+- el-canon-y-la-gnosis-de-harold-bloom
+- la-virgen-de-la-cantera-de-valparaiso
+- borges-testigo-del-infinito
+
+## Categorías múltiples descartadas
+
+- el-progreso-entre-catastrofe-y-utopia-3: se descartaron [], se dejó "ensayo"
+- donde-empieza-el-camino: se descartaron [], se dejó "ensayo"
+- clio-minerva-y-prometeo-que-historia-es-necesaria-para-los-movimientos-antisistemicos-actuales1-carlos-antonio-aguirre-rojas: se descartaron [], se dejó "ensayo"
+- pablo-aravena-el-pasado-hoy-es-consumido-en-la-medida-que-sea-entretenido-la-antorcha-magacin: se descartaron [pensamiento], se dejó "entrevista"
+- 7-poemas: se descartaron [poesia], se dejó "ensayo"
+- marcial-o-una-poetica-de-lo-erotico: se descartaron [], se dejó "ensayo"
+- galeria-rectangulo-de-plata: se descartaron [], se dejó "artes-visuales"
+- baudelaire-y-el-grabado: se descartaron [ensayo, literatura], se dejó "artes-visuales"
+- piel-y-palabra-memoria-de-un-proyecto-junto-a-makanaky-adn: se descartaron [sin-categoria], se dejó "antologia"
+- despues-de-las-doce-ya-se-puede-tomar: se descartaron [cronica], se dejó "antologia"
+- hasta-que-no-haya-nada-mas-que-decir: se descartaron [testimonio], se dejó "homenaje"
+- postfacio-en-intercepto-intercambio-interrumpido-a-limo-de-natalia-rojas: se descartaron [], se dejó "homenaje"
+
+## Categorías resueltas por tag (sin categoría real en WordPress)
+
+- quien-este-libre-de-plumas-que-tire-la-primera-botella-la-revuelta-de-stonewell-nueva-york-28-de-junio-de-1969: sin categoría real, resuelta por tag a "cronica"
+- la-exempla-de-sylvia-plath-alejandro-salas: sin categoría real, resuelta por tag a "ensayo"
+- de-las-paginas-de-la-antorcha-a-los-ultimos-dias-de-la-humanidad-karl-kraus-y-la-guerra-riccardo-morello: sin categoría real, resuelta por tag a "ensayo"
+- las-trampas-de-virgilio: sin categoría real, resuelta por tag a "ensayo"
+- valparaiso-y-cerro-cordillera-una-comunidad-desconocida-de-inicios-del-s-xx: sin categoría real, resuelta por tag a "cronica"
+- laguna: sin categoría real, resuelta por tag a "cuento"
+- 6-poemas: sin categoría real, resuelta por tag a "poesia"
+- medicion-trabajo-y-digitalizacion-prolegomenos-a-un-mundo-logistico: sin categoría real, resuelta por tag a "ensayo"
+- en-las-garras-de-baal: sin categoría real, resuelta por tag a "cronica"
+- cyril-tourneur-poeta-tragico: sin categoría real, resuelta por tag a "cuento"
+- 7-poemas-2: sin categoría real, resuelta por tag a "poesia"
+- entrevista-a-claudio-guerrero-valenzuela-como-hablar-de-las-victimas-oculares-del-estallido-social-sin-caer-en-el-cliche: sin categoría real, resuelta por tag a "poesia"
+- 3001: sin categoría real, resuelta por tag a "poesia"
+- klaus-kinski-con-bandurrias: sin categoría real, resuelta por tag a "poesia"
+- las-aves: sin categoría real, resuelta por tag a "cuento"
+- jose-pinera-y-la-instauracion-de-un-modelo-made-in-chile: sin categoría real, resuelta por tag a "ensayo"
+- https-wordpress-com-post-laantorchamagacin-com-3244: sin categoría real, resuelta por tag a "ensayo"
+- mariategui-y-valcarcel-rebelion-indigena-y-estetica: sin categoría real, resuelta por tag a "ensayo"
+- allende-y-el-carpintero-anarquista-de-valparaiso: sin categoría real, resuelta por tag a "cronica"
+- casas-de-luz-para-criaturas-pequenas: sin categoría real, resuelta por tag a "cuento"
+- dos-hermanas: sin categoría real, resuelta por tag a "cuento"
+- bandera-roja: sin categoría real, resuelta por tag a "cuento"
+- deporte: sin categoría real, resuelta por tag a "cuento"
+- bangutot: sin categoría real, resuelta por tag a "cuento"
+- un-paseo-circular: sin categoría real, resuelta por tag a "cuento"
+- el-mudo: sin categoría real, resuelta por tag a "cuento"
+- nunca-tuve-un-cuarto-propio: sin categoría real, resuelta por tag a "cuento"
+- introduccion: sin categoría real, resuelta por tag a "cuento"
+- la-caracas-suicida-de-ricardo-azuaje: sin categoría real, resuelta por tag a "ensayo"
+- 5-poemas: sin categoría real, resuelta por tag a "poesia"
+- el-feminismo-se-hizo-palabra-y-sentido-comun: sin categoría real, resuelta por tag a "ensayo"
+- empedocles-dios-supuesto: sin categoría real, resuelta por tag a "cuento"
+- el-horizonte-utopico-de-lo-venidero: sin categoría real, resuelta por tag a "ensayo"
+- galeria-rectangulo-de-plata-4: sin categoría real, resuelta por tag a "artes-visuales"
+- turismo-del-abandono-o-turistas-en-el-abandono: sin categoría real, resuelta por tag a "ensayo"
+- combustion-interna: sin categoría real, resuelta por tag a "cuento"
+- 6-poemas-de-morgue: sin categoría real, resuelta por tag a "poesia"
+- pasaje-cerrado: sin categoría real, resuelta por tag a "cuento"
+- sobre-tres-iconos-del-canto-porteno-un-rescate-de-la-musica-bohemia-deheidi-iareski-victor-rojas-farias-y-gabriel-gallardo: sin categoría real, resuelta por tag a "cronica"
+- ego-drama-dilemma: sin categoría real, resuelta por tag a "poesia"
+- estomago-vacio-de-jugos-lleno-una-revision-de-la-cueva-de-fernanda-meza: sin categoría real, resuelta por tag a "poesia"
+- recuerdos-del-porvenir: sin categoría real, resuelta por tag a "ensayo"
+- el-pasado-por-venir: sin categoría real, resuelta por tag a "ensayo"
+- el-ka-viene-conmigo-de-paula-lavanderos: sin categoría real, resuelta por tag a "artes-visuales"
+- bastian-desidel-escurra: sin categoría real, resuelta por tag a "poesia"
+- fernanda-meza: sin categoría real, resuelta por tag a "poesia"
+- gaspar-penaloza-avsolomovich: sin categoría real, resuelta por tag a "poesia"
+- guillermo-mondaca-fibla: sin categoría real, resuelta por tag a "poesia"
+- micaela-paredes-barraza: sin categoría real, resuelta por tag a "poesia"
+- silvana-gonzalez-vasquez: sin categoría real, resuelta por tag a "poesia"
+- vianka-ceverino-rusticcini: sin categoría real, resuelta por tag a "poesia"
+- victor-campos-donoso: sin categoría real, resuelta por tag a "poesia"
+- presentacion: sin categoría real, resuelta por tag a "poesia"
+- escribir: sin categoría real, resuelta por tag a "cuento"
+- el-factor-ecologico-en-la-critica-literaria: sin categoría real, resuelta por tag a "ensayo"
+- el-tiempo-del-trabajo: sin categoría real, resuelta por tag a "ensayo"
+- feliz-cumpleanos-vecino-artista: sin categoría real, resuelta por tag a "cuento"
+- septima-encantadora: sin categoría real, resuelta por tag a "cuento"
+- godard-y-los-escombros-de-la-historia: sin categoría real, resuelta por tag a "ensayo"
+- la-espera-es-mala-consejera: sin categoría real, resuelta por tag a "cronica"
+- too-much-munch: sin categoría real, resuelta por tag a "cronica"
+- parrillero-presentacion: sin categoría real, resuelta por tag a "cronica"
+- las-enfermedades-las-distancias: sin categoría real, resuelta por tag a "cronica"
+- los-reponedores-del-tottus: sin categoría real, resuelta por tag a "cronica"
+- hacia-atras: sin categoría real, resuelta por tag a "cronica"
+- en-la-espalda-del-puerto-cuelgan-ratas-negras: sin categoría real, resuelta por tag a "cronica"
+- el-patio-de-atras: sin categoría real, resuelta por tag a "cronica"
+- feliz-cumpleanos-sugar-daddy: sin categoría real, resuelta por tag a "cronica"
+- el-pan-y-su-fermento-una-performance: sin categoría real, resuelta por tag a "cronica"
+- allende-y-las-artes-visuales-un-relato-que-anida-en-el-mito: sin categoría real, resuelta por tag a "ensayo"
+- intimidad: sin categoría real, resuelta por tag a "cuento"
+- 5-poemas-2: sin categoría real, resuelta por tag a "poesia"
+- neocarnaval-revuelta-y-telepatia-social: sin categoría real, resuelta por tag a "artes-visuales"
+- otros-caminos-mas-alla-del-lar-una-mirada-a-la-poetica-teillieriana-en-dictadura: sin categoría real, resuelta por tag a "poesia"
+- el-bombero-del-mar: sin categoría real, resuelta por tag a "cronica"
+- trizaduras-refracciones-y-silencios-una-poetica-de-la-transparencia-en-objetos-de-vidrio-de-jaime-villanueva-donoso: sin categoría real, resuelta por tag a "poesia"
+- angel-cappelletti-y-el-caracazo-como-estallido-social: sin categoría real, resuelta por tag a "ensayo"
+- los-senores-burke-y-hare-asesinos: sin categoría real, resuelta por tag a "cuento"
+- la-proteccion-de-la-raza-chilena-historias-de-eugenesia-y-profilaxia-social: sin categoría real, resuelta por tag a "ensayo"
+- afrodescendientes-en-chile-y-argentina-breve-esbozo-de-su-pasado-y-presente: sin categoría real, resuelta por tag a "ensayo"
+- 4-poemas: sin categoría real, resuelta por tag a "poesia"
+- 7-poemas-3: sin categoría real, resuelta por tag a "poesia"
+- sostener-la-deriva-notas-sobre-el-movimiento-del-poema: sin categoría real, resuelta por tag a "antologia"
+- poesia-transactivismos-y-otros-cuentos-analisis-descarrilado-sobre-transpoesia-y-la-guerra-cultural-en-curso: sin categoría real, resuelta por tag a "antologia"
+- de-la-pasion-de-hacer-fragmentos: sin categoría real, resuelta por tag a "antologia"
+- los-perros-y-nicomedes-guzman: sin categoría real, resuelta por tag a "antologia"
+- el-impacto-indefinible-sentir-poesia-leer-poesia-escribir-poesia: sin categoría real, resuelta por tag a "antologia"
+- lo-que-el-ojo-no-ve-la-imaginacion-lo-atraviesa: sin categoría real, resuelta por tag a "antologia"
+- el-problema-kekule-cormac-mccarthy: sin categoría real, resuelta por tag a "ensayo"
+- valparaiso-ciudad-de-contradicciones: sin categoría real, resuelta por tag a "cronica"
+- 4-seres-monstruosos: sin categoría real, resuelta por tag a "cuento"
+- marcel-schwob-2: sin categoría real, resuelta por tag a "ensayo"
+- coagulos: sin categoría real, resuelta por tag a "cuento"
+- raices-ritos-y-huacas-un-camino-que-se-abre: sin categoría real, resuelta por tag a "cronica"
+- a-proposito-de-la-obra-de-arte-en-la-epoca-de-su-reproductividad-tres-momentos-del-disco: sin categoría real, resuelta por tag a "ensayo"
+- somos-un-phineas-gage-contemporaneo-apuntes-sobre-historia-conciencia-y-crisis-de-futuro: sin categoría real, resuelta por tag a "ensayo"
+- 10-epigramas-eroticos: sin categoría real, resuelta por tag a "poesia"
+- voces-de-mi-voz-de-jean-jacques-pierre-paul: sin categoría real, resuelta por tag a "poesia"
+- altazor-profeta-del-silencio: sin categoría real, resuelta por tag a "poesia"
+- nicanor-parra: sin categoría real, resuelta por tag a "poesia"
+- la-salsa-en-cali-una-tradicion: sin categoría real, resuelta por tag a "ensayo"
+- grita-la-lluvia-cantan-las-flores-presentacion-del-libro-objeto-marta-de-mariana-zegers-izquierdo: sin categoría real, resuelta por tag a "poesia"
+- que-es-el-pensamiento-politico-radical-algunas-consideraciones-ejecutivas: sin categoría real, resuelta por tag a "ensayo"
+- presentacion-de-que-hay-detras-de-la-ventana-letra-imagen-musica-arte-x-roberto-bolano: sin categoría real, resuelta por tag a "presentacion"
+- horror-lumpen-y-carnavalizacion-oscura-en-valpore-de-cristobal-gaete: sin categoría real, resuelta por tag a "ensayo"
+- socavon-zombi: sin categoría real, resuelta por tag a "cronica"
+- el-asco-y-el-grito-de-sergio-rojas: sin categoría real, resuelta por tag a "ensayo"
+- galeria-rectangulo-de-plata-7: sin categoría real, resuelta por tag a "artes-visuales"
+- fotografo-javier-godoy-lo-que-me-gusta-del-futbol-es-el-fenomeno-ritual-y-social-al-que-esta-asociado: sin categoría real, resuelta por tag a "entrevista"
+- los-aeroplanos-de-brescia: sin categoría real, resuelta por tag a "ensayo"
+- un-viaje-a-la-selva-peruana: sin categoría real, resuelta por tag a "cronica"
+- 5-poemas-3: sin categoría real, resuelta por tag a "poesia"
+- los-monstruos-del-nuevo-mundo-una-vision-europea: sin categoría real, resuelta por tag a "ensayo"
+- victor-mazzi-trujillo-y-la-manifestacion-de-una-poesia-proletaria-latinoamericana: sin categoría real, resuelta por tag a "poesia"
+- 5-poemas-4: sin categoría real, resuelta por tag a "poesia"
+- la-quebrada: sin categoría real, resuelta por tag a "cuento"
+- un-cine-que-baila-1-el-desierto-de-nacer-khemir: sin categoría real, resuelta por tag a "ensayo"
+- la-salida-insurreccional-a-la-dictadura-y-el-surgimiento-del-fpmr-autonomo: sin categoría real, resuelta por tag a "ensayo"
+- pancho-sazo-no-tenemos-vuelta-estamos-condenados-a-ser-seres-humanos: sin categoría real, resuelta por tag a "entrevista"
+- recabarren-el-despertar-de-los-trabajadores-y-la-casa-del-pueblo: sin categoría real, resuelta por tag a "ensayo"
+- paolo-bortolameolli-el-maestro-que-no-para-nunca: sin categoría real, resuelta por tag a "cronica"
+- la-hegemonia-norteamericana-en-america-latina-i-desde-el-plan-marshall-a-la-intervencion-en-guatemala-1945-1952: sin categoría real, resuelta por tag a "ensayo"
+- a-proposito-de-proteccion-de-la-raza-historias-de-eugenesia-y-profilaxia-social-en-chile-de-guido-flores: sin categoría real, resuelta por tag a "presentacion"
+- la-residencia-de-paula-lavanderos-en-la-usera-de-madrid: sin categoría real, resuelta por tag a "artes-visuales"
+- bastonero-de-aldea: sin categoría real, resuelta por tag a "cuento"
+- deseo-rescate-desgaste-un-ejercicio-oulipiano: sin categoría real, resuelta por tag a "ensayo"
+- pase-por-copiapo: sin categoría real, resuelta por tag a "cronica"
+- 6-poemas-2: sin categoría real, resuelta por tag a "poesia"
+- la-hegemonia-norteamericana-en-america-latina-ii-la-conciencia-norteamericana-la-revolucion-de-fidel-y-la-alianza-para-el-progreso-1958-1965: sin categoría real, resuelta por tag a "ensayo"
+- un-cine-que-baila-2-la-petite-vendeuse-du-soleil-de-mambety-diop: sin categoría real, resuelta por tag a "ensayo"
+- una-roca-se-deshilacha-en-el-calor-del-utero-o-algo-asi-presentacion-de-retablo-de-natalia-rojas: sin categoría real, resuelta por tag a "poesia"
+- el-fin-del-acontecimiento-otra-pregunta-por-el-futuro-de-la-historia: sin categoría real, resuelta por tag a "ensayo"
+- ricardo-azuaje-a-cuatro-tiempos-y-la-narrativa-venezolana-de-los-90: sin categoría real, resuelta por tag a "presentacion"
+- la-hegemonia-norteamericana-en-america-latina-iii-doctrina-de-seguridad-nacional-su-aplicacion-en-chile-la-insercion-del-neoliberalismo-y-el-consenso-de-washington-1964-1990: sin categoría real, resuelta por tag a "ensayo"
+- tercer-mundo-y-sur-global-algunas-consideraciones-conceptuales: sin categoría real, resuelta por tag a "ensayo"
+- la-memoria-de-los-libros: sin categoría real, resuelta por tag a "ensayo"
+- mallarme-y-los-libros: sin categoría real, resuelta por tag a "poesia"
+- mas-noticias-desde-los-poemas-poeticas-investigativas-documentales-sociales-en-el-decimo-aniversario-de-la-publicacion-de-from-reznikoff-to-public-enemyi: sin categoría real, resuelta por tag a "poesia"
+- carver-o-la-molestia-de-lo-cotidiano: sin categoría real, resuelta por tag a "cuento"
+- 5-poemas-5: sin categoría real, resuelta por tag a "poesia"
+- 4-poemas-3: sin categoría real, resuelta por tag a "poesia"
+- el-archivo-historiador-y-su-soporte: sin categoría real, resuelta por tag a "ensayo"
+- klavdij-sluban-la-experiencia-humana-por-medio-de-la-luz: sin categoría real, resuelta por tag a "artes-visuales"
+- 5-poemas-de-la-trilla: sin categoría real, resuelta por tag a "poesia"
+- poemas-de-luz-que-ya-no-era-antologia-poetica: sin categoría real, resuelta por tag a "poesia"
+- freud-y-la-religion-de-moises: sin categoría real, resuelta por tag a "ensayo"
+- tinturas-madres: sin categoría real, resuelta por tag a "poesia"
+- tejer-redes-de-lo-invisible-el-surgimiento-del-campo-cultural-en-chile-i: sin categoría real, resuelta por tag a "ensayo"
+- desordenes: sin categoría real, resuelta por tag a "cuento"
+- la-cultura-juvenil-en-chile-durante-los-anos-60-y-70: sin categoría real, resuelta por tag a "ensayo"
+- el-espejismo-industrial-del-cine-latinoamericano-1936-1950: sin categoría real, resuelta por tag a "ensayo"
+- bolano-o-la-capacidad-humana-de-danar-un-sondeo-por-su-ficcion-breve: sin categoría real, resuelta por tag a "cuento"
+- el-olvido-de-los-conventillos-la-mirada-elitista-del-valparaiso-patrimonial: sin categoría real, resuelta por tag a "ensayo"
+- viaje-a-italia: sin categoría real, resuelta por tag a "cuento"
+- 5-poemas-6: sin categoría real, resuelta por tag a "poesia"
+- mas-noticias-desde-los-poemas-poeticas-investigativas-documentales-sociales-en-el-decimo-aniversario-de-la-publicacion-de-from-reznikoff-to-public-enemy-iii: sin categoría real, resuelta por tag a "poesia"
+- 8-poemas: sin categoría real, resuelta por tag a "poesia"
+- rodrigo-arroyo-castro-inubicalistas-privilegia-lo-que-no-esta-necesariamente-en-el-lugar-del-canon-literario-o-las-ventas: sin categoría real, resuelta por tag a "entrevista"
+- bano: sin categoría real, resuelta por tag a "cuento"
+- cristina-galvez-martos: sin categoría real, resuelta por tag a "poesia"
+- gabriela-mesones-rojo: sin categoría real, resuelta por tag a "poesia"
+- daniel-camacho-francabandiera: sin categoría real, resuelta por tag a "poesia"
+- yhonais-lemus: sin categoría real, resuelta por tag a "poesia"
+- pamela-rahn-sanchez: sin categoría real, resuelta por tag a "poesia"
+- andres-royer: sin categoría real, resuelta por tag a "poesia"
+- camion-de-carga: sin categoría real, resuelta por tag a "cuento"
+- bandera-negra-al-choque: sin categoría real, resuelta por tag a "ensayo"
+- causa-de-muerte-sobre-el-hombre-de-juan-rulfo: sin categoría real, resuelta por tag a "cuento"
+- folie-a-deux-presentacion-de-vida-y-muerte-de-satan-el-fuego-de-artaud: sin categoría real, resuelta por tag a "poesia"
+- animalismo-subsole-los-invalidos-de-baldomero-lillo: sin categoría real, resuelta por tag a "cuento"
+- docupoesia-y-deseo-de-archivo: sin categoría real, resuelta por tag a "poesia"
+- quimantu-ediciones-para-el-poder-popular: sin categoría real, resuelta por tag a "ensayo"
+- 6-poemas-3: sin categoría real, resuelta por tag a "poesia"
+- cristobal-gaete-mi-lugar-en-las-letras-nacionales-es-absolutamente-marginal: sin categoría real, resuelta por tag a "entrevista"
+- sobre-locaciones-y-palos-a-proposito-de-un-informe-sobre-el-modo-composicional-de-textos-de-gustavo-boldrini: sin categoría real, resuelta por tag a "ensayo"
+- cordilleras-rutas-luces-en-la-distancia-presentacion-de-no-hay-caso-con-todo-esto-de-cristian-cruz: sin categoría real, resuelta por tag a "poesia"
+- recipiente: sin categoría real, resuelta por tag a "cuento"
+- un-dolor-que-permita-volver-a-sonar-a-proposito-de-dolor-que-respeta-el-sueno-de-g-galo: sin categoría real, resuelta por tag a "poesia"
+- denisse-valdenegro-duran-no-veo-problemas-con-que-se-crucen-ciertos-limites-si-el-chiste-esta-bien-hecho-si-vale-la-pena: sin categoría real, resuelta por tag a "entrevista"
+- una-situacion-provisoria-sobre-la-contracorriente-los-dias-de-allende-de-guillermo-atias: sin categoría real, resuelta por tag a "presentacion"
+- presentacion-2: sin categoría real, resuelta por tag a "presentacion"
+- cronicas-de-zhongshan-fragmentos: sin categoría real, resuelta por tag a "cronica"
+- sara: sin categoría real, resuelta por tag a "cuento"
+- tiene-vigencia-aun-el-pensamiento-de-alain-touraine: sin categoría real, resuelta por tag a "ensayo"
+- 5-poemas-de-tierra-mirada: sin categoría real, resuelta por tag a "poesia"
+- entregarse-por-fin: sin categoría real, resuelta por tag a "ensayo"
+- exagium-pesar-el-mundo-con-palabras: sin categoría real, resuelta por tag a "ensayo"
+- el-ensayo-como-forma-tragica-mascara-y-mentira: sin categoría real, resuelta por tag a "ensayo"
+- volver-a-sorprenderse-una-aproximacion-al-ensayo-desde-la-nocion-de-reencuentro: sin categoría real, resuelta por tag a "ensayo"
+- el-ensayo-o-la-escritura-de-la-vanidad: sin categoría real, resuelta por tag a "ensayo"
+- en-el-interregno: sin categoría real, resuelta por tag a "ensayo"
+- variaciones-del-centauro: sin categoría real, resuelta por tag a "ensayo"
+- apocalipsis-cine-2012-y-otros-fines-de-mundo-de-peter-szendy: sin categoría real, resuelta por tag a "presentacion"
+- pinocho-metamorfosis-de-una-madera: sin categoría real, resuelta por tag a "ensayo"
+- el-soldado-sovietico: sin categoría real, resuelta por tag a "poesia"
+- petronio-novelista: sin categoría real, resuelta por tag a "cuento"
+- lux-de-rosalia-pop-con-tintes-barroco-luz-artificial-para-tiempos-de-crisis: sin categoría real, resuelta por tag a "ensayo"
+- alfredo-soto-guillen: sin categoría real, resuelta por tag a "poesia"
+- fernanda-tlalolin: sin categoría real, resuelta por tag a "poesia"
+- andrea-rivas: sin categoría real, resuelta por tag a "poesia"
+- emma-vamari: sin categoría real, resuelta por tag a "poesia"
+- descripcion-medica-del-dolor-ajeno: sin categoría real, resuelta por tag a "poesia"
+- brunella-guedea: sin categoría real, resuelta por tag a "poesia"
+- indira-diaz: sin categoría real, resuelta por tag a "poesia"
+- marlon-pv: sin categoría real, resuelta por tag a "poesia"
+- melinna-guerrero: sin categoría real, resuelta por tag a "poesia"
+- olivia-oropeza: sin categoría real, resuelta por tag a "poesia"
+- raul-benjamin-chavez-castillon: sin categoría real, resuelta por tag a "poesia"
+- sebastian-arroy: sin categoría real, resuelta por tag a "poesia"
+- sebastian-escobar-torres: sin categoría real, resuelta por tag a "poesia"
+- coraima-mena: sin categoría real, resuelta por tag a "poesia"
+- presentacion-mijail-lamas: sin categoría real, resuelta por tag a "poesia"
+- galeria-rectangulo-de-plata-10: sin categoría real, resuelta por tag a "artes-visuales"
+- 4-poemas-2: sin categoría real, resuelta por tag a "poesia"
+- margarita-alvarado-seguimos-confiando-en-la-fotografia-como-evidencia: sin categoría real, resuelta por tag a "entrevista"
+- toska: sin categoría real, resuelta por tag a "ensayo"
+- preservar-el-anarquismo-la-biblioteca-social-reconstruir-de-mexico: sin categoría real, resuelta por tag a "entrevista"
+- ilusion-optica-de-catalina-mena-de-miradas-dobles-reflejos-y-gemelitud: sin categoría real, resuelta por tag a "poesia"
+- el-canon-y-la-gnosis-de-harold-bloom: sin categoría real, resuelta por tag a "ensayo"
+- la-virgen-de-la-cantera-de-valparaiso: sin categoría real, resuelta por tag a "cronica"
+- borges-testigo-del-infinito: sin categoría real, resuelta por tag a "cuento"
+
+## Posts omitidos
+
+(ninguno)
+
+## Archivos ya existentes (no se tocaron, usar --force para sobreescribir)
+
+(ninguno)
+
+## Imágenes
+
+Ver `images-manifest.csv` en esta misma carpeta — una fila por cada imagen que el
+contenido migrado espera encontrar en `public/`. Ninguna imagen se descargó
+automáticamente (a pedido explícito): hay que copiar cada archivo real a la
+`ruta_local` indicada, usando `url_original` para saber cuál es.

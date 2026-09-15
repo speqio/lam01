@@ -8,6 +8,10 @@ dist/
 .wrangler/
 tmp-dry-run/
 
+# Secrets — never commit these
+*.pem
+*.private-key.pem
+
 # Environment files
 .env
 .env.*

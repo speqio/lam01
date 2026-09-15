@@ -2,7 +2,8 @@ import { config, fields, collection } from '@keystatic/core';
 
 export default config({
   storage: {
-    kind: 'local',
+    kind: 'github',
+    repo: { owner: 'speqio', name: 'lam01' },
   },
   collections: {
     autores: collection({

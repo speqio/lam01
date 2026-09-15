@@ -33,7 +33,10 @@ entradasConRelaciones.sort(
 const todasLasCategorias = await getCollection('categorias');
 ---
 
-<BaseLayout title={`${categoria.data.nombre} — Blog Literario`}>
+<BaseLayout
+  title={categoria.data.metaTitulo || `${categoria.data.nombre} — Blog Literario`}
+  description={categoria.data.metaDescripcion}
+>
   <header class="mb-8 text-center">
     <p class="font-sans text-sm uppercase tracking-widest text-accent">Categoría</p>
     <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">{categoria.data.nombre}</h1>

@@ -7,6 +7,8 @@ const autores = defineCollection({
     nombre: z.string(),
     foto: z.string().optional(),
     biografia: z.string(),
+    metaTitulo: z.string().optional(),
+    metaDescripcion: z.string().optional(),
   }),
 });
 
@@ -14,6 +16,8 @@ const categorias = defineCollection({
   loader: glob({ pattern: '**/*.json', base: './src/content/categorias' }),
   schema: z.object({
     nombre: z.string(),
+    metaTitulo: z.string().optional(),
+    metaDescripcion: z.string().optional(),
   }),
 });
 
@@ -24,6 +28,8 @@ const numeros = defineCollection({
     fecha: z.coerce.date(),
     portada: z.string(),
     descripcion: z.string().optional(),
+    metaTitulo: z.string().optional(),
+    metaDescripcion: z.string().optional(),
   }),
 });
 
@@ -38,6 +44,10 @@ const entradas = defineCollection({
     portada: z.string().optional(),
     galeria: z.array(z.string()).optional(),
     extracto: z.string(),
+    metaTitulo: z.string().optional(),
+    metaDescripcion: z.string().optional(),
+    biografiaAutor: z.string().optional(),
+    bibliografia: z.string().optional(),
   }),
 });
 

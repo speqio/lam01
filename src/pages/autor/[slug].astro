@@ -30,7 +30,10 @@ entradasConRelaciones.sort(
 );
 ---
 
-<BaseLayout title={`${autor.data.nombre} — Blog Literario`} description={autor.data.biografia}>
+<BaseLayout
+  title={autor.data.metaTitulo || `${autor.data.nombre} — Blog Literario`}
+  description={autor.data.metaDescripcion || autor.data.biografia}
+>
   <header class="mx-auto mb-12 flex max-w-2xl flex-col items-center text-center">
     {
       autor.data.foto && (

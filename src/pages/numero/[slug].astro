@@ -41,7 +41,10 @@ const { titulo: tituloPagina, subtitulo: subtituloPagina } = splitNumeroTitle(nu
 const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : tituloPagina;
 ---
 
-<BaseLayout title={`${tituloCompleto} — Blog Literario`} description={numero.data.descripcion}>
+<BaseLayout
+  title={numero.data.metaTitulo || `${tituloCompleto} — Blog Literario`}
+  description={numero.data.metaDescripcion || numero.data.descripcion}
+>
   <NumeroSequence
     titulo={numero.data.titulo}
     descripcion={numero.data.descripcion}

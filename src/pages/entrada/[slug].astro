@@ -26,7 +26,10 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
 });
 ---
 
-<PostLayout title={tituloEntrada} description={entrada.data.extracto}>
+<PostLayout
+  title={entrada.data.metaTitulo || tituloEntrada}
+  description={entrada.data.metaDescripcion || entrada.data.extracto}
+>
   <header class="not-prose mb-8 text-center">
     {
       categoria && (
@@ -88,6 +91,30 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
             </div>
           ))}
         </div>
+      </div>
+    )
+  }
+
+  {
+    entrada.data.biografiaAutor && (
+      <div class="not-prose mt-12 border-t border-ink/15 pt-8">
+        <h2 class="mb-3 font-headline text-2xl text-ink">
+          {autor ? autor.data.nombre : 'Sobre el autor'}
+        </h2>
+        <p class="font-serif text-sm italic leading-relaxed text-ink-muted">
+          {entrada.data.biografiaAutor}
+        </p>
+      </div>
+    )
+  }
+
+  {
+    entrada.data.bibliografia && (
+      <div class="not-prose mt-12 border-t border-ink/15 pt-8">
+        <h2 class="mb-3 font-headline text-2xl text-ink">Bibliografía</h2>
+        <p class="whitespace-pre-line font-serif text-sm leading-relaxed text-ink-muted">
+          {entrada.data.bibliografia}
+        </p>
       </div>
     )
   }

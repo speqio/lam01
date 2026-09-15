@@ -22,6 +22,15 @@ export default config({
           label: 'Biografía',
           multiline: true,
         }),
+        metaTitulo: fields.text({
+          label: 'Meta título (SEO)',
+          description: 'Título para buscadores/redes. Si se deja vacío, se usa el nombre.',
+        }),
+        metaDescripcion: fields.text({
+          label: 'Meta descripción (SEO)',
+          description: 'Resumen breve para buscadores/redes (ideal hasta ~160 caracteres).',
+          multiline: true,
+        }),
       },
     }),
     categorias: collection({
@@ -31,6 +40,15 @@ export default config({
       format: { data: 'json' },
       schema: {
         nombre: fields.slug({ name: { label: 'Nombre' } }),
+        metaTitulo: fields.text({
+          label: 'Meta título (SEO)',
+          description: 'Título para buscadores/redes. Si se deja vacío, se usa el nombre.',
+        }),
+        metaDescripcion: fields.text({
+          label: 'Meta descripción (SEO)',
+          description: 'Resumen breve para buscadores/redes (ideal hasta ~160 caracteres).',
+          multiline: true,
+        }),
       },
     }),
     numeros: collection({
@@ -54,6 +72,15 @@ export default config({
         }),
         descripcion: fields.text({
           label: 'Descripción',
+          multiline: true,
+        }),
+        metaTitulo: fields.text({
+          label: 'Meta título (SEO)',
+          description: 'Título para buscadores/redes. Si se deja vacío, se usa el título.',
+        }),
+        metaDescripcion: fields.text({
+          label: 'Meta descripción (SEO)',
+          description: 'Resumen breve para buscadores/redes (ideal hasta ~160 caracteres).',
           multiline: true,
         }),
       },
@@ -106,6 +133,15 @@ export default config({
           label: 'Extracto',
           multiline: true,
         }),
+        metaTitulo: fields.text({
+          label: 'Meta título (SEO)',
+          description: 'Título para buscadores/redes. Si se deja vacío, se usa el título.',
+        }),
+        metaDescripcion: fields.text({
+          label: 'Meta descripción (SEO)',
+          description: 'Resumen breve para buscadores/redes (ideal hasta ~160 caracteres). Si se deja vacío, se usa el extracto.',
+          multiline: true,
+        }),
         contenido: fields.document({
           label: 'Contenido',
           formatting: true,
@@ -115,6 +151,16 @@ export default config({
             directory: 'public/images/entradas',
             publicPath: '/images/entradas/',
           },
+        }),
+        biografiaAutor: fields.text({
+          label: 'Biografía del autor (para esta entrada)',
+          description: 'Se muestra al final de la entrada. Independiente de la biografía general del autor, por si esta pieza necesita una atribución distinta (ej. autoría real citada en el texto en vez de "Redacción").',
+          multiline: true,
+        }),
+        bibliografia: fields.text({
+          label: 'Bibliografía',
+          description: 'Fuentes/referencias citadas, se muestran al final de la entrada.',
+          multiline: true,
         }),
       },
     }),

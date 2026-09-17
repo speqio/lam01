@@ -193,13 +193,12 @@ const { items } = Astro.props;
   const WHEEL_SENSITIVITY = 0.0035;
   const DRAG_SENSITIVITY = 0.005;
 
-  // Misma distancia circular más corta que CategoriasCards.astro/ArchivoHelix.astro —
-  // permite que el carrusel dé la vuelta completa (de la última entrada se pasa a la
-  // primera sin tope).
-  function shortestDistance(index: number, position: number, total: number) {
-    let dist = (((index - position) % total) + total) % total;
-    if (dist > total / 2) dist -= total;
-    return dist;
+  // Sin wraparound a propósito: de la última entrada no se pasa a la primera ni al
+  // revés — `pos.value` queda acotado a [0, total-1] en cada handler de abajo, así que
+  // la distancia es simplemente lineal (no hace falta el módulo circular que sí usan
+  // otros carruseles del sitio, como CategoriasCards.astro, que sí dan la vuelta).
+  function distance(index: number, position: number) {
+    return index - position;
   }
 
   function initEntradasSplit() {
@@ -230,7 +229,7 @@ const { items } = Astro.props;
       const slot = stageHeight();
 
       const place = (el: HTMLElement, i: number) => {
-        const dist = shortestDistance(i, pos.value, total);
+        const dist = distance(i, pos.value);
         const absDist = Math.abs(dist);
         const visible = absDist < 1.5;
         gsap.set(el, {
@@ -248,7 +247,7 @@ const { items } = Astro.props;
       imageItems.forEach((el, i) => place(el, i));
 
       if (thumb && track && countEl) {
-        const activeIndex = ((Math.round(pos.value) % total) + total) % total;
+        const activeIndex = gsap.utils.clamp(0, total - 1, Math.round(pos.value));
         const ratio = activeIndex / total;
         const trackWidth = track.clientWidth;
         const thumbWidth = trackWidth / total;
@@ -271,10 +270,12 @@ const { items } = Astro.props;
       preventDefault: true,
       onChangeY: (self) => {
         gsap.killTweensOf(pos);
-        pos.value += self.deltaY * WHEEL_SENSITIVITY;
+        // Acotado a [0, total-1]: de la última entrada no se sigue de largo hacia la
+        // primera ni al revés — el valor simplemente deja de moverse en el límite.
+        pos.value = gsap.utils.clamp(0, total - 1, pos.value + self.deltaY * WHEEL_SENSITIVITY);
         render();
       },
-      onStop: () => snapTo(Math.round(pos.value)),
+      onStop: () => snapTo(gsap.utils.clamp(0, total - 1, Math.round(pos.value))),
     });
 
     Observer.create({
@@ -283,10 +284,10 @@ const { items } = Astro.props;
       preventDefault: true,
       onPress: () => gsap.killTweensOf(pos),
       onChange: (self) => {
-        pos.value += self.deltaY * DRAG_SENSITIVITY;
+        pos.value = gsap.utils.clamp(0, total - 1, pos.value + self.deltaY * DRAG_SENSITIVITY);
         render();
       },
-      onRelease: () => snapTo(Math.round(pos.value)),
+      onRelease: () => snapTo(gsap.utils.clamp(0, total - 1, Math.round(pos.value))),
     });
   }
 

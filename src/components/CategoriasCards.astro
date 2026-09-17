@@ -267,7 +267,6 @@ const { categorias } = Astro.props;
   // laterales se noten claramente giradas, no apenas asomando.
   const ANGLE_STEP_MOBILE = 16;
   const ANGLE_STEP_DESKTOP = 18;
-  const WHEEL_SENSITIVITY = 0.012;
   const DRAG_SENSITIVITY = 0.014;
 
   // Más allá de esta distancia (en posiciones) del centro, la card se oculta del
@@ -276,10 +275,11 @@ const { categorias } = Astro.props;
   // rueda/drag/dial, solo que el resto queda fuera de vista hasta que le toca entrar).
   const FAR_OFF_DISTANCE = 1.5;
 
-  function shortestDistance(index: number, position: number, total: number) {
-    let dist = (((index - position) % total) + total) % total;
-    if (dist > total / 2) dist -= total;
-    return dist;
+  // Sin wraparound a propósito: de la última categoría no se pasa a la primera ni al
+  // revés — `pos.value` queda acotado a [0, total-1] en cada handler de abajo, así que
+  // la distancia es simplemente lineal (no un módulo circular).
+  function distance(index: number, position: number) {
+    return index - position;
   }
 
   function initCategoriasWheel() {
@@ -309,7 +309,7 @@ const { categorias } = Astro.props;
 
     function render() {
       cards.forEach((card, i) => {
-        const dist = shortestDistance(i, pos.value, total);
+        const dist = distance(i, pos.value);
         const absDist = Math.abs(dist);
         const isActive = absDist < 0.5;
         // Fundido suave entre "totalmente visible" (a 1 posición del centro) y
@@ -329,7 +329,7 @@ const { categorias } = Astro.props;
         });
       });
 
-      const activeIndex = ((Math.round(pos.value) % total) + total) % total;
+      const activeIndex = gsap.utils.clamp(0, total - 1, Math.round(pos.value));
       if (titleEl && activeIndex !== lastActiveIndex) {
         lastActiveIndex = activeIndex;
         titleEl.textContent = cards[activeIndex].dataset.nombre ?? '';
@@ -364,13 +364,13 @@ const { categorias } = Astro.props;
       if (!dialTrackEl) return null;
       const rect = dialTrackEl.getBoundingClientRect();
       const ratio = gsap.utils.clamp(0, 1, (clientX - rect.left) / rect.width);
-      return ratio * total;
+      return gsap.utils.clamp(0, total - 1, ratio * total);
     }
 
     function endDialDrag() {
       if (!dialDragging) return;
       dialDragging = false;
-      snapTo(Math.round(pos.value));
+      snapTo(gsap.utils.clamp(0, total - 1, Math.round(pos.value)));
     }
 
     dialRow?.addEventListener('pointerdown', (e) => {
@@ -394,28 +394,67 @@ const { categorias } = Astro.props;
     dialRow?.addEventListener('pointerup', endDialDrag);
     dialRow?.addEventListener('pointercancel', endDialDrag);
 
+    // "Lockeo" categoría a categoría: a diferencia de otros carruseles del sitio
+    // (que arrastran 1:1 y pueden recorrer varios ítems en un solo gesto), acá cada
+    // gesto de rueda o de arrastre avanza como máximo UNA posición y queda pineada
+    // ahí hasta el próximo gesto — evita que un scroll/drag grande "se pase" de
+    // varias categorías de un salto (la fuente de los bugs de movimiento/interacción
+    // que se pedía evitar).
+    let wheelLocked = false;
+    let wheelLockTimeout: ReturnType<typeof setTimeout> | undefined;
+
+    function stepBy(dir: number) {
+      const from = gsap.utils.clamp(0, total - 1, Math.round(pos.value));
+      const target = gsap.utils.clamp(0, total - 1, from + dir);
+      if (target === from) return; // ya en el límite: no hay nada que animar
+      wheelLocked = true;
+      clearTimeout(wheelLockTimeout);
+      snapTo(target);
+      wheelLockTimeout = setTimeout(() => {
+        wheelLocked = false;
+      }, 600);
+    }
+
     Observer.create({
       target: stage,
       type: 'wheel',
       preventDefault: true,
       onChangeY: (self) => {
-        gsap.killTweensOf(pos);
-        pos.value += self.deltaY * WHEEL_SENSITIVITY;
-        render();
+        if (wheelLocked) return;
+        stepBy(self.deltaY > 0 ? 1 : -1);
       },
-      onStop: () => snapTo(Math.round(pos.value)),
     });
+
+    let dragStartIndex = 0;
 
     Observer.create({
       target: stage,
       type: 'touch,pointer',
       preventDefault: true,
-      onPress: () => gsap.killTweensOf(pos),
+      onPress: () => {
+        gsap.killTweensOf(pos);
+        dragStartIndex = gsap.utils.clamp(0, total - 1, Math.round(pos.value));
+      },
       onChange: (self) => {
-        pos.value -= self.deltaX * DRAG_SENSITIVITY;
+        // Vista previa continua mientras se sostiene el gesto, pero sin pasar nunca
+        // de la categoría siguiente/anterior a la de inicio — el resto del arrastre
+        // más allá de eso no mueve nada más.
+        const preview = dragStartIndex - (self.x - self.startX) * DRAG_SENSITIVITY;
+        pos.value = gsap.utils.clamp(
+          Math.max(0, dragStartIndex - 1),
+          Math.min(total - 1, dragStartIndex + 1),
+          preview
+        );
         render();
       },
-      onRelease: () => snapTo(Math.round(pos.value)),
+      onRelease: () => {
+        const ADVANCE_THRESHOLD = 0.35; // fracción de un paso para confirmar el avance
+        const delta = pos.value - dragStartIndex;
+        let target = dragStartIndex;
+        if (delta > ADVANCE_THRESHOLD) target = dragStartIndex + 1;
+        else if (delta < -ADVANCE_THRESHOLD) target = dragStartIndex - 1;
+        snapTo(gsap.utils.clamp(0, total - 1, target));
+      },
     });
   }
 

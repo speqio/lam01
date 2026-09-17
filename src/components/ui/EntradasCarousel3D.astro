@@ -1,7 +1,7 @@
 ---
 import { cardBadge } from '../../lib/cardStyles';
 import { normalizeTitleText } from '../../lib/text';
-import { dialWrap, dialCount, dialTrack, dialThumb } from '../../lib/dialNav';
+import { dialCount } from '../../lib/dialNav';
 
 /**
  * "Últimas entradas" en desktop: carrusel de dos columnas sincronizadas — a la
@@ -69,12 +69,12 @@ const { items } = Astro.props;
 
       {
         items.length > 1 && (
-          <div class={`entradas-split-dial ${dialWrap}`}>
+          <div class="entradas-split-dial-vertical">
             <span class={dialCount} data-dial-count>
               {`01 / ${String(items.length).padStart(2, '0')}`}
             </span>
-            <div class={dialTrack}>
-              <div class={dialThumb} data-dial-thumb />
+            <div class="entradas-split-dial-track">
+              <div class="entradas-split-dial-thumb" data-dial-thumb />
             </div>
           </div>
         )
@@ -86,14 +86,15 @@ const { items } = Astro.props;
 <style>
   .entradas-split-outer {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    align-items: stretch;
     gap: 1.5rem;
   }
 
   .entradas-split-stage {
     position: relative;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     height: 26rem;
     overflow: hidden;
     display: grid;
@@ -160,8 +161,34 @@ const { items } = Astro.props;
     background: rgb(var(--color-surface));
   }
 
-  .entradas-split-dial {
-    width: min(70%, 16rem);
+  /* Dial vertical (en vez del horizontal de dialNav.ts): el carrusel se mueve
+     arriba/abajo, así que una barra que también sube y baja hace mucho más obvio qué
+     gesto lo controla que una barra horizontal moviéndose para un movimiento
+     vertical. */
+  .entradas-split-dial-vertical {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding-block: 0.5rem;
+  }
+
+  .entradas-split-dial-track {
+    position: relative;
+    width: 3px;
+    flex: 1;
+    overflow: hidden;
+    border-radius: 9999px;
+    background: rgb(var(--color-ink) / 0.15);
+  }
+
+  .entradas-split-dial-thumb {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    border-radius: 9999px;
+    background: rgb(var(--color-accent));
   }
 
   @media (min-width: 1024px) {
@@ -219,7 +246,7 @@ const { items } = Astro.props;
     const countEl = outer?.querySelector<HTMLElement>('[data-dial-count]') ?? null;
     const track = thumb?.parentElement ?? null;
     if (thumb && track) {
-      thumb.style.width = `${100 / total}%`;
+      thumb.style.height = `${100 / total}%`;
     }
 
     const pos = { value: 0 };
@@ -249,9 +276,9 @@ const { items } = Astro.props;
       if (thumb && track && countEl) {
         const activeIndex = gsap.utils.clamp(0, total - 1, Math.round(pos.value));
         const ratio = activeIndex / total;
-        const trackWidth = track.clientWidth;
-        const thumbWidth = trackWidth / total;
-        gsap.to(thumb, { x: ratio * (trackWidth - thumbWidth), duration: 0.2, ease: 'power2.out', overwrite: true });
+        const trackHeight = track.clientHeight;
+        const thumbHeight = trackHeight / total;
+        gsap.to(thumb, { y: ratio * (trackHeight - thumbHeight), duration: 0.2, ease: 'power2.out', overwrite: true });
         countEl.textContent = `${String(activeIndex + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
       }
     }

@@ -24,6 +24,14 @@ gsap.registerPlugin(ScrollTrigger);
  * su propio ScrollTrigger — si el navegador ya la hidrató estando visible, dispara de
  * inmediato, mismo comportamiento que tenía con framer-motion bajo la misma hidratación
  * diferida.
+ *
+ * El estado inicial oculto (opacity 0, y +24px) lo pone CSS (clase "entry-card-reveal"
+ * acá abajo + regla en global.css — no en cardStyles.ts, que también usa numeros.astro
+ * como markup estático sin este script), NO este efecto: con `client:visible`, React
+ * puede tardar en hidratar una card que ya se pintó visible en el HTML servido — si el
+ * `gsap.set()` inicial corriera acá, se vería la card completa un instante y recién
+ * ahí saltar a oculta antes de animarse de vuelta. Como el CSS ya la esconde desde el
+ * primer frame (ver BaseLayout.astro), este efecto solo necesita revelarla.
  */
 interface EntryCardProps {
   title: string;
@@ -45,8 +53,6 @@ export default function EntryCard({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-
-    gsap.set(el, { opacity: 0, y: 24 });
 
     const trigger = ScrollTrigger.create({
       trigger: el,
@@ -70,7 +76,7 @@ export default function EntryCard({
   const normalizedTitle = normalizeTitleText(title);
 
   return (
-    <a ref={ref} href={`/entrada/${slug}`} className={cardShell}>
+    <a ref={ref} href={`/entrada/${slug}`} className={`entry-card-reveal ${cardShell}`}>
       <div className={cardImageWrap}>
         {coverImage && <img src={coverImage} alt={normalizedTitle} className={cardImage} />}
         <span className={cardBadge}>{categoryName}</span>

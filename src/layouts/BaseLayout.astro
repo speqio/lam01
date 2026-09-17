@@ -26,6 +26,15 @@ const { title, description = 'Un blog de literatura: cuento, poesía y ensayo.' 
           document.documentElement.setAttribute('data-theme', theme);
         } catch (e) {}
       })();
+      // Misma idea que el theme: clase "js" en <html> ANTES del primer paint. Las
+      // cards con reveal-on-scroll (EntryCard.tsx) arrancan visibles en el HTML que
+      // sirve el servidor; sin esto, el CSS las escondería incluso cuando JS está
+      // deshabilitado (o mientras React todavía no hidrató, con `client:visible`,
+      // que puede tardar), provocando un salto: card visible -> de golpe invisible ->
+      // fade-in. Con "html.js" como selector, "sin JS" nunca las esconde (fallback
+      // seguro: se ven de entrada, sin animación) y "con JS" las esconde desde el
+      // primer frame, así que React solo las revela, nunca las hace desaparecer.
+      document.documentElement.classList.add('js');
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

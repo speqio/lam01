@@ -106,6 +106,20 @@
     color: rgb(var(--color-canvas));
   }
 
+  /* Estado inicial (oculto) de las cards con reveal-on-scroll (EntryCard.tsx).
+     Solo se esconden si "js" ya está en <html> (agregado sincrónicamente antes del
+     primer paint en BaseLayout.astro) Y el visitante no pidió prefers-reduced-motion
+     — así nunca hay un salto "card visible -> de golpe invisible -> fade-in": sin JS,
+     o con motion reducido, la card se ve completa desde el primer frame; con JS,
+     arranca ya en este estado y React/GSAP solo la revela (nunca la esconde después
+     de haberse pintado visible). */
+  @media (prefers-reduced-motion: no-preference) {
+    html.js .entry-card-reveal {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+
   /* Chip de filtro seleccionado (FilterChip.astro y los chips de /numeros) — mismo
      criterio que .card-badge de arriba: blanco/negro en modo oscuro en vez de acento
      rojo + texto casi negro, acento sólido + texto canvas en modo claro. Los chips de

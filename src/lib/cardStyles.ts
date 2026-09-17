@@ -24,6 +24,12 @@ export const cardBadge =
 
 // Variante de card completa (EntryCard, /numeros): imagen que reacciona al hover del
 // link que envuelve toda la card.
+// Variante de card completa (EntryCard, /numeros): imagen que reacciona al hover del
+// link que envuelve toda la card. Nota: "cardShell" también se usa en numeros.astro
+// como markup estático (sin EntryCard.tsx ni su reveal-on-scroll) — el gancho
+// "entry-card-reveal" del reveal NO va acá a propósito, sino agregado aparte en el
+// className de EntryCard.tsx, para no esconder para siempre las cards de /numeros
+// (que no tienen ningún script que las vuelva a mostrar).
 export const cardShell =
   'group flex h-56 overflow-hidden border border-ink/15 bg-surface transition-colors duration-300 hover:border-accent lg:h-64';
 

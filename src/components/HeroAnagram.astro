@@ -131,9 +131,12 @@
         });
 
         tl.add(
+          // "back.*" (antes acá) overshoot-ea a propósito — se pasa del destino y
+          // rebota de vuelta, lo cual lee como un salto/rebote en vez de un
+          // asentamiento suave. "power3" llega directo, sin pasarse.
           Flip.from(state, {
             duration: 1,
-            ease: 'back.inOut(1.7)',
+            ease: 'power3.inOut',
             absolute: true,
             targets: '#hero-anagram-title .char',
             scale: true,
@@ -150,7 +153,7 @@
                   scale: 1,
                   opacity: 1,
                   stagger: 0.05,
-                  ease: 'back.out(1.7)',
+                  ease: 'power3.out',
                 }
               ),
           }),

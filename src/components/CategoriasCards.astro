@@ -45,7 +45,7 @@ const { categorias } = Astro.props;
                 <img
                   src={categoria.coverImage}
                   alt=""
-                  class="categorias-wheel-card-img h-full w-full object-cover grayscale contrast-125"
+                  class="h-full w-full object-cover grayscale contrast-125"
                   loading="lazy"
                   draggable="false"
                 />
@@ -172,13 +172,6 @@ const { categorias } = Astro.props;
      borde tipo postal (papel crema) propio del arte original — se recorta con este
      zoom para que la card muestre solo el dibujo, sin esa franja más clara en los
      bordes ni el ángulo de la rotación original asomando. */
-  .categorias-wheel-card-img {
-    /* Las 10 ilustraciones comparten exactamente la misma plantilla (mismo bounding
-       box de contenido opaco, medido con sharp): el dibujo real ocupa un rectángulo
-       centrado en x pero corrido hacia arriba en y dentro del lienzo 1200×1000 —
-       el marco crema queda fuera de este recorte en vez de asomar en un extremo. */
-    transform: scale(1.92) translateY(7.5%);
-  }
 
   .categorias-wheel-fade {
     position: absolute;

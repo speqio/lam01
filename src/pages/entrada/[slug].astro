@@ -72,16 +72,35 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     )
   }
 
+  <div class="not-prose mb-8 text-center">
+    <button
+      type="button"
+      id="entrada-enter-reading"
+      class="hidden items-center gap-2 rounded-full border border-ink/15 bg-surface px-5 py-2 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-accent hover:text-accent"
+    >
+      ✦ Entrar en modo lectura
+    </button>
+  </div>
+
   <div id="entrada-content" class="drop-cap" data-categoria={categoria?.id ?? ''}>
     <Content />
   </div>
 
   <div
     id="entrada-progress-badge"
-    class="not-prose pointer-events-none fixed right-4 z-20 hidden rounded-full border border-ink/15 bg-surface/90 px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-accent backdrop-blur"
+    class="not-prose pointer-events-none fixed right-4 z-50 hidden rounded-full border border-ink/15 bg-surface/90 px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-ink backdrop-blur"
     style="top: 5.5rem;"
   >
   </div>
+
+  <button
+    type="button"
+    id="entrada-exit-reading"
+    class="not-prose fixed left-4 z-50 hidden items-center gap-2 rounded-full border border-ink/15 bg-surface/90 px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-ink backdrop-blur transition-colors hover:border-accent hover:text-accent"
+    style="top: 5.5rem;"
+  >
+    ✕ Salir del modo lectura
+  </button>
 
   {
     entrada.data.galeria && entrada.data.galeria.length > 0 && (
@@ -128,30 +147,31 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
 </PostLayout>
 
 <script>
+  import { Observer } from 'gsap/Observer';
+  import gsap from 'gsap';
+  import { write, presets } from 'glitched-writer';
+
+  gsap.registerPlugin(Observer);
+
   /**
-   * Lectura "foco por scroll": cada párrafo (prosa) o verso (poesía — un <p> por
-   * línea, así se autoran los poemas en Markdoc) queda atenuado (blur + color apagado)
-   * hasta que llega a la banda central de la pantalla, momento en el que se enfoca
-   * (color completo, sin blur, resaltado). El margen vertical grande entre bloques es
-   * lo que hace que solo uno se sienta "en foco" por vez — no hace falta bloquear la
-   * rueda ni usar `position: fixed`/scroll-snap (se probaron ambos, con problemas
-   * reales de Chromium o con una sensación que no era la buscada — el usuario adjuntó
-   * dos plantillas de referencia con este mecanismo exacto de blur/foco).
+   * Lectura "rueda bloqueada + tipeo": mientras el modo lectura está activo, la rueda
+   * (y el touch/swipe en mobile) no hacen scroll real — cada gesto revela el siguiente
+   * párrafo (prosa) o verso (poesía — un <p> por línea, así se autoran los poemas en
+   * Markdoc), con un efecto de tipeo/glitch (glitched-writer), centrado en pantalla.
+   * Adaptado de una plantilla de referencia que aportó el usuario (H. G. Wells /
+   * Glitched Writer demo). Un intento anterior de este mismo mecanismo aplicaba el
+   * bloqueo/`position: fixed` a toda la página y "rompía la diagramación" en uso real;
+   * acá el modo lectura queda acotado a #entrada-content — header, portada, galería,
+   * biografía y bibliografía quedan siempre en flujo normal.
    *
-   * El `IntersectionObserver` usa un `rootMargin` negativo arriba y abajo para reducir
-   * su área de intersección a una banda angosta en el centro vertical del viewport, y
-   * togglea `.is-active` en AMBAS direcciones (no es un revelado de una sola vez): al
-   * subir o bajar, el bloque que sale de esa banda vuelve a atenuarse.
+   * La página carga siempre en modo normal (texto completo, en flujo, nítido) — el
+   * modo lectura es opt-in vía el botón "Entrar en modo lectura", no se activa solo
+   * al hacer scroll hasta el texto.
    *
-   * Solo afecta el cuerpo del texto (#entrada-content) — el header (categoría,
-   * título, autor, fecha), la portada, la galería, la biografía y la bibliografía
-   * quedan fuera a propósito, en el flujo normal del artículo.
-   *
-   * Sin JS moderno o con prefers-reduced-motion: no se agrega ninguna clase, así que
-   * el CSS de atenuado (que solo aplica dentro de #entrada-content.is-enhanced) nunca
-   * se activa — el contenido se lee completo y nítido de entrada (Content siempre trae
-   * el texto completo en el HTML servido, Pagefind lo indexa en build antes de que
-   * corra este script: SEO/accesibilidad intactos).
+   * Sin JS moderno (sin Observer/glitched-writer disponibles): no se agrega ninguna
+   * clase ni se muestra el botón de entrada, el contenido se lee completo y nítido de
+   * entrada (Content siempre trae el texto completo en el HTML servido, Pagefind lo
+   * indexa en build antes de que corra este script: SEO/accesibilidad intactos).
    */
   const container = document.getElementById('entrada-content');
   // @astrojs/markdoc envuelve el documento renderizado en su propio <article>, así
@@ -160,43 +180,171 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esPoesia = container?.dataset.categoria === 'poesia';
   const badge = document.getElementById('entrada-progress-badge');
+  const exitButton = document.getElementById('entrada-exit-reading');
+  const enterButton = document.getElementById('entrada-enter-reading');
+  // Misma barra de progreso de PostLayout.astro (fija arriba de toda la página): en
+  // modo normal la sigue actualizando su propio listener de scroll; en modo lectura
+  // no hay scroll real (body queda con overflow:hidden), así que acá se pisa su ancho
+  // a mano según cuántos bloques ya se revelaron.
+  const readingProgressBar = document.getElementById('post-reading-progress');
 
-  if (container && blocksRoot && !prefersReducedMotion && 'IntersectionObserver' in window) {
-    const blocks = Array.from(blocksRoot.children) as HTMLElement[];
+  if (container && blocksRoot && exitButton && enterButton) {
+    const originalBlocks = Array.from(blocksRoot.children) as HTMLElement[];
+    const total = originalBlocks.length;
     const blockClass = esPoesia ? 'entrada-verse' : 'entrada-block';
     const unidad = esPoesia ? 'Verso' : 'Párrafo';
 
-    container.classList.add('is-enhanced');
-    if (badge) badge.classList.remove('hidden');
+    if (total > 0) {
+      // El stage reemplaza el contenido de blocksRoot mientras dura el modo lectura;
+      // al salir, blocksRoot vuelve a mostrar todos los bloques originales en flujo.
+      const stage = document.createElement('div');
+      stage.className = 'entrada-reading-stage';
 
-    const updateBadge = (index: number) => {
-      if (!badge) return;
-      badge.textContent = `${unidad} ${index + 1} de ${blocks.length}`;
-    };
+      let revealed = 0;
+      let isWriting = false;
+      let readingActive = false;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          entry.target.classList.toggle('is-active', entry.isIntersecting);
-          if (entry.isIntersecting) {
-            updateBadge(blocks.indexOf(entry.target as HTMLElement));
-          }
+      const updateBadge = () => {
+        if (!badge || revealed === 0) return;
+        badge.textContent = `${unidad} ${revealed} de ${total}`;
+      };
+
+      const updateReadingProgress = () => {
+        if (!readingProgressBar) return;
+        readingProgressBar.style.width = `${(revealed / total) * 100}%`;
+      };
+
+      const enterReadingMode = () => {
+        if (readingActive || revealed >= total) return;
+        readingActive = true;
+        blocksRoot!.innerHTML = '';
+        blocksRoot!.appendChild(stage);
+        container!.classList.add('is-reading-mode');
+        document.body.classList.add('overflow-hidden');
+        badge?.classList.remove('hidden');
+        exitButton!.classList.remove('hidden');
+        exitButton!.classList.add('flex');
+        enterButton!.classList.add('hidden');
+        enterButton!.classList.remove('flex');
+      };
+
+      const exitReadingMode = () => {
+        if (!readingActive) return;
+        readingActive = false;
+        container!.classList.remove('is-reading-mode');
+        document.body.classList.remove('overflow-hidden');
+        badge?.classList.add('hidden');
+        exitButton!.classList.add('hidden');
+        exitButton!.classList.remove('flex');
+        if (revealed < total) {
+          enterButton!.classList.remove('hidden');
+          enterButton!.classList.add('flex');
+        }
+        // Al salir, se muestran todos los bloques originales en flujo normal —
+        // tanto los ya revelados con tipeo como los que faltaban.
+        blocksRoot!.innerHTML = '';
+        originalBlocks.forEach((el) => {
+          el.classList.remove('entrada-reading-block');
+          blocksRoot!.appendChild(el);
         });
-      },
-      // Banda angosta en el centro vertical de la pantalla: se recorta un 38% arriba
-      // y un 38% abajo del viewport, dejando solo el ~24% central como área activa.
-      { rootMargin: '-38% 0px -38% 0px', threshold: 0.1 }
-    );
+        // Le devuelve el control de la barra a su propio listener de scroll
+        // (PostLayout.astro), que la recalcula según la posición real ya restaurada.
+        window.dispatchEvent(new Event('scroll'));
+      };
 
-    blocks.forEach((el) => {
-      el.classList.add(blockClass);
-      el.addEventListener('click', () => {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const revealNext = () => {
+        if (isWriting || revealed >= total) {
+          if (revealed >= total) exitReadingMode();
+          return;
+        }
+        const source = originalBlocks[revealed];
+        const el = document.createElement(source.tagName.toLowerCase());
+        el.className = `${blockClass} entrada-reading-block`;
+
+        stage.innerHTML = '';
+        stage.appendChild(el);
+
+        revealed += 1;
+        updateBadge();
+        updateReadingProgress();
+
+        if (prefersReducedMotion) {
+          el.innerHTML = source.innerHTML;
+          if (revealed >= total) exitReadingMode();
+          return;
+        }
+
+        isWriting = true;
+        // Interval más rápido que el preset por defecto de glitched-writer (que es
+        // [50, 150] ms entre caracteres).
+        write(source.innerHTML, el, { ...presets.typewriter, html: true, interval: [18, 65] })
+          .then(() => {
+            isWriting = false;
+            if (revealed >= total) exitReadingMode();
+          })
+          .catch(() => {
+            isWriting = false;
+          });
+      };
+
+      const revealPrevious = () => {
+        if (isWriting || revealed <= 1) return;
+        revealed -= 1;
+        const source = originalBlocks[revealed - 1];
+        const el = document.createElement(source.tagName.toLowerCase());
+        el.className = `${blockClass} entrada-reading-block`;
+        el.innerHTML = source.innerHTML;
+        stage.innerHTML = '';
+        stage.appendChild(el);
+        updateBadge();
+        updateReadingProgress();
+      };
+
+      exitButton.addEventListener('click', exitReadingMode);
+      enterButton.addEventListener('click', () => {
+        enterReadingMode();
+        revealNext();
       });
-      observer.observe(el);
-    });
+      enterButton.classList.remove('hidden');
+      enterButton.classList.add('flex');
 
-    updateBadge(0);
+      // Un solo paso por gesto: onChangeY/onChange disparan repetidas veces mientras
+      // dura el gesto (rueda continua, arrastre), así que se acotan con isWriting +
+      // un lock corto tras cada paso, mismo patrón que el carrusel de categorías
+      // (CategoriasCards.astro) para "un paso = un salto", no un scroll continuo.
+      let gestureLocked = false;
+      const step = (delta: number) => {
+        if (!readingActive || isWriting || gestureLocked) return;
+        gestureLocked = true;
+        if (delta > 0) revealNext();
+        else revealPrevious();
+        setTimeout(() => {
+          gestureLocked = false;
+        }, 350);
+      };
+
+      // preventDefault se aplica solo mientras el modo lectura está activo: antes de
+      // eso, el scroll real de la página tiene que poder pasar sin trabas para que el
+      // usuario llegue a #entrada-content y el IntersectionObserver de activación
+      // pueda dispararse (si se bloqueara siempre, la página nunca podría scrollear
+      // lo suficiente como para activar el modo en primer lugar).
+      Observer.create({
+        target: container,
+        type: 'wheel',
+        onChangeY: (self) => {
+          if (readingActive) self.event?.preventDefault();
+          step(self.deltaY);
+        },
+      });
+      Observer.create({
+        target: container,
+        type: 'touch,pointer',
+        onChange: (self) => {
+          if (readingActive) self.event?.preventDefault();
+          step(-self.deltaY);
+        },
+      });
+    }
   }
 </script>
 
@@ -205,91 +353,73 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
      <Content />), no de markup propio de este componente — el scoping de Astro no
      llega de forma confiable ahí, por eso global + prefijo #entrada-content.
 
-     Mecanismos descartados en el camino: CSS Scroll Snap (Chromium reubicaba el
-     scroll al cargar la página, y trababa el scroll con incrementos de rueda
-     normales); rueda bloqueada + `position: fixed` al estilo de una plantilla de
-     referencia (funcionaba en pruebas automatizadas, pero en el uso real "se rompía
-     la diagramación" y no daba la sensación de lectura buscada). Este mecanismo usa
-     scroll 100% nativo, sin bloquear nada — solo CSS + un observer que alterna una
-     clase, adaptado de dos plantillas de referencia que el usuario aportó. */
+     Mecanismos descartados en el camino: lectura por blur/foco con scroll real y
+     `IntersectionObserver` de banda central (funcionaba, pero no daba la sensación de
+     lectura buscada); CSS Scroll Snap (Chromium reubicaba el scroll al cargar la
+     página, y trababa el scroll con incrementos de rueda normales). Este mecanismo
+     retoma rueda/touch bloqueados + `position: fixed`, pero acotado a
+     #entrada-content (no a toda la página, que fue lo que rompió la diagramación en
+     un intento anterior). */
 
-  /* El atenuado/blur SOLO aplica una vez que JS marcó el contenedor como potenciado
-     — así, sin JS o con prefers-reduced-motion, el texto se lee nítido de entrada. */
-  #entrada-content.is-enhanced .entrada-block,
-  #entrada-content.is-enhanced .entrada-verse {
-    cursor: pointer;
-    transition:
-      color 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-      filter 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-      background-color 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-      border-color 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-      text-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  /* El modo lectura (rueda/touch bloqueados, un bloque a la vez) solo aplica una vez
+     que JS lo activó — sin JS, el texto se lee completo y nítido en flujo normal. */
+  #entrada-content.is-reading-mode {
+    position: fixed;
+    inset: 0;
+    /* Por encima del header fijo (z-20 en Header.astro) para que cubra la pantalla
+       entera y, sobre todo, para que reciba los eventos de wheel/touch en vez de que
+       algún elemento del header (con pointer-events propio) se los quede primero. */
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(var(--color-canvas));
+    padding: 2rem;
   }
 
-  /* Prosa: bloque atenuado, con borde/fondo acento al enfocarse. */
-  #entrada-content.is-enhanced .entrada-block {
-    margin: 16vh 0;
-    padding: 1.25rem 1.5rem;
-    border-radius: 0.75rem;
-    border-left: 3px solid transparent;
-    color: rgb(var(--color-ink-muted));
-    filter: blur(2px);
-    transform: translateY(15px) scale(0.98);
+  #entrada-content.is-reading-mode .entrada-reading-stage {
+    width: 100%;
+    max-width: 60ch;
+    max-height: 80vh;
+    overflow: hidden;
   }
 
-  #entrada-content.is-enhanced .entrada-block.is-active {
+  /* Prosa: bloque centrado en el stage. */
+  .entrada-reading-block.entrada-block {
+    font-family: 'Lekton', monospace;
+    font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+    line-height: 1.7;
     color: rgb(var(--color-bone));
-    filter: blur(0);
-    transform: translateY(0) scale(1);
-    border-left-color: rgb(var(--color-accent));
-    background-color: rgb(var(--color-accent) / 0.06);
   }
 
-  /* Poesía: verso centrado, con brillo (text-shadow) acento al enfocarse. */
-  #entrada-content.is-enhanced .entrada-verse {
-    margin: 14vh 0;
+  /* Poesía: verso centrado, un poco más grande. */
+  .entrada-reading-block.entrada-verse {
     text-align: center;
+    font-family: 'Lekton', monospace;
+    font-style: italic;
     font-size: clamp(1.2rem, 4vw, 2rem);
-    color: rgb(var(--color-ink-muted));
-    filter: blur(2px);
-    transform: translateY(10px) scale(0.95);
-  }
-
-  #entrada-content.is-enhanced .entrada-verse.is-active {
+    line-height: 1.6;
     color: rgb(var(--color-ink));
-    filter: blur(0);
-    transform: translateY(0) scale(1.05);
-    text-shadow: 0 0 25px rgb(var(--color-accent) / 0.35);
   }
 
-  /* Separadores de sección: Markdoc ya emite <hr> desde "* * *" en el contenido. */
-  #entrada-content.is-enhanced hr {
-    margin: 16vh auto;
-    width: min(20rem, 60%);
+  #entrada-content.is-reading-mode hr {
     border: none;
     text-align: center;
     opacity: 0.5;
   }
 
-  #entrada-content.is-enhanced hr::before {
+  #entrada-content.is-reading-mode hr::before {
     content: '✦  ✦  ✦';
     color: rgb(var(--color-accent));
     letter-spacing: 0.5em;
     font-size: 0.75rem;
   }
 
-  #entrada-content.is-enhanced img {
+  #entrada-content.is-reading-mode img {
     display: block;
-    max-height: 70vh;
+    max-height: 60vh;
     max-width: 100%;
     margin-inline: auto;
     object-fit: contain;
-  }
-
-  /* Padding superior/inferior generoso para que el primer y último bloque también
-     puedan llegar a la banda central de enfoque. */
-  #entrada-content.is-enhanced {
-    padding-block: 20vh;
   }
 </style>

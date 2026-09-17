@@ -44,6 +44,12 @@ const filtros = [
   {
     key: 'anio',
     label: 'Catálogo general',
+    // Versión corta solo para la etiqueta colapsada (10% de ancho en desktop): a
+    // diferencia del resto de los filtros, este es el único label de dos palabras, y
+    // con el tracking amplio (0.3em) no entraba en una línea — se partía en dos
+    // ("CATÁLOGO" / "GENERAL"). El resto de la tarjeta (título expandido, aria-label)
+    // sigue usando el nombre completo.
+    labelColapsado: 'Catálogo',
     titulo: 'Catálogo general',
     descripcion: 'Todas las entradas de la revista, con filtros por año, categoría, número y autor.',
     href: '/archivo/',
@@ -115,8 +121,8 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
           aria-label={filtro.titulo}
         >
           <div class="archivo-explorer-collapsed absolute inset-0 flex items-center justify-start px-6 md:justify-center md:px-0">
-            <span class="font-mono text-xs uppercase tracking-[0.3em] text-ink/60">
-              {filtro.label}
+            <span class="font-mono text-xs uppercase tracking-[0.3em] text-ink/60 whitespace-nowrap">
+              {'labelColapsado' in filtro ? filtro.labelColapsado : filtro.label}
             </span>
           </div>
 

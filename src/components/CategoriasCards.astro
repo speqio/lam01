@@ -10,10 +10,14 @@ import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
  * arrastre 1:1 mientras se sostiene, más un snap con inercia al soltar
  * (`gsap.quickTo`) — nada de temporizadores ni reordenar el DOM.
  *
- * A diferencia de la versión anterior, cada card no lleva badge ni contador de
- * entradas — solo la imagen fija de la categoría. El nombre de la categoría enfocada
- * se muestra aparte, en un título que cambia con la rotación (`updateTitle`), sin
- * texto de acompañamiento.
+ * Solo se muestran 3 cards a la vez (la activa + una a cada lado, ver
+ * `data-wheel-faroff` en el script) para que la imagen se vea grande — el resto del
+ * set sigue ahí (navegable con la rueda/el dial), simplemente oculto hasta que entra
+ * en ese rango de ±1 posición.
+ *
+ * Cada card no lleva badge ni contador de entradas — solo la imagen fija de la
+ * categoría. El nombre de la categoría enfocada se muestra aparte, en un título que
+ * cambia con la rotación, sin texto de acompañamiento.
  */
 export interface CategoriaCardItem {
   slug: string;
@@ -41,15 +45,24 @@ const { categorias } = Astro.props;
               data-nombre={normalizeTitleText(categoria.nombre)}
               aria-label={normalizeTitleText(categoria.nombre)}
             >
-              {categoria.coverImage && (
-                <img
-                  src={categoria.coverImage}
-                  alt=""
-                  class="h-full w-full object-cover grayscale contrast-125"
-                  loading="lazy"
-                  draggable="false"
-                />
-              )}
+              {/* La escala de énfasis de la card activa vive en este wrapper interno,
+                  con su propio transform-origin centrado — separado a propósito del
+                  <a> exterior, que rota sobre el pivote lejano de la rueda. Si el
+                  scale compartiera ese mismo origen lejano, agrandar la card activa
+                  la empuja mucho más allá de lo esperado (la distancia al pivote se
+                  multiplica por la escala), y esa era la causa real de que la parte
+                  superior de la imagen se recortara contra el borde del escenario. */}
+              <div class="categorias-wheel-card-inner">
+                {categoria.coverImage && (
+                  <img
+                    src={categoria.coverImage}
+                    alt=""
+                    class="h-full w-full object-cover grayscale contrast-125"
+                    loading="lazy"
+                    draggable="false"
+                  />
+                )}
+              </div>
             </a>
           ))}
         </div>
@@ -87,7 +100,7 @@ const { categorias } = Astro.props;
   .categorias-wheel-stage {
     position: relative;
     width: 100%;
-    height: 16rem;
+    height: 12rem;
     overflow: hidden;
     touch-action: pan-y;
     cursor: grab;
@@ -112,14 +125,14 @@ const { categorias } = Astro.props;
     top: 0;
     display: block;
     overflow: hidden;
-    width: 8.5rem;
+    width: 11rem;
     /* Las ilustraciones de categoría son horizontales (1200×1000, con su propio marco
        tipo postal) — la proporción de la card sigue la de la imagen real (6:5) para
        que `object-fit: cover` no las recorte, a diferencia de las cards de
        entrada/número (verticales) que usan otra relación de aspecto. */
     aspect-ratio: 6 / 5;
-    margin-left: -4.25rem;
-    margin-top: -3.54rem;
+    margin-left: -5.5rem;
+    margin-top: -4.58rem;
     user-select: none;
     -webkit-user-drag: none;
     /* Sin fondo propio: las ilustraciones son PNG con transparencia real (confirmado
@@ -132,6 +145,14 @@ const { categorias } = Astro.props;
        (mismo truco que el abanico anterior, ahora sumado a `perspective` en el
        contenedor para que las cards de los costados se vean giradas en el espacio). */
     transform-origin: 50% 480%;
+  }
+
+  .categorias-wheel-card-inner {
+    width: 100%;
+    height: 100%;
+    /* transform-origin centrado (default) a propósito: acá vive el scale de énfasis
+       de la card activa, separado del rotate() del <a> exterior — ver comentario en
+       el markup. */
   }
 
   .categorias-wheel-card[data-wheel-hidden] {
@@ -170,7 +191,7 @@ const { categorias } = Astro.props;
   }
 
   .categorias-wheel-info {
-    margin-top: 1.5rem;
+    margin-top: 1.25rem;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -180,7 +201,8 @@ const { categorias } = Astro.props;
 
   .categorias-wheel-title {
     font-family: var(--font-headline, 'Lekton', 'Arial', sans-serif);
-    font-size: 1.5rem;
+    font-weight: 400;
+    font-size: 1.05rem;
     line-height: 1.1;
     color: rgb(var(--color-ink));
     text-transform: uppercase;
@@ -207,29 +229,29 @@ const { categorias } = Astro.props;
     }
 
     .categorias-wheel-card {
-      width: 20rem;
-      margin-left: -10rem;
-      margin-top: -8.33rem;
+      width: 24rem;
+      margin-left: -12rem;
+      margin-top: -10rem;
     }
 
     .categorias-wheel-title {
-      font-size: 2.25rem;
+      font-size: 1.35rem;
     }
   }
 
   @media (min-width: 1024px) {
     .categorias-wheel-stage {
-      height: 32rem;
+      height: 32.5rem;
     }
 
     .categorias-wheel-card {
-      width: 25rem;
-      margin-left: -12.5rem;
-      margin-top: -10.42rem;
+      width: 30rem;
+      margin-left: -15rem;
+      margin-top: -12.5rem;
     }
 
     .categorias-wheel-title {
-      font-size: 2.75rem;
+      font-size: 1.5rem;
     }
   }
 </style>
@@ -240,16 +262,19 @@ const { categorias } = Astro.props;
 
   gsap.registerPlugin(Observer);
 
-  // Ángulo entre cards contiguas — con `perspective` en el contenedor, un ángulo más
-  // chico que el abanico anterior ya deja ver bien la curvatura de la rueda.
-  const ANGLE_STEP_MOBILE = 9;
-  const ANGLE_STEP_DESKTOP = 10;
+  // Ángulo entre cards contiguas — más abierto que la versión de 5 cards visibles,
+  // ya que ahora solo hay 3 en pantalla (ver FAR_OFF_DISTANCE) y conviene que las dos
+  // laterales se noten claramente giradas, no apenas asomando.
+  const ANGLE_STEP_MOBILE = 16;
+  const ANGLE_STEP_DESKTOP = 18;
   const WHEEL_SENSITIVITY = 0.012;
   const DRAG_SENSITIVITY = 0.014;
 
-  // En mobile las cards son más grandes en proporción a la pantalla — mostrar todas
-  // las categorías ahí las achica demasiado. Mejor mostrar menos, más grandes.
-  const MOBILE_VISIBLE_LIMIT = 6;
+  // Más allá de esta distancia (en posiciones) del centro, la card se oculta del
+  // todo — así siempre se ven como máximo 3 (activa + una a cada lado), sin importar
+  // cuántas categorías tenga el set completo (que sigue siendo navegable con
+  // rueda/drag/dial, solo que el resto queda fuera de vista hasta que le toca entrar).
+  const FAR_OFF_DISTANCE = 1.5;
 
   function shortestDistance(index: number, position: number, total: number) {
     let dist = (((index - position) % total) + total) % total;
@@ -262,13 +287,9 @@ const { categorias } = Astro.props;
     const track = document.getElementById('categorias-wheel-track');
     if (!(stage instanceof HTMLElement) || !(track instanceof HTMLElement)) return;
 
-    const allCards = Array.from(track.querySelectorAll<HTMLAnchorElement>('.categorias-wheel-card'));
+    const cards = Array.from(track.querySelectorAll<HTMLAnchorElement>('.categorias-wheel-card'));
     const isMobile = !window.matchMedia('(min-width: 768px)').matches;
-    const visibleCount = isMobile ? Math.min(MOBILE_VISIBLE_LIMIT, allCards.length) : allCards.length;
     const ANGLE_STEP = isMobile ? ANGLE_STEP_MOBILE : ANGLE_STEP_DESKTOP;
-
-    const cards = allCards.slice(0, visibleCount);
-    allCards.slice(visibleCount).forEach((card) => card.setAttribute('data-wheel-hidden', ''));
 
     const total = cards.length;
     if (total === 0) return;
@@ -291,12 +312,20 @@ const { categorias } = Astro.props;
         const dist = shortestDistance(i, pos.value, total);
         const absDist = Math.abs(dist);
         const isActive = absDist < 0.5;
+        // Fundido suave entre "totalmente visible" (a 1 posición del centro) y
+        // "oculta" (a partir de FAR_OFF_DISTANCE), en vez de un corte abrupto.
+        const visibility = absDist <= 1 ? 1 : gsap.utils.clamp(0, 1, 1 - (absDist - 1) / (FAR_OFF_DISTANCE - 1));
 
         gsap.set(card, {
           rotate: gsap.utils.clamp(-90, 90, dist * ANGLE_STEP),
+          zIndex: Math.round(100 - absDist * 10),
+          opacity: visibility,
+          pointerEvents: visibility > 0.5 ? 'auto' : 'none',
+        });
+
+        gsap.set(card.firstElementChild, {
           scale: isActive ? 1.08 : 1,
           filter: `brightness(${isActive ? 1 : Math.max(0.35, 1 - absDist * 0.22)})`,
-          zIndex: Math.round(100 - absDist * 10),
         });
       });
 

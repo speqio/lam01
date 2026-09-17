@@ -65,29 +65,6 @@ const { categorias } = Astro.props;
         <h3 class="categorias-wheel-title" id="categorias-wheel-title">
           {normalizeTitleText(categorias[0].nombre)}
         </h3>
-
-        {
-          categorias.length > 1 && (
-            <div class="categorias-wheel-nav">
-              <button
-                type="button"
-                class="categorias-wheel-nav-btn"
-                data-wheel-prev
-                aria-label="Categoría anterior"
-              >
-                &#10094;
-              </button>
-              <button
-                type="button"
-                class="categorias-wheel-nav-btn"
-                data-wheel-next
-                aria-label="Categoría siguiente"
-              >
-                &#10095;
-              </button>
-            </div>
-          )
-        }
       </div>
 
       {
@@ -96,7 +73,7 @@ const { categorias } = Astro.props;
             <span class={dialCount} data-dial-count>
               {`01 / ${String(categorias.length).padStart(2, '0')}`}
             </span>
-            <div class={dialTrack}>
+            <div class={`${dialTrack} categorias-wheel-dial-track`} data-dial-track>
               <div class={dialThumb} data-dial-thumb />
             </div>
           </div>
@@ -215,33 +192,18 @@ const { categorias } = Astro.props;
     letter-spacing: 0.02em;
   }
 
-  .categorias-wheel-nav {
-    display: flex;
-    gap: 1rem;
-  }
-
-  .categorias-wheel-nav-btn {
-    width: 2.75rem;
-    height: 2.75rem;
-    border-radius: 9999px;
-    border: 1px solid rgb(var(--color-ink) / 0.3);
-    background: transparent;
-    color: rgb(var(--color-ink));
-    font-size: 1rem;
-    line-height: 1;
-    cursor: pointer;
-    transition: border-color 200ms ease, color 200ms ease;
-  }
-
-  .categorias-wheel-nav-btn:hover,
-  .categorias-wheel-nav-btn:focus-visible {
-    border-color: rgb(var(--color-accent));
-    color: rgb(var(--color-accent));
-  }
-
   .categorias-wheel-dial {
     width: min(70%, 16rem);
     margin: 1.5rem auto 0;
+    /* El área de arrastre real es toda la fila (ver JS: se escucha en este
+       elemento, no solo en la barra de 3px) — así el hit target no queda
+       limitado al alto visual de la barra, como un slider nativo. */
+    cursor: grab;
+    touch-action: pan-y;
+  }
+
+  .categorias-wheel-dial:active {
+    cursor: grabbing;
   }
 
   @media (min-width: 768px) {
@@ -321,8 +283,7 @@ const { categorias } = Astro.props;
     const thumb = outer?.querySelector<HTMLElement>('[data-dial-thumb]') ?? null;
     const countEl = outer?.querySelector<HTMLElement>('[data-dial-count]') ?? null;
     const dialTrackEl = thumb?.parentElement ?? null;
-    const prevBtn = outer?.querySelector<HTMLButtonElement>('[data-wheel-prev]') ?? null;
-    const nextBtn = outer?.querySelector<HTMLButtonElement>('[data-wheel-next]') ?? null;
+    const dialRow = outer?.querySelector<HTMLElement>('.categorias-wheel-dial') ?? null;
     if (thumb && dialTrackEl) {
       thumb.style.width = `${100 / total}%`;
     }
@@ -369,21 +330,45 @@ const { categorias } = Astro.props;
 
     render();
 
-    function move(dir: number) {
-      // No gsap.killTweensOf(pos) acá: quickTo ya reapunta en caliente el mismo
-      // tween interno — matarlo entre clicks sucesivos rompe esa referencia y el
-      // snap deja de responder al segundo click.
-      snapTo(Math.round(pos.value) + dir);
+    // Arrastrar sobre la barra de paginación mueve el carrusel 1:1, igual que la
+    // rueda/el drag sobre las cards — la posición del puntero dentro del track
+    // (no un delta) define directamente `pos.value`, ya que acá lo natural es
+    // "ir a donde toqué", no "empujar una cantidad relativa".
+    let dialDragging = false;
+
+    function posFromPointer(clientX: number) {
+      if (!dialTrackEl) return null;
+      const rect = dialTrackEl.getBoundingClientRect();
+      const ratio = gsap.utils.clamp(0, 1, (clientX - rect.left) / rect.width);
+      return ratio * total;
     }
 
-    prevBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      move(-1);
+    function endDialDrag() {
+      if (!dialDragging) return;
+      dialDragging = false;
+      snapTo(Math.round(pos.value));
+    }
+
+    dialRow?.addEventListener('pointerdown', (e) => {
+      const target = posFromPointer(e.clientX);
+      if (target === null) return;
+      gsap.killTweensOf(pos);
+      dialDragging = true;
+      dialRow.setPointerCapture(e.pointerId);
+      pos.value = target;
+      render();
     });
-    nextBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      move(1);
+
+    dialRow?.addEventListener('pointermove', (e) => {
+      if (!dialDragging) return;
+      const target = posFromPointer(e.clientX);
+      if (target === null) return;
+      pos.value = target;
+      render();
     });
+
+    dialRow?.addEventListener('pointerup', endDialDrag);
+    dialRow?.addEventListener('pointercancel', endDialDrag);
 
     Observer.create({
       target: stage,

@@ -8,8 +8,8 @@
 // exterior, el body y el CTA quedan aparte a propósito, distinto de una grid a ancho
 // completo como EntryCard/numeros o de un mazo donde la card SÍ es un link entero,
 // como UltimasEntradasCarousel. `cardBadge` sí se reusa fuera de esta diagramación
-// (EntradasCarousel3D, ArchivoCascade, CategoriasCards) porque el badge en sí — acento
-// sólido, texto canvas — es independiente de dónde vaya montada la imagen.
+// (EntradasCarousel3D, ArchivoCascade) porque el badge en sí — acento sólido, texto
+// canvas — es independiente de dónde vaya montada la imagen.
 export const cardImageWrap = 'relative h-full w-2/5 shrink-0 bg-surface';
 
 // Badge de categoría/metadata sobre la imagen: fondo sólido (no translúcido) — necesita

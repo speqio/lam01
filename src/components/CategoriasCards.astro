@@ -41,16 +41,14 @@ const { categorias } = Astro.props;
               data-nombre={normalizeTitleText(categoria.nombre)}
               aria-label={normalizeTitleText(categoria.nombre)}
             >
-              {categoria.coverImage ? (
+              {categoria.coverImage && (
                 <img
                   src={categoria.coverImage}
                   alt=""
-                  class="h-full w-full object-cover grayscale contrast-125"
+                  class="categorias-wheel-card-img h-full w-full object-cover grayscale contrast-125"
                   loading="lazy"
                   draggable="false"
                 />
-              ) : (
-                <div class="h-full w-full bg-surface" />
               )}
             </a>
           ))}
@@ -60,6 +58,7 @@ const { categorias } = Astro.props;
             escena, igual criterio que el abanico anterior. */}
         <div class="categorias-wheel-fade categorias-wheel-fade--left" aria-hidden="true" />
         <div class="categorias-wheel-fade categorias-wheel-fade--right" aria-hidden="true" />
+        <div class="categorias-wheel-fade-bottom" aria-hidden="true" />
       </div>
 
       <div class="categorias-wheel-info">
@@ -146,7 +145,12 @@ const { categorias } = Astro.props;
     margin-top: -3.54rem;
     user-select: none;
     -webkit-user-drag: none;
-    background: rgb(var(--color-surface));
+    /* Sin fondo propio: las ilustraciones son PNG con transparencia real (confirmado
+       — su canal alfa no está en 255 parejo) recortadas en un rectángulo apenas
+       inclinado sobre el lienzo 1200×1000. Un fondo sólido acá se veía como un
+       bloque de color detrás de esa transparencia en vez de dejar que se funda con
+       el canvas de la página. */
+    background: transparent;
     border: 1px solid rgb(var(--color-ink) / 0.15);
     transition: border-color 200ms ease;
     /* El pivote de rotación está muy por debajo de la card, dando el efecto de rueda
@@ -162,6 +166,18 @@ const { categorias } = Astro.props;
 
   .categorias-wheel-card[data-wheel-hidden] {
     display: none;
+  }
+
+  /* La ilustración está apenas rotada dentro de su lienzo transparente y trae un
+     borde tipo postal (papel crema) propio del arte original — se recorta con este
+     zoom para que la card muestre solo el dibujo, sin esa franja más clara en los
+     bordes ni el ángulo de la rotación original asomando. */
+  .categorias-wheel-card-img {
+    /* Las 10 ilustraciones comparten exactamente la misma plantilla (mismo bounding
+       box de contenido opaco, medido con sharp): el dibujo real ocupa un rectángulo
+       centrado en x pero corrido hacia arriba en y dentro del lienzo 1200×1000 —
+       el marco crema queda fuera de este recorte en vez de asomar en un extremo. */
+    transform: scale(1.92) translateY(7.5%);
   }
 
   .categorias-wheel-fade {
@@ -181,6 +197,18 @@ const { categorias } = Astro.props;
   .categorias-wheel-fade--right {
     right: 0;
     background: linear-gradient(to left, rgb(var(--color-canvas)), transparent);
+  }
+
+  /* Igual criterio que left/right pero en el borde inferior de la escena, donde las
+     cards rotadas se cortan contra `overflow: hidden` — sin esto el corte se ve
+     como un borde recto y duro en vez de fundirse con el fondo de la página. */
+  .categorias-wheel-fade-bottom {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 35%;
+    pointer-events: none;
+    z-index: 5;
+    background: linear-gradient(to bottom, transparent, rgb(var(--color-canvas)) 90%);
   }
 
   .categorias-wheel-info {

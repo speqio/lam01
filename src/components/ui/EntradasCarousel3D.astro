@@ -172,6 +172,14 @@ const { items } = Astro.props;
     align-items: center;
     gap: 0.75rem;
     padding-block: 0.5rem;
+    /* El área de arrastre real es toda la columna (ver JS), no solo la barra de
+       3px — mismo criterio que el dial de CategoriasCards.astro. */
+    cursor: grab;
+    touch-action: pan-x;
+  }
+
+  .entradas-split-dial-vertical:active {
+    cursor: grabbing;
   }
 
   .entradas-split-dial-track {
@@ -275,7 +283,11 @@ const { items } = Astro.props;
 
       if (thumb && track && countEl) {
         const activeIndex = gsap.utils.clamp(0, total - 1, Math.round(pos.value));
-        const ratio = activeIndex / total;
+        // total-1 (no total): el thumb ocupa 1/total del track, así que su posición
+        // debe ir de 0 a (trackHeight - thumbHeight) interpolando sobre los "total-1"
+        // pasos entre el primer y el último ítem — con `total` en el divisor nunca
+        // llegaba al extremo inferior en el último ítem, dejando un espacio vacío.
+        const ratio = total > 1 ? activeIndex / (total - 1) : 0;
         const trackHeight = track.clientHeight;
         const thumbHeight = trackHeight / total;
         gsap.to(thumb, { y: ratio * (trackHeight - thumbHeight), duration: 0.2, ease: 'power2.out', overwrite: true });
@@ -290,6 +302,46 @@ const { items } = Astro.props;
     });
 
     render();
+
+    // Arrastrar o clickear directo sobre la barra mueve el carrusel — mismo criterio
+    // que el dial de CategoriasCards.astro (posición del puntero, no un delta), solo
+    // que acá el eje es Y (vertical) en vez de X.
+    const dialRow = outer?.querySelector<HTMLElement>('.entradas-split-dial-vertical') ?? null;
+    let dialDragging = false;
+
+    function posFromPointer(clientY: number) {
+      if (!track) return null;
+      const rect = track.getBoundingClientRect();
+      const ratio = gsap.utils.clamp(0, 1, (clientY - rect.top) / rect.height);
+      return gsap.utils.clamp(0, total - 1, ratio * (total - 1));
+    }
+
+    function endDialDrag() {
+      if (!dialDragging) return;
+      dialDragging = false;
+      snapTo(gsap.utils.clamp(0, total - 1, Math.round(pos.value)));
+    }
+
+    dialRow?.addEventListener('pointerdown', (e) => {
+      const target = posFromPointer(e.clientY);
+      if (target === null) return;
+      gsap.killTweensOf(pos);
+      dialDragging = true;
+      dialRow.setPointerCapture(e.pointerId);
+      pos.value = target;
+      render();
+    });
+
+    dialRow?.addEventListener('pointermove', (e) => {
+      if (!dialDragging) return;
+      const target = posFromPointer(e.clientY);
+      if (target === null) return;
+      pos.value = target;
+      render();
+    });
+
+    dialRow?.addEventListener('pointerup', endDialDrag);
+    dialRow?.addEventListener('pointercancel', endDialDrag);
 
     Observer.create({
       target: stage,

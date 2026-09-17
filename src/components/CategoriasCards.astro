@@ -338,7 +338,11 @@ const { categorias } = Astro.props;
       }
 
       if (thumb && dialTrackEl && countEl) {
-        const ratio = activeIndex / total;
+        // total-1 (no total): el thumb ocupa 1/total del track, así que su posición
+        // debe ir de 0 a (trackWidth - thumbWidth) interpolando sobre los "total-1"
+        // pasos entre el primer y el último ítem — con `total` en el divisor nunca
+        // llegaba al extremo derecho en el último ítem, dejando un espacio vacío.
+        const ratio = total > 1 ? activeIndex / (total - 1) : 0;
         const trackWidth = dialTrackEl.clientWidth;
         const thumbWidth = trackWidth / total;
         gsap.to(thumb, { x: ratio * (trackWidth - thumbWidth), duration: 0.2, ease: 'power2.out', overwrite: true });
@@ -364,7 +368,9 @@ const { categorias } = Astro.props;
       if (!dialTrackEl) return null;
       const rect = dialTrackEl.getBoundingClientRect();
       const ratio = gsap.utils.clamp(0, 1, (clientX - rect.left) / rect.width);
-      return gsap.utils.clamp(0, total - 1, ratio * total);
+      // total-1, coherente con cómo se posiciona el thumb en render(): el extremo
+      // izquierdo del track es el ítem 0, el extremo derecho es el último.
+      return gsap.utils.clamp(0, total - 1, ratio * (total - 1));
     }
 
     function endDialDrag() {

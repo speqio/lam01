@@ -72,8 +72,15 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     )
   }
 
-  <div class="drop-cap">
+  <div id="entrada-content" class="drop-cap" data-categoria={categoria?.id ?? ''}>
     <Content />
+  </div>
+
+  <div
+    id="entrada-progress-badge"
+    class="not-prose pointer-events-none fixed right-4 z-20 hidden rounded-full border border-ink/15 bg-surface/90 px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-accent backdrop-blur"
+    style="top: 5.5rem;"
+  >
   </div>
 
   {
@@ -119,3 +126,170 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     )
   }
 </PostLayout>
+
+<script>
+  /**
+   * Lectura "foco por scroll": cada párrafo (prosa) o verso (poesía — un <p> por
+   * línea, así se autoran los poemas en Markdoc) queda atenuado (blur + color apagado)
+   * hasta que llega a la banda central de la pantalla, momento en el que se enfoca
+   * (color completo, sin blur, resaltado). El margen vertical grande entre bloques es
+   * lo que hace que solo uno se sienta "en foco" por vez — no hace falta bloquear la
+   * rueda ni usar `position: fixed`/scroll-snap (se probaron ambos, con problemas
+   * reales de Chromium o con una sensación que no era la buscada — el usuario adjuntó
+   * dos plantillas de referencia con este mecanismo exacto de blur/foco).
+   *
+   * El `IntersectionObserver` usa un `rootMargin` negativo arriba y abajo para reducir
+   * su área de intersección a una banda angosta en el centro vertical del viewport, y
+   * togglea `.is-active` en AMBAS direcciones (no es un revelado de una sola vez): al
+   * subir o bajar, el bloque que sale de esa banda vuelve a atenuarse.
+   *
+   * Solo afecta el cuerpo del texto (#entrada-content) — el header (categoría,
+   * título, autor, fecha), la portada, la galería, la biografía y la bibliografía
+   * quedan fuera a propósito, en el flujo normal del artículo.
+   *
+   * Sin JS moderno o con prefers-reduced-motion: no se agrega ninguna clase, así que
+   * el CSS de atenuado (que solo aplica dentro de #entrada-content.is-enhanced) nunca
+   * se activa — el contenido se lee completo y nítido de entrada (Content siempre trae
+   * el texto completo en el HTML servido, Pagefind lo indexa en build antes de que
+   * corra este script: SEO/accesibilidad intactos).
+   */
+  const container = document.getElementById('entrada-content');
+  // @astrojs/markdoc envuelve el documento renderizado en su propio <article>, así
+  // que los párrafos/versos son nietos de #entrada-content, no hijos directos.
+  const blocksRoot = container?.querySelector<HTMLElement>(':scope > article') ?? container;
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const esPoesia = container?.dataset.categoria === 'poesia';
+  const badge = document.getElementById('entrada-progress-badge');
+
+  if (container && blocksRoot && !prefersReducedMotion && 'IntersectionObserver' in window) {
+    const blocks = Array.from(blocksRoot.children) as HTMLElement[];
+    const blockClass = esPoesia ? 'entrada-verse' : 'entrada-block';
+    const unidad = esPoesia ? 'Verso' : 'Párrafo';
+
+    container.classList.add('is-enhanced');
+    if (badge) badge.classList.remove('hidden');
+
+    const updateBadge = (index: number) => {
+      if (!badge) return;
+      badge.textContent = `${unidad} ${index + 1} de ${blocks.length}`;
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          entry.target.classList.toggle('is-active', entry.isIntersecting);
+          if (entry.isIntersecting) {
+            updateBadge(blocks.indexOf(entry.target as HTMLElement));
+          }
+        });
+      },
+      // Banda angosta en el centro vertical de la pantalla: se recorta un 38% arriba
+      // y un 38% abajo del viewport, dejando solo el ~24% central como área activa.
+      { rootMargin: '-38% 0px -38% 0px', threshold: 0.1 }
+    );
+
+    blocks.forEach((el) => {
+      el.classList.add(blockClass);
+      el.addEventListener('click', () => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      observer.observe(el);
+    });
+
+    updateBadge(0);
+  }
+</script>
+
+<style is:global>
+  /* Los elementos animados acá vienen del HTML que genera @astrojs/markdoc (via
+     <Content />), no de markup propio de este componente — el scoping de Astro no
+     llega de forma confiable ahí, por eso global + prefijo #entrada-content.
+
+     Mecanismos descartados en el camino: CSS Scroll Snap (Chromium reubicaba el
+     scroll al cargar la página, y trababa el scroll con incrementos de rueda
+     normales); rueda bloqueada + `position: fixed` al estilo de una plantilla de
+     referencia (funcionaba en pruebas automatizadas, pero en el uso real "se rompía
+     la diagramación" y no daba la sensación de lectura buscada). Este mecanismo usa
+     scroll 100% nativo, sin bloquear nada — solo CSS + un observer que alterna una
+     clase, adaptado de dos plantillas de referencia que el usuario aportó. */
+
+  /* El atenuado/blur SOLO aplica una vez que JS marcó el contenedor como potenciado
+     — así, sin JS o con prefers-reduced-motion, el texto se lee nítido de entrada. */
+  #entrada-content.is-enhanced .entrada-block,
+  #entrada-content.is-enhanced .entrada-verse {
+    cursor: pointer;
+    transition:
+      color 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      filter 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      text-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Prosa: bloque atenuado, con borde/fondo acento al enfocarse. */
+  #entrada-content.is-enhanced .entrada-block {
+    margin: 16vh 0;
+    padding: 1.25rem 1.5rem;
+    border-radius: 0.75rem;
+    border-left: 3px solid transparent;
+    color: rgb(var(--color-ink-muted));
+    filter: blur(2px);
+    transform: translateY(15px) scale(0.98);
+  }
+
+  #entrada-content.is-enhanced .entrada-block.is-active {
+    color: rgb(var(--color-bone));
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+    border-left-color: rgb(var(--color-accent));
+    background-color: rgb(var(--color-accent) / 0.06);
+  }
+
+  /* Poesía: verso centrado, con brillo (text-shadow) acento al enfocarse. */
+  #entrada-content.is-enhanced .entrada-verse {
+    margin: 14vh 0;
+    text-align: center;
+    font-size: clamp(1.2rem, 4vw, 2rem);
+    color: rgb(var(--color-ink-muted));
+    filter: blur(2px);
+    transform: translateY(10px) scale(0.95);
+  }
+
+  #entrada-content.is-enhanced .entrada-verse.is-active {
+    color: rgb(var(--color-ink));
+    filter: blur(0);
+    transform: translateY(0) scale(1.05);
+    text-shadow: 0 0 25px rgb(var(--color-accent) / 0.35);
+  }
+
+  /* Separadores de sección: Markdoc ya emite <hr> desde "* * *" en el contenido. */
+  #entrada-content.is-enhanced hr {
+    margin: 16vh auto;
+    width: min(20rem, 60%);
+    border: none;
+    text-align: center;
+    opacity: 0.5;
+  }
+
+  #entrada-content.is-enhanced hr::before {
+    content: '✦  ✦  ✦';
+    color: rgb(var(--color-accent));
+    letter-spacing: 0.5em;
+    font-size: 0.75rem;
+  }
+
+  #entrada-content.is-enhanced img {
+    display: block;
+    max-height: 70vh;
+    max-width: 100%;
+    margin-inline: auto;
+    object-fit: contain;
+  }
+
+  /* Padding superior/inferior generoso para que el primer y último bloque también
+     puedan llegar a la banda central de enfoque. */
+  #entrada-content.is-enhanced {
+    padding-block: 20vh;
+  }
+</style>

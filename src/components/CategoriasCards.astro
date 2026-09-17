@@ -151,17 +151,10 @@ const { categorias } = Astro.props;
        bloque de color detrás de esa transparencia en vez de dejar que se funda con
        el canvas de la página. */
     background: transparent;
-    border: 1px solid rgb(var(--color-ink) / 0.15);
-    transition: border-color 200ms ease;
     /* El pivote de rotación está muy por debajo de la card, dando el efecto de rueda
        (mismo truco que el abanico anterior, ahora sumado a `perspective` en el
        contenedor para que las cards de los costados se vean giradas en el espacio). */
     transform-origin: 50% 480%;
-  }
-
-  .categorias-wheel-card:hover,
-  .categorias-wheel-card:focus-visible {
-    border-color: rgb(var(--color-accent));
   }
 
   .categorias-wheel-card[data-wheel-hidden] {
@@ -253,33 +246,33 @@ const { categorias } = Astro.props;
 
   @media (min-width: 768px) {
     .categorias-wheel-stage {
-      height: 16.5rem;
+      height: 21.5rem;
     }
 
     .categorias-wheel-card {
-      width: 13rem;
-      margin-left: -6.5rem;
-      margin-top: -5.42rem;
+      width: 17rem;
+      margin-left: -8.5rem;
+      margin-top: -7.08rem;
     }
 
     .categorias-wheel-title {
-      font-size: 2rem;
+      font-size: 2.25rem;
     }
   }
 
   @media (min-width: 1024px) {
     .categorias-wheel-stage {
-      height: 20rem;
+      height: 27rem;
     }
 
     .categorias-wheel-card {
-      width: 16rem;
-      margin-left: -8rem;
-      margin-top: -6.67rem;
+      width: 21rem;
+      margin-left: -10.5rem;
+      margin-top: -8.75rem;
     }
 
     .categorias-wheel-title {
-      font-size: 2.5rem;
+      font-size: 2.75rem;
     }
   }
 </style>

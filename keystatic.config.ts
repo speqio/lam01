@@ -113,6 +113,29 @@ export default config({
           directory: 'public/images/entradas',
           publicPath: '/images/entradas/',
         }),
+        imagenesIndividuales: fields.array(
+          fields.object({
+            imagen: fields.image({
+              label: 'Imagen',
+              directory: 'public/images/entradas',
+              publicPath: '/images/entradas/',
+            }),
+            leyenda: fields.text({
+              label: 'Leyenda',
+              description: 'Opcional — se muestra debajo de la imagen.',
+            }),
+            posicion: fields.integer({
+              label: 'Posición',
+              description:
+                'Después de qué párrafo/verso va esta imagen, contando desde el primero (1). Vacío = al final de la entrada.',
+              validation: { min: 1 },
+            }),
+          }),
+          {
+            label: 'Imágenes individuales',
+            itemLabel: (props) => props.fields.leyenda.value || 'Imagen',
+          }
+        ),
         galeria: fields.array(
           fields.object({
             imagen: fields.image({
@@ -126,14 +149,14 @@ export default config({
             }),
           }),
           {
-            label: 'Galería',
+            label: 'Galería carrusel',
             itemLabel: (props) => props.fields.leyenda.value || 'Imagen',
           }
         ),
         galeriaPosicion: fields.integer({
-          label: 'Posición de la galería',
+          label: 'Posición del carrusel',
           description:
-            'Después de qué párrafo/verso del texto va la galería, contando desde el primero (1). Vacío = al final de la entrada.',
+            'Después de qué párrafo/verso del texto va el carrusel, contando desde el primero (1). Vacío = al final de la entrada.',
           validation: { min: 1 },
         }),
         extracto: fields.text({

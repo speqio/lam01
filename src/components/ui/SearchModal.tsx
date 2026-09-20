@@ -137,6 +137,8 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
               <input
                 ref={inputRef}
                 type="text"
+                id="buscador-sitio"
+                name="buscador-sitio"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Buscar por título, autor o texto..."

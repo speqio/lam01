@@ -2,6 +2,7 @@
 import { getCollection, getEntry, render } from 'astro:content';
 import PostLayout from '../../layouts/PostLayout.astro';
 import EntradaGaleria from '../../components/EntradaGaleria.astro';
+import EntradaImagen from '../../components/EntradaImagen.astro';
 import { normalizeTitleText } from '../../lib/text';
 
 export async function getStaticPaths() {
@@ -87,7 +88,6 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     id="entrada-content"
     class="drop-cap"
     data-categoria={categoria?.id ?? ''}
-    data-galeria-posicion={entrada.data.galeriaPosicion ?? ''}
   >
     <Content />
   </div>
@@ -109,8 +109,23 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
   </button>
 
   {
+    entrada.data.imagenesIndividuales?.map((item) => (
+      <EntradaImagen
+        imagen={item.imagen}
+        leyenda={item.leyenda}
+        posicion={item.posicion}
+        titulo={tituloEntrada}
+      />
+    ))
+  }
+
+  {
     entrada.data.galeria && entrada.data.galeria.length > 0 && (
-      <EntradaGaleria imagenes={entrada.data.galeria} titulo={tituloEntrada} />
+      <EntradaGaleria
+        imagenes={entrada.data.galeria}
+        titulo={tituloEntrada}
+        posicion={entrada.data.galeriaPosicion}
+      />
     )
   }
 
@@ -175,25 +190,37 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
   const badge = document.getElementById('entrada-progress-badge');
   const exitButton = document.getElementById('entrada-exit-reading');
   const enterButton = document.getElementById('entrada-enter-reading');
-  // La galería (EntradaGaleria.astro) vive por defecto fuera de #entrada-content, como
-  // su propio bloque al pie de la entrada. Si la entrada configuró "después de qué
-  // párrafo" va (data-galeria-posicion), se reubica ACÁ, antes de capturar
-  // originalBlocks más abajo, moviendo el nodo real (no clonándolo) para que su propio
-  // carrusel/listener de scroll siga andando tal cual una vez dentro del stage de
-  // lectura — el resto del mecanismo (fade en vez de tipeo, no auto-salir en ese
-  // bloque, dejarle el gesto al carrusel) no le importa en qué posición del array
-  // termine cayendo.
-  const galeriaEl = document.getElementById('entrada-galeria');
-  if (galeriaEl && blocksRoot) {
-    const posicion = Number(container?.dataset.galeriaPosicion);
-    if (Number.isInteger(posicion) && posicion >= 1 && posicion <= blocksRoot.children.length) {
-      blocksRoot.insertBefore(galeriaEl, blocksRoot.children[posicion]);
-    }
+  // Los bloques especiales (imágenes individuales de EntradaImagen.astro y el carrusel
+  // de EntradaGaleria.astro) viven por defecto fuera de #entrada-content, al pie de la
+  // entrada. Los que configuraron "después de qué párrafo" (data-posicion) se reubican
+  // ACÁ, antes de capturar originalBlocks más abajo, moviendo el nodo real (no
+  // clonándolo) para que el carrusel y su listener de scroll sigan andando tal cual una
+  // vez dentro del stage de lectura — el resto del mecanismo (fade en vez de tipeo, no
+  // auto-salir en un bloque especial, dejarle el gesto al carrusel) no le importa en qué
+  // posición del array termine cayendo. Varios en la misma posición conservan su orden
+  // en el DOM (cada uno se inserta antes del mismo nodo de referencia).
+  const especiales = Array.from(document.querySelectorAll<HTMLElement>('[data-bloque-especial]'));
+  const esEspecial = (el: Element | undefined): el is HTMLElement =>
+    !!el && especiales.includes(el as HTMLElement);
+  if (blocksRoot) {
+    const textos = Array.from(blocksRoot.children);
+    especiales.forEach((el) => {
+      const posicion = Number(el.dataset.posicion);
+      if (Number.isInteger(posicion) && posicion >= 1 && posicion <= textos.length) {
+        blocksRoot.insertBefore(el, textos[posicion] ?? null);
+      }
+    });
   }
   // Se captura recién ahora: si se reubicó arriba, "su lugar" para restaurar al salir
   // del modo lectura ya es el nuevo, dentro de blocksRoot.
-  const galeriaParent = galeriaEl?.parentElement ?? null;
-  const galeriaNextSibling = galeriaEl?.nextElementSibling ?? null;
+  const especialSitio = new Map(
+    especiales.map((el) => [el, { parent: el.parentElement, next: el.nextElementSibling }])
+  );
+  const sacarEspecialesDelStage = (stage: HTMLElement) => {
+    especiales.forEach((el) => {
+      if (stage.contains(el)) stage.removeChild(el);
+    });
+  };
   // Misma barra de progreso de PostLayout.astro (fija arriba de toda la página): en
   // modo normal la sigue actualizando su propio listener de scroll; en modo lectura
   // no hay scroll real (body queda con overflow:hidden), así que acá se pisa su ancho
@@ -204,7 +231,9 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     const originalBlocks = Array.from(blocksRoot.children) as HTMLElement[];
     // Si no se reubicó arriba (sin posición configurada), sigue afuera de blocksRoot —
     // se suma al final de la secuencia, comportamiento previo.
-    if (galeriaEl && !blocksRoot.contains(galeriaEl)) originalBlocks.push(galeriaEl);
+    especiales.forEach((el) => {
+      if (!blocksRoot.contains(el)) originalBlocks.push(el);
+    });
     const total = originalBlocks.length;
     const blockClass = esPoesia ? 'entrada-verse' : 'entrada-block';
     const unidad = esPoesia ? 'Verso' : 'Párrafo';
@@ -221,8 +250,9 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
 
       const updateBadge = () => {
         if (!badge || revealed === 0) return;
-        const esGaleria = originalBlocks[revealed - 1] === galeriaEl;
-        badge.textContent = `${esGaleria ? 'Galería' : unidad} ${revealed} de ${total}`;
+        const actual = originalBlocks[revealed - 1];
+        const etiqueta = esEspecial(actual) ? (actual.dataset.etiqueta ?? 'Imagen') : unidad;
+        badge.textContent = `${etiqueta} ${revealed} de ${total}`;
       };
 
       const updateReadingProgress = () => {
@@ -238,9 +268,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
       // reconstruye al salir, desde `originalBlocks`, más abajo) — alcanza con
       // desmontarla del stage sin destruirla.
       const clearStage = () => {
-        if (galeriaEl && stage.contains(galeriaEl)) {
-          stage.removeChild(galeriaEl);
-        }
+        sacarEspecialesDelStage(stage);
         stage.innerHTML = '';
       };
 
@@ -274,22 +302,21 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
         // por clearStage — ej. clic directo en "Salir"), sacarla primero sin
         // destruirla — blocksRoot!.innerHTML = '' de abajo se llevaría puesto el stage
         // entero, y con él el nodo real de la galería.
-        if (galeriaEl && stage.contains(galeriaEl)) {
-          stage.removeChild(galeriaEl);
-        }
+        sacarEspecialesDelStage(stage);
         // Al salir, se muestran todos los bloques originales en flujo normal — tanto
         // los ya revelados con tipeo como los que faltaban. Si la galería tenía
         // posición configurada (es hija real de blocksRoot), originalBlocks ya la
         // tiene en el índice correcto y se reinserta ahí sin más, en orden, junto con
         // el resto; si no, se reinserta afuera, en su lugar original
-        // (galeriaParent/galeriaNextSibling — capturados ANTES de que arrancara el
+        // (especialSitio — capturado ANTES de que arrancara el
         // modo lectura, cuando ese contenedor todavía no se había tocado, así que esa
         // referencia sigue siendo válida).
         blocksRoot!.innerHTML = '';
         originalBlocks.forEach((el) => {
           el.classList.remove('entrada-reading-block', 'entrada-reading-fade');
-          if (el === galeriaEl && galeriaParent !== blocksRoot) {
-            galeriaParent?.insertBefore(el, galeriaNextSibling);
+          const sitio = especialSitio.get(el);
+          if (sitio && sitio.parent !== blocksRoot) {
+            sitio.parent?.insertBefore(el, sitio.next);
           } else {
             blocksRoot!.appendChild(el);
           }
@@ -312,7 +339,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
         // sentido. Tampoco se auto-sale del modo lectura al terminar de aparecer (a
         // diferencia del texto): el usuario tiene que poder seguir usando el carrusel
         // el tiempo que quiera antes de salir (botón o un gesto más).
-        if (source === galeriaEl) {
+        if (esEspecial(source)) {
           clearStage();
           source.classList.add('entrada-reading-block', 'entrada-reading-fade');
           stage.appendChild(source);
@@ -361,7 +388,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
         revealed -= 1;
         const source = originalBlocks[revealed - 1];
 
-        if (source === galeriaEl) {
+        if (esEspecial(source)) {
           clearStage();
           source.classList.add('entrada-reading-block', 'entrada-reading-fade');
           stage.appendChild(source);

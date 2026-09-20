@@ -2,7 +2,7 @@
 import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
 
 /**
- * Galería de una entrada: dinámica según cuántas imágenes haya.
+ * Galería carrusel de una entrada: dinámica según cuántas imágenes haya.
  * - 1 imagen: se muestra sola, sin grid ni carrusel — la leyenda (si tiene) va igual.
  * - 2+ imágenes: grilla en desktop, carrusel horizontal en mobile con scroll-snap
  *   NATIVO (mismo patrón que NumeroSequence.astro — nada de Draggable/Observer
@@ -18,16 +18,22 @@ interface GaleriaItem {
 interface Props {
   imagenes: GaleriaItem[];
   titulo: string;
+  /** Después de qué párrafo/verso va (desde 1); sin valor, al final de la entrada. */
+  posicion?: number;
 }
 
-const { imagenes: items, titulo } = Astro.props;
+const { imagenes: items, titulo, posicion } = Astro.props;
 ---
 
 {
   items.length > 0 && (
-    <div id="entrada-galeria" class="not-prose mt-12">
-      <h2 class="mb-4 font-headline text-2xl text-ink">Galería</h2>
-
+    <div
+      id="entrada-galeria"
+      class="not-prose my-10"
+      data-bloque-especial
+      data-etiqueta="Galería"
+      data-posicion={posicion ?? ''}
+    >
       {items.length === 1 ? (
         <figure>
           <div class="relative aspect-[16/9] w-full overflow-hidden border border-ink/15">

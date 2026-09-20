@@ -1,0 +1,29 @@
+---
+/**
+ * Imagen individual de una entrada, con su propia posición ("después de qué párrafo/verso",
+ * contando desde 1; sin valor, al final). Comparte el mecanismo de bloques especiales de
+ * EntradaGaleria.astro: `data-bloque-especial` + `data-posicion` los lee el script de
+ * `entrada/[slug].astro` para reubicarla en el texto y tratarla como un bloque más del
+ * modo lectura.
+ */
+interface Props {
+  imagen: string;
+  leyenda?: string;
+  posicion?: number;
+  titulo: string;
+}
+
+const { imagen, leyenda, posicion, titulo } = Astro.props;
+---
+
+<figure
+  class="not-prose my-10"
+  data-bloque-especial
+  data-etiqueta="Imagen"
+  data-posicion={posicion ?? ''}
+>
+  <div class="relative aspect-[16/9] w-full overflow-hidden border border-ink/15">
+    <img src={imagen} alt={leyenda || titulo} class="h-full w-full object-cover grayscale contrast-125" />
+  </div>
+  {leyenda && <figcaption class="mt-2 font-mono text-xs text-ink-muted">{leyenda}</figcaption>}
+</figure>

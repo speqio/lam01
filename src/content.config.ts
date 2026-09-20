@@ -48,6 +48,16 @@ const entradas = defineCollection({
     // Después de qué bloque (párrafo/verso, contando desde 1) del cuerpo va la
     // galería — sin valor, se mantiene al final de la entrada (comportamiento previo).
     galeriaPosicion: z.number().int().min(1).optional(),
+    // Imágenes sueltas, cada una con su propia posición (mismo criterio que galeriaPosicion).
+    imagenesIndividuales: z
+      .array(
+        z.object({
+          imagen: z.string(),
+          leyenda: z.string().optional(),
+          posicion: z.number().int().min(1).optional(),
+        })
+      )
+      .optional(),
     extracto: z.string(),
     metaTitulo: z.string().optional(),
     metaDescripcion: z.string().optional(),

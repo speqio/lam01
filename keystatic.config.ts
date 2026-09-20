@@ -114,21 +114,28 @@ export default config({
           publicPath: '/images/entradas/',
         }),
         galeria: fields.array(
-          fields.image({
-            label: 'Imagen',
-            directory: 'public/images/entradas',
-            publicPath: '/images/entradas/',
+          fields.object({
+            imagen: fields.image({
+              label: 'Imagen',
+              directory: 'public/images/entradas',
+              publicPath: '/images/entradas/',
+            }),
+            leyenda: fields.text({
+              label: 'Leyenda',
+              description: 'Opcional — se muestra debajo de la imagen.',
+            }),
           }),
           {
             label: 'Galería',
-            itemLabel: (props) => {
-              const value = props.value;
-              return value && typeof value === 'object' && 'filename' in value
-                ? value.filename || 'Imagen'
-                : 'Imagen';
-            },
+            itemLabel: (props) => props.fields.leyenda.value || 'Imagen',
           }
         ),
+        galeriaPosicion: fields.integer({
+          label: 'Posición de la galería',
+          description:
+            'Después de qué párrafo/verso del texto va la galería, contando desde el primero (1). Vacío = al final de la entrada.',
+          validation: { min: 1 },
+        }),
         extracto: fields.text({
           label: 'Extracto',
           multiline: true,

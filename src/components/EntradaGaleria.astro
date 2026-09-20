@@ -1,0 +1,188 @@
+---
+import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
+
+/**
+ * Galería de una entrada: dinámica según cuántas imágenes haya.
+ * - 1 imagen: se muestra sola, sin grid ni carrusel — la leyenda (si tiene) va igual.
+ * - 2+ imágenes: grilla en desktop, carrusel horizontal en mobile con scroll-snap
+ *   NATIVO (mismo patrón que NumeroSequence.astro — nada de Draggable/Observer
+ *   controlando el carril, ver el comentario ahí sobre por qué se descartó la física
+ *   de arrastre hecha a mano) + el mismo indicador "dial" (`src/lib/dialNav.ts`).
+ *
+ * `galeria` en el content collection es una unión transitoria (string | {imagen,
+ * leyenda}) mientras conviven entradas migradas y sin migrar — acá se normalizan
+ * ambas formas antes de renderizar.
+ */
+interface GaleriaItemRaw {
+  imagen: string;
+  leyenda?: string;
+}
+
+interface Props {
+  imagenes: (string | GaleriaItemRaw)[];
+  titulo: string;
+}
+
+const { imagenes, titulo } = Astro.props;
+
+const items = imagenes.map((item): GaleriaItemRaw =>
+  typeof item === 'string' ? { imagen: item } : item
+);
+---
+
+{
+  items.length > 0 && (
+    <div id="entrada-galeria" class="not-prose mt-12">
+      <h2 class="mb-4 font-headline text-2xl text-ink">Galería</h2>
+
+      {items.length === 1 ? (
+        <figure>
+          <div class="relative aspect-[16/9] w-full overflow-hidden border border-ink/15">
+            <img
+              src={items[0].imagen}
+              alt={titulo}
+              class="h-full w-full object-cover grayscale contrast-125"
+            />
+          </div>
+          {items[0].leyenda && (
+            <figcaption class="mt-2 font-mono text-xs text-ink-muted">{items[0].leyenda}</figcaption>
+          )}
+        </figure>
+      ) : (
+        <>
+          {/* Desktop: grilla estática, cada celda con su leyenda debajo. */}
+          <div class="hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-3">
+            {items.map((item) => (
+              <figure>
+                <div class="relative aspect-square overflow-hidden border border-ink/15">
+                  <img
+                    src={item.imagen}
+                    alt={titulo}
+                    class="h-full w-full object-cover grayscale contrast-125"
+                  />
+                </div>
+                {item.leyenda && (
+                  <figcaption class="mt-2 font-mono text-xs text-ink-muted">{item.leyenda}</figcaption>
+                )}
+              </figure>
+            ))}
+          </div>
+
+          {/* Mobile: carrusel horizontal con scroll-snap nativo (ver docstring). */}
+          <div class="md:hidden">
+            <div
+              class="entrada-galeria-carousel flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2"
+              data-galeria-scroll
+            >
+              {items.map((item) => (
+                <div
+                  class="w-[85vw] max-w-sm shrink-0 snap-center"
+                  data-galeria-slide
+                  data-leyenda={item.leyenda ?? ''}
+                >
+                  <div class="relative aspect-square overflow-hidden border border-ink/15">
+                    <img
+                      src={item.imagen}
+                      alt={titulo}
+                      class="h-full w-full object-cover grayscale contrast-125"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p
+              class="mt-2 min-h-[1.2em] text-center font-mono text-xs text-ink-muted"
+              data-galeria-caption
+            />
+
+            <div class={dialWrap}>
+              <span class={dialCount} data-dial-count>
+                {`01 / ${String(items.length).padStart(2, '0')}`}
+              </span>
+              <div class={dialTrack}>
+                <div class={dialThumb} data-dial-thumb />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+<style>
+  /* Oculta la scrollbar nativa del carril horizontal en mobile — cosmético, el gesto
+     de scroll sigue siendo el nativo del navegador (mismo criterio que
+     NumeroSequence.astro). */
+  .entrada-galeria-carousel {
+    scrollbar-width: none;
+  }
+
+  .entrada-galeria-carousel::-webkit-scrollbar {
+    display: none;
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap';
+
+  /**
+   * Puramente observador del scroll nativo (igual que NumeroSequence.astro): mueve el
+   * thumb del dial y actualiza el contador + la leyenda de la imagen activa según
+   * `scrollLeft`. Nada de Draggable/Observer controlando el carril.
+   *
+   * Se inicializa siempre (no solo en mobile): si el modo lectura de la entrada mueve
+   * este mismo nodo al centro de la pantalla, el carrusel debe seguir andando ahí sin
+   * reinicializarse — este listener queda armado sobre el elemento real desde el
+   * principio, se mueva a donde se mueva.
+   */
+  const galeria = document.getElementById('entrada-galeria');
+  const scrollEl = galeria?.querySelector<HTMLElement>('[data-galeria-scroll]');
+  const thumb = galeria?.querySelector<HTMLElement>('[data-dial-thumb]');
+  const countEl = galeria?.querySelector<HTMLElement>('[data-dial-count]');
+  const captionEl = galeria?.querySelector<HTMLElement>('[data-galeria-caption]');
+  const slides = galeria ? Array.from(galeria.querySelectorAll<HTMLElement>('[data-galeria-slide]')) : [];
+
+  if (scrollEl && thumb && slides.length > 1) {
+    const total = slides.length;
+    const track = thumb.parentElement as HTMLElement;
+    thumb.style.width = `${100 / total}%`;
+
+    const updateDial = () => {
+      const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+      const ratio = maxScroll > 0 ? scrollEl.scrollLeft / maxScroll : 0;
+      const trackWidth = track.clientWidth;
+      const thumbWidth = trackWidth / total;
+      const x = ratio * (trackWidth - thumbWidth);
+
+      gsap.to(thumb, { x, duration: 0.2, ease: 'power2.out', overwrite: true });
+
+      const activeIndex = Math.round(ratio * (total - 1));
+      if (countEl) {
+        countEl.textContent = `${String(activeIndex + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
+      }
+      if (captionEl) {
+        captionEl.textContent = slides[activeIndex]?.dataset.leyenda ?? '';
+      }
+    };
+
+    let ticking = false;
+    scrollEl.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          updateDial();
+          ticking = false;
+        });
+      },
+      { passive: true }
+    );
+
+    updateDial();
+  } else if (captionEl && slides.length === 1) {
+    captionEl.textContent = slides[0]?.dataset.leyenda ?? '';
+  }
+</script>

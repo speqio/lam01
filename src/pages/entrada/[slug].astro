@@ -1,6 +1,7 @@
 ---
 import { getCollection, getEntry, render } from 'astro:content';
 import PostLayout from '../../layouts/PostLayout.astro';
+import EntradaGaleria from '../../components/EntradaGaleria.astro';
 import { normalizeTitleText } from '../../lib/text';
 
 export async function getStaticPaths() {
@@ -82,7 +83,12 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     </button>
   </div>
 
-  <div id="entrada-content" class="drop-cap" data-categoria={categoria?.id ?? ''}>
+  <div
+    id="entrada-content"
+    class="drop-cap"
+    data-categoria={categoria?.id ?? ''}
+    data-galeria-posicion={entrada.data.galeriaPosicion ?? ''}
+  >
     <Content />
   </div>
 
@@ -104,20 +110,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
 
   {
     entrada.data.galeria && entrada.data.galeria.length > 0 && (
-      <div class="not-prose mt-12">
-        <h2 class="mb-4 font-headline text-2xl text-ink">Galería</h2>
-        <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
-          {entrada.data.galeria.map((imagen) => (
-            <div class="relative aspect-square overflow-hidden border border-ink/15">
-              <img
-                src={imagen}
-                alt={tituloEntrada}
-                class="h-full w-full object-cover grayscale contrast-125"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      <EntradaGaleria imagenes={entrada.data.galeria} titulo={tituloEntrada} />
     )
   }
 
@@ -182,6 +175,25 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
   const badge = document.getElementById('entrada-progress-badge');
   const exitButton = document.getElementById('entrada-exit-reading');
   const enterButton = document.getElementById('entrada-enter-reading');
+  // La galería (EntradaGaleria.astro) vive por defecto fuera de #entrada-content, como
+  // su propio bloque al pie de la entrada. Si la entrada configuró "después de qué
+  // párrafo" va (data-galeria-posicion), se reubica ACÁ, antes de capturar
+  // originalBlocks más abajo, moviendo el nodo real (no clonándolo) para que su propio
+  // carrusel/listener de scroll siga andando tal cual una vez dentro del stage de
+  // lectura — el resto del mecanismo (fade en vez de tipeo, no auto-salir en ese
+  // bloque, dejarle el gesto al carrusel) no le importa en qué posición del array
+  // termine cayendo.
+  const galeriaEl = document.getElementById('entrada-galeria');
+  if (galeriaEl && blocksRoot) {
+    const posicion = Number(container?.dataset.galeriaPosicion);
+    if (Number.isInteger(posicion) && posicion >= 1 && posicion <= blocksRoot.children.length) {
+      blocksRoot.insertBefore(galeriaEl, blocksRoot.children[posicion]);
+    }
+  }
+  // Se captura recién ahora: si se reubicó arriba, "su lugar" para restaurar al salir
+  // del modo lectura ya es el nuevo, dentro de blocksRoot.
+  const galeriaParent = galeriaEl?.parentElement ?? null;
+  const galeriaNextSibling = galeriaEl?.nextElementSibling ?? null;
   // Misma barra de progreso de PostLayout.astro (fija arriba de toda la página): en
   // modo normal la sigue actualizando su propio listener de scroll; en modo lectura
   // no hay scroll real (body queda con overflow:hidden), así que acá se pisa su ancho
@@ -190,6 +202,9 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
 
   if (container && blocksRoot && exitButton && enterButton) {
     const originalBlocks = Array.from(blocksRoot.children) as HTMLElement[];
+    // Si no se reubicó arriba (sin posición configurada), sigue afuera de blocksRoot —
+    // se suma al final de la secuencia, comportamiento previo.
+    if (galeriaEl && !blocksRoot.contains(galeriaEl)) originalBlocks.push(galeriaEl);
     const total = originalBlocks.length;
     const blockClass = esPoesia ? 'entrada-verse' : 'entrada-block';
     const unidad = esPoesia ? 'Verso' : 'Párrafo';
@@ -206,12 +221,27 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
 
       const updateBadge = () => {
         if (!badge || revealed === 0) return;
-        badge.textContent = `${unidad} ${revealed} de ${total}`;
+        const esGaleria = originalBlocks[revealed - 1] === galeriaEl;
+        badge.textContent = `${esGaleria ? 'Galería' : unidad} ${revealed} de ${total}`;
       };
 
       const updateReadingProgress = () => {
         if (!readingProgressBar) return;
         readingProgressBar.style.width = `${(revealed / total) * 100}%`;
+      };
+
+      // `stage.innerHTML = ''` destruiría el nodo real de la galería si es lo que
+      // está montado ahí en ese momento (a diferencia de los bloques de texto, que
+      // siempre son copias descartables) — hay que sacarla primero, no borrarla. No
+      // hace falta reinsertarla en ningún lado todavía: mientras dura la sesión de
+      // lectura, blocksRoot solo contiene el `stage` (su posición real recién se
+      // reconstruye al salir, desde `originalBlocks`, más abajo) — alcanza con
+      // desmontarla del stage sin destruirla.
+      const clearStage = () => {
+        if (galeriaEl && stage.contains(galeriaEl)) {
+          stage.removeChild(galeriaEl);
+        }
+        stage.innerHTML = '';
       };
 
       const enterReadingMode = () => {
@@ -240,12 +270,29 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
           enterButton!.classList.remove('hidden');
           enterButton!.classList.add('flex');
         }
-        // Al salir, se muestran todos los bloques originales en flujo normal —
-        // tanto los ya revelados con tipeo como los que faltaban.
+        // Si la galería está montada en el stage en este momento (se salió sin pasar
+        // por clearStage — ej. clic directo en "Salir"), sacarla primero sin
+        // destruirla — blocksRoot!.innerHTML = '' de abajo se llevaría puesto el stage
+        // entero, y con él el nodo real de la galería.
+        if (galeriaEl && stage.contains(galeriaEl)) {
+          stage.removeChild(galeriaEl);
+        }
+        // Al salir, se muestran todos los bloques originales en flujo normal — tanto
+        // los ya revelados con tipeo como los que faltaban. Si la galería tenía
+        // posición configurada (es hija real de blocksRoot), originalBlocks ya la
+        // tiene en el índice correcto y se reinserta ahí sin más, en orden, junto con
+        // el resto; si no, se reinserta afuera, en su lugar original
+        // (galeriaParent/galeriaNextSibling — capturados ANTES de que arrancara el
+        // modo lectura, cuando ese contenedor todavía no se había tocado, así que esa
+        // referencia sigue siendo válida).
         blocksRoot!.innerHTML = '';
         originalBlocks.forEach((el) => {
-          el.classList.remove('entrada-reading-block');
-          blocksRoot!.appendChild(el);
+          el.classList.remove('entrada-reading-block', 'entrada-reading-fade');
+          if (el === galeriaEl && galeriaParent !== blocksRoot) {
+            galeriaParent?.insertBefore(el, galeriaNextSibling);
+          } else {
+            blocksRoot!.appendChild(el);
+          }
         });
         // Le devuelve el control de la barra a su propio listener de scroll
         // (PostLayout.astro), que la recalcula según la posición real ya restaurada.
@@ -258,10 +305,32 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
           return;
         }
         const source = originalBlocks[revealed];
+
+        // La galería es un bloque especial: se mueve el nodo REAL (no una copia por
+        // innerHTML) para no perder su carrusel/listener de scroll ya armado, y
+        // aparece con un fade simple — tipear una imagen letra por letra no tiene
+        // sentido. Tampoco se auto-sale del modo lectura al terminar de aparecer (a
+        // diferencia del texto): el usuario tiene que poder seguir usando el carrusel
+        // el tiempo que quiera antes de salir (botón o un gesto más).
+        if (source === galeriaEl) {
+          clearStage();
+          source.classList.add('entrada-reading-block', 'entrada-reading-fade');
+          stage.appendChild(source);
+          revealed += 1;
+          updateBadge();
+          updateReadingProgress();
+          gsap.fromTo(
+            source,
+            { opacity: 0 },
+            { opacity: 1, duration: prefersReducedMotion ? 0 : 0.6, ease: 'power2.out' }
+          );
+          return;
+        }
+
         const el = document.createElement(source.tagName.toLowerCase());
         el.className = `${blockClass} entrada-reading-block`;
 
-        stage.innerHTML = '';
+        clearStage();
         stage.appendChild(el);
 
         revealed += 1;
@@ -291,10 +360,20 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
         if (isWriting || revealed <= 1) return;
         revealed -= 1;
         const source = originalBlocks[revealed - 1];
+
+        if (source === galeriaEl) {
+          clearStage();
+          source.classList.add('entrada-reading-block', 'entrada-reading-fade');
+          stage.appendChild(source);
+          updateBadge();
+          updateReadingProgress();
+          return;
+        }
+
         const el = document.createElement(source.tagName.toLowerCase());
         el.className = `${blockClass} entrada-reading-block`;
         el.innerHTML = source.innerHTML;
-        stage.innerHTML = '';
+        clearStage();
         stage.appendChild(el);
         updateBadge();
         updateReadingProgress();
@@ -340,6 +419,11 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
         target: container,
         type: 'touch,pointer',
         onChange: (self) => {
+          // El carrusel de la galería (si está activo) tiene su propio scroll
+          // horizontal nativo — un swipe que empieza ahí no debe avanzar/retroceder
+          // de bloque, se le deja el gesto entero al carrusel.
+          const target = self.event?.target as HTMLElement | null;
+          if (target?.closest('.entrada-galeria-carousel')) return;
           if (readingActive) self.event?.preventDefault();
           step(-self.deltaY);
         },
@@ -382,6 +466,24 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     max-width: 60ch;
     max-height: 80vh;
     overflow: hidden;
+  }
+
+  /* La galería (imagen suelta o grilla/carrusel) necesita más ancho que una columna
+     de texto — se ensancha el stage solo cuando el bloque activo es el de galería. */
+  #entrada-content.is-reading-mode .entrada-reading-stage:has(.entrada-reading-fade) {
+    max-width: min(90vw, 70rem);
+  }
+
+  /* El bloque de galería no lleva tipografía de lectura — es la misma
+     EntradaGaleria.astro de siempre, solo que centrada y con fade en vez de tipeo. */
+  .entrada-reading-fade {
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .entrada-reading-fade h2 {
+    display: none;
   }
 
   /* Prosa: bloque centrado en el stage. */

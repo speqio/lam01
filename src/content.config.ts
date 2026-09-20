@@ -42,12 +42,9 @@ const entradas = defineCollection({
     autor: z.string(),
     categoria: z.string(),
     portada: z.string().optional(),
-    // Unión transitoria: la mayoría de las entradas todavía tienen `galeria` como
-    // array de strings (forma vieja); las que ya se editaron con leyenda usan la forma
-    // nueva. EntradaGaleria.astro normaliza ambas formas al renderizar.
-    galeria: z
-      .array(z.union([z.string(), z.object({ imagen: z.string(), leyenda: z.string().optional() })]))
-      .optional(),
+    // Todas las entradas ya migradas a esta forma (script de migración, ver commit) —
+    // coincide con el campo de Keystatic (fields.array(fields.object({imagen, leyenda}))).
+    galeria: z.array(z.object({ imagen: z.string(), leyenda: z.string().optional() })).optional(),
     // Después de qué bloque (párrafo/verso, contando desde 1) del cuerpo va la
     // galería — sin valor, se mantiene al final de la entrada (comportamiento previo).
     galeriaPosicion: z.number().int().min(1).optional(),

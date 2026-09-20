@@ -9,25 +9,18 @@ import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
  *   controlando el carril, ver el comentario ahí sobre por qué se descartó la física
  *   de arrastre hecha a mano) + el mismo indicador "dial" (`src/lib/dialNav.ts`).
  *
- * `galeria` en el content collection es una unión transitoria (string | {imagen,
- * leyenda}) mientras conviven entradas migradas y sin migrar — acá se normalizan
- * ambas formas antes de renderizar.
  */
-interface GaleriaItemRaw {
+interface GaleriaItem {
   imagen: string;
   leyenda?: string;
 }
 
 interface Props {
-  imagenes: (string | GaleriaItemRaw)[];
+  imagenes: GaleriaItem[];
   titulo: string;
 }
 
-const { imagenes, titulo } = Astro.props;
-
-const items = imagenes.map((item): GaleriaItemRaw =>
-  typeof item === 'string' ? { imagen: item } : item
-);
+const { imagenes: items, titulo } = Astro.props;
 ---
 
 {

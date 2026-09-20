@@ -8,12 +8,13 @@
  */
 interface Props {
   imagen: string;
+  alt?: string;
   leyenda?: string;
   posicion?: number;
   titulo: string;
 }
 
-const { imagen, leyenda, posicion, titulo } = Astro.props;
+const { imagen, alt, leyenda, posicion, titulo } = Astro.props;
 ---
 
 <figure
@@ -23,7 +24,7 @@ const { imagen, leyenda, posicion, titulo } = Astro.props;
   data-posicion={posicion ?? ''}
 >
   <div class="relative aspect-[16/9] w-full overflow-hidden border border-ink/15">
-    <img src={imagen} alt={leyenda || titulo} class="h-full w-full object-cover grayscale contrast-125" />
+    <img src={imagen} alt={alt || leyenda || titulo} class="h-full w-full object-cover grayscale contrast-125" />
   </div>
   {leyenda && <figcaption class="mt-2 font-mono text-xs text-ink-muted">{leyenda}</figcaption>}
 </figure>

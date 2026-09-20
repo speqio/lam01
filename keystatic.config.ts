@@ -113,6 +113,11 @@ export default config({
           directory: 'public/images/entradas',
           publicPath: '/images/entradas/',
         }),
+        portadaAlt: fields.text({
+          label: 'Portada: texto alternativo (SEO)',
+          description:
+            'Describe la portada para buscadores y lectores de pantalla (qué se ve, no el título). Si se deja vacío se usa el título de la entrada.',
+        }),
         imagenesIndividuales: fields.array(
           fields.object({
             imagen: fields.image({
@@ -120,14 +125,19 @@ export default config({
               directory: 'public/images/entradas',
               publicPath: '/images/entradas/',
             }),
+            alt: fields.text({
+              label: 'Texto alternativo (SEO)',
+              description:
+                'Describe la imagen para buscadores y lectores de pantalla (qué se ve, no el título). Si se deja vacío se usa la leyenda o el título de la entrada.',
+            }),
             leyenda: fields.text({
               label: 'Leyenda',
               description: 'Opcional — se muestra debajo de la imagen.',
             }),
             posicion: fields.integer({
-              label: 'Posición',
+              label: 'Después del párrafo número',
               description:
-                'Después de qué párrafo/verso va esta imagen, contando desde el primero (1). Vacío = al final de la entrada.',
+                'Cuenta cada párrafo, verso, subtítulo o separador del texto en orden, empezando en 1: con 3, va justo después del tercero. Las imágenes del propio texto también cuentan. Vacío = al final de la entrada.',
               validation: { min: 1 },
             }),
           }),
@@ -143,6 +153,11 @@ export default config({
               directory: 'public/images/entradas',
               publicPath: '/images/entradas/',
             }),
+            alt: fields.text({
+              label: 'Texto alternativo (SEO)',
+              description:
+                'Describe la imagen para buscadores y lectores de pantalla (qué se ve, no el título). Si se deja vacío se usa la leyenda o el título de la entrada.',
+            }),
             leyenda: fields.text({
               label: 'Leyenda',
               description: 'Opcional — se muestra debajo de la imagen.',
@@ -154,9 +169,9 @@ export default config({
           }
         ),
         galeriaPosicion: fields.integer({
-          label: 'Posición del carrusel',
+          label: 'Carrusel: después del párrafo número',
           description:
-            'Después de qué párrafo/verso del texto va el carrusel, contando desde el primero (1). Vacío = al final de la entrada.',
+            'Cuenta cada párrafo, verso, subtítulo o separador del texto en orden, empezando en 1: con 3, va justo después del tercero. Las imágenes del propio texto también cuentan. Vacío = al final de la entrada.',
           validation: { min: 1 },
         }),
         extracto: fields.text({

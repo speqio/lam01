@@ -42,9 +42,10 @@ const entradas = defineCollection({
     autor: z.string(),
     categoria: z.string(),
     portada: z.string().optional(),
+    portadaAlt: z.string().optional(),
     // Todas las entradas ya migradas a esta forma (script de migración, ver commit) —
     // coincide con el campo de Keystatic (fields.array(fields.object({imagen, leyenda}))).
-    galeria: z.array(z.object({ imagen: z.string(), leyenda: z.string().optional() })).optional(),
+    galeria: z.array(z.object({ imagen: z.string(), alt: z.string().optional(), leyenda: z.string().optional() })).optional(),
     // Después de qué bloque (párrafo/verso, contando desde 1) del cuerpo va la
     // galería — sin valor, se mantiene al final de la entrada (comportamiento previo).
     galeriaPosicion: z.number().int().min(1).optional(),
@@ -53,6 +54,7 @@ const entradas = defineCollection({
       .array(
         z.object({
           imagen: z.string(),
+          alt: z.string().optional(),
           leyenda: z.string().optional(),
           posicion: z.number().int().min(1).optional(),
         })

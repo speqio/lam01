@@ -36,6 +36,7 @@ export interface ArchivoCatalogoItem {
   authorName: string;
   categoryName: string;
   coverImage?: string;
+  coverAlt?: string;
   anio: number;
   categoriaSlug: string;
   numeroSlug: string;
@@ -163,6 +164,7 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
               categoryName={item.categoryName}
               slug={item.slug}
               coverImage={item.coverImage}
+              coverAlt={item.coverAlt}
             />
           </div>
         ))}

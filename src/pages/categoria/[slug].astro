@@ -64,6 +64,7 @@ const todasLasCategorias = await getCollection('categorias');
           categoryName={categoria.data.nombre}
           slug={entrada.id}
           coverImage={entrada.data.portada}
+          coverAlt={entrada.data.portadaAlt}
         />
       ))
     }

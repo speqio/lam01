@@ -26,6 +26,7 @@ const catalogoItems = entradasConRelaciones.map(({ entrada, autor, categoria }) 
   authorName: autor?.data.nombre ?? '',
   categoryName: categoria?.data.nombre ?? '',
   coverImage: entrada.data.portada,
+  coverAlt: entrada.data.portadaAlt,
   anio: entrada.data.fecha.getUTCFullYear(),
   categoriaSlug: categoria?.id ?? '',
   numeroSlug: entrada.data.numero,

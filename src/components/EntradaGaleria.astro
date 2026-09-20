@@ -12,6 +12,7 @@ import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
  */
 interface GaleriaItem {
   imagen: string;
+  alt?: string;
   leyenda?: string;
 }
 
@@ -39,7 +40,7 @@ const { imagenes: items, titulo, posicion } = Astro.props;
           <div class="relative aspect-[16/9] w-full overflow-hidden border border-ink/15">
             <img
               src={items[0].imagen}
-              alt={titulo}
+              alt={items[0].alt || items[0].leyenda || titulo}
               class="h-full w-full object-cover grayscale contrast-125"
             />
           </div>
@@ -56,7 +57,7 @@ const { imagenes: items, titulo, posicion } = Astro.props;
                 <div class="relative aspect-square overflow-hidden border border-ink/15">
                   <img
                     src={item.imagen}
-                    alt={titulo}
+                    alt={item.alt || item.leyenda || titulo}
                     class="h-full w-full object-cover grayscale contrast-125"
                   />
                 </div>
@@ -82,7 +83,7 @@ const { imagenes: items, titulo, posicion } = Astro.props;
                   <div class="relative aspect-square overflow-hidden border border-ink/15">
                     <img
                       src={item.imagen}
-                      alt={titulo}
+                      alt={item.alt || item.leyenda || titulo}
                       class="h-full w-full object-cover grayscale contrast-125"
                     />
                   </div>

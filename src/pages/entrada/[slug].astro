@@ -61,16 +61,12 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     </p>
   </header>
 
+  {/* La portada no se muestra en la entrada: solo sirve de metadato para la búsqueda
+      (Pagefind) y como imagen de las cards. Queda como <img> oculta para que Pagefind
+      siga leyendo su src. */}
   {
     entrada.data.portada && (
-      <div class="not-prose relative mb-10 aspect-[16/9] w-full overflow-hidden border border-ink/15">
-        <img
-          src={entrada.data.portada}
-          alt={tituloEntrada}
-          data-pagefind-meta="image[src]"
-          class="h-full w-full object-cover grayscale contrast-125"
-        />
-      </div>
+      <img src={entrada.data.portada} alt={entrada.data.portadaAlt || tituloEntrada} hidden loading="lazy" data-pagefind-meta="image[src]" />
     )
   }
 
@@ -112,6 +108,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     entrada.data.imagenesIndividuales?.map((item) => (
       <EntradaImagen
         imagen={item.imagen}
+        alt={item.alt}
         leyenda={item.leyenda}
         posicion={item.posicion}
         titulo={tituloEntrada}

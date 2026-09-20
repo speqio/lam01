@@ -39,6 +39,7 @@ interface EntryCardProps {
   categoryName: string;
   slug: string;
   coverImage?: string;
+  coverAlt?: string;
 }
 
 export default function EntryCard({
@@ -47,6 +48,7 @@ export default function EntryCard({
   categoryName,
   slug,
   coverImage,
+  coverAlt,
 }: EntryCardProps) {
   const ref = useRef<HTMLAnchorElement>(null);
 
@@ -78,7 +80,7 @@ export default function EntryCard({
   return (
     <a ref={ref} href={`/entrada/${slug}`} className={`entry-card-reveal ${cardShell}`}>
       <div className={cardImageWrap}>
-        {coverImage && <img src={coverImage} alt={normalizedTitle} className={cardImage} />}
+        {coverImage && <img src={coverImage} alt={coverAlt || normalizedTitle} className={cardImage} />}
         <span className={cardBadge}>{categoryName}</span>
       </div>
 

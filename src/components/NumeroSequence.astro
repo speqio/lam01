@@ -19,9 +19,11 @@ interface Props {
   entradas: EntradaItem[];
   /** Usa el título tal cual (p. ej. un nombre propio), sin pasarlo a minúsculas de oración. */
   tituloLiteral?: boolean;
+  /** La descripción se muestra siempre completa (sin plegarse ni desvanecerse al recorrer las cards). */
+  descripcionCompleta?: boolean;
 }
 
-const { titulo, descripcion, fechaFormateada, entradas, tituloLiteral = false } = Astro.props;
+const { titulo, descripcion, fechaFormateada, entradas, tituloLiteral = false, descripcionCompleta = false } = Astro.props;
 const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
   ? { titulo, subtitulo: '' }
   : splitNumeroTitle(titulo);
@@ -43,7 +45,7 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
     }
     {
       descripcion && (
-        <p class="numero-sequence-desc mx-auto mt-4 max-w-md overflow-hidden font-serif text-ink-muted md:mx-0">
+        <p class:list={['numero-sequence-desc mx-auto mt-4 max-w-md overflow-hidden whitespace-pre-line font-serif text-ink-muted md:mx-0', { 'numero-sequence-desc--completa': descripcionCompleta }]}>
           {descripcion}
         </p>
       )
@@ -199,6 +201,13 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
       opacity: calc(1 - var(--seq-progress) * 1.6);
       max-height: calc((1 - var(--seq-progress)) * 10rem);
       transition: opacity 0.1s linear;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .numero-sequence-desc.numero-sequence-desc--completa {
+      opacity: 1;
+      max-height: none;
     }
   }
 

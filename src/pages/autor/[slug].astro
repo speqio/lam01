@@ -37,6 +37,7 @@ entradasConRelaciones.sort(
   <NumeroSequence
     titulo={autor.data.nombre}
     tituloLiteral
+    descripcionCompleta
     descripcion={autor.data.biografia}
     entradas={entradasConRelaciones.map(({ entrada, categoria }) => ({
       slug: entrada.id,

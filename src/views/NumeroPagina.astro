@@ -1,0 +1,60 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import NumeroSequence from '../components/NumeroSequence.astro';
+import { splitNumeroTitle } from '../lib/text';
+
+const { numero } = Astro.props;
+
+const todasLasEntradas = await getCollection('entradas');
+const entradasDelNumero = todasLasEntradas.filter(
+  (entrada) => entrada.data.numero === numero.id
+);
+
+const entradasConRelaciones = await Promise.all(
+  entradasDelNumero.map(async (entrada) => {
+    const autor = await getEntry('autores', entrada.data.autor);
+    const categoria = await getEntry('categorias', entrada.data.categoria);
+    return { entrada, autor, categoria };
+  })
+);
+
+entradasConRelaciones.sort(
+  (a, b) => b.entrada.data.fecha.valueOf() - a.entrada.data.fecha.valueOf()
+);
+
+const formattedDate = numero.data.fecha.toLocaleDateString('es-ES', {
+  year: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+});
+
+const { titulo: tituloPagina, subtitulo: subtituloPagina } = splitNumeroTitle(numero.data.titulo);
+const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : tituloPagina;
+---
+
+<BaseLayout
+  title={numero.data.metaTitulo || `${tituloCompleto} — La Antorcha Magacín`}
+  description={numero.data.metaDescripcion || numero.data.descripcion}
+>
+  <NumeroSequence
+    titulo={numero.data.titulo}
+    descripcion={numero.data.descripcion}
+    fechaFormateada={formattedDate}
+    entradas={entradasConRelaciones.map(({ entrada, autor, categoria }) => ({
+      slug: entrada.id,
+      titulo: entrada.data.titulo,
+      categoriaNombre: categoria?.data.nombre ?? '',
+      autorNombre: autor?.data.nombre ?? '',
+      portada: entrada.data.portada,
+    }))}
+  />
+
+  {
+    entradasConRelaciones.length === 0 && (
+      <p class="text-center font-sans text-ink-muted">
+        Todavía no hay entradas publicadas en este número.
+      </p>
+    )
+  }
+</BaseLayout>

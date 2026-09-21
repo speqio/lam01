@@ -45,7 +45,7 @@ const carousel3DItems = todasConRelaciones.slice(0, 8).map(({ entrada, autor, ca
   authorName: autor?.data.nombre ?? '',
   categoryName: categoria?.data.nombre ?? '',
   coverImage: entrada.data.portada,
-  href: `/entrada/${entrada.id}`,
+  href: `/${entrada.id}`,
 }));
 
 const categorias = await getCollection('categorias');
@@ -76,7 +76,7 @@ const CATEGORIA_IMAGENES: Record<string, string> = {
 
   {
     ultimoNumero && (
-      <HoverRevealHero titulo={ultimoNumero.data.titulo} href={`/numero/${ultimoNumero.id}`} />
+      <HoverRevealHero titulo={ultimoNumero.data.titulo} href={`/${ultimoNumero.id}`} />
     )
   }
 

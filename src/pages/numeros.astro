@@ -93,7 +93,7 @@ const chipClass =
         const { titulo, subtitulo } = splitNumeroTitle(numero.data.titulo);
         const rangoId = Math.floor((numeroIndice(numero) - 1) / RANGO_SIZE);
         return (
-        <a href={`/numero/${numero.id}`} class={cardShell} data-numero-rango={rangoId}>
+        <a href={`/${numero.id}`} class={cardShell} data-numero-rango={rangoId}>
           <div class={cardImageWrap}>
             {numero.data.portada && (
               <img src={numero.data.portada} alt={titulo} class={cardImage} />

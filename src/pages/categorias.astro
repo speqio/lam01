@@ -24,7 +24,7 @@ const categoriasConConteo = categorias
   <div class="flex flex-wrap justify-center gap-3">
     {
       categoriasConConteo.map(({ categoria, cantidad }) => (
-        <FilterChip href={`/categoria/${categoria.id}`} label={categoria.data.nombre} count={cantidad} />
+        <FilterChip href={`/category/${categoria.id}`} label={categoria.data.nombre} count={cantidad} />
       ))
     }
   </div>

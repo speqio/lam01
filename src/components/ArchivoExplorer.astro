@@ -268,7 +268,7 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
         const slugs: string[] = JSON.parse(azarItem.dataset.azar ?? '[]');
         if (slugs.length === 0) return;
         const slug = slugs[Math.floor(Math.random() * slugs.length)];
-        window.location.href = `/entrada/${slug}`;
+        window.location.href = `/${slug}`;
       });
     }
   });

@@ -46,7 +46,7 @@ const { items } = Astro.props;
     <div class="entradas-arco-scene" id="entradas-arco-scene">
       <div class="entradas-arco-carousel" id="entradas-arco-carousel">
         {items.map((item, i) => (
-          <a href={`/entrada/${item.slug}`} class="entradas-arco-card" data-index={i}>
+          <a href={`/${item.slug}`} class="entradas-arco-card" data-index={i}>
             <div class="flex h-full w-full overflow-hidden border border-ink/15 bg-surface">
               <div class={cardImageWrap}>
                 {item.coverImage && (

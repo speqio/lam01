@@ -78,7 +78,7 @@ export default function EntryCard({
   const normalizedTitle = normalizeTitleText(title);
 
   return (
-    <a ref={ref} href={`/entrada/${slug}`} className={`entry-card-reveal ${cardShell}`}>
+    <a ref={ref} href={`/${slug}`} className={`entry-card-reveal ${cardShell}`}>
       <div className={cardImageWrap}>
         {coverImage && <img src={coverImage} alt={coverAlt || normalizedTitle} className={cardImage} />}
         <span className={cardBadge}>{categoryName}</span>

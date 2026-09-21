@@ -44,7 +44,7 @@ const { categorias, compact = false } = Astro.props;
         <div class="categorias-wheel-track" id="categorias-wheel-track">
           {categorias.map((categoria, index) => (
             <a
-              href={categoria.href ?? `/categoria/${categoria.slug}`}
+              href={categoria.href ?? `/category/${categoria.slug}`}
               class="categorias-wheel-card"
               data-index={index}
               data-nombre={normalizeTitleText(categoria.nombre)}

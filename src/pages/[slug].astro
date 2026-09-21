@@ -1,0 +1,65 @@
+---
+import { getCollection } from 'astro:content';
+import EntradaPagina from '../views/EntradaPagina.astro';
+import NumeroPagina from '../views/NumeroPagina.astro';
+
+/**
+ * Una sola ruta raíz para entradas (`/nombre-de-la-entrada`) y números (`/numero-01`), igual
+ * que el sitio anterior en WordPress (laantorchamagacin.com), para no romper enlaces ni
+ * posicionamiento al pasar el dominio. Sin alias `/entrada/…` ni `/numero/…`: una sola URL
+ * por contenido. El markup de cada tipo vive en `src/views/`.
+ *
+ * Como comparten el espacio de nombres raíz con las páginas fijas (`/archivo`, `/contacto`…),
+ * el build falla con un mensaje claro si un slug nuevo choca con una de ellas o con otro
+ * slug — mejor eso que una página tapando a la otra sin aviso.
+ */
+export async function getStaticPaths() {
+  // Páginas fijas del sitio: todo `src/pages/*.astro` (menos esta) + carpetas y rutas reservadas.
+  const fijas = new Set([
+    ...Object.keys(import.meta.glob('./*.astro')).map((ruta) =>
+      ruta.replace('./', '').replace('.astro', '')
+    ),
+    'autor',
+    'category',
+    'api',
+    'keystatic',
+    'pagefind',
+    'images',
+    '_astro',
+  ]);
+
+  const entradas = await getCollection('entradas');
+  // "sin-numero" es el contenedor interno de entradas sin número: no tiene página pública.
+  const numeros = (await getCollection('numeros')).filter((numero) => numero.id !== 'sin-numero');
+
+  const rutas = [
+    ...entradas.map((entrada) => ({
+      params: { slug: entrada.id },
+      props: { tipo: 'entrada' as const, entrada },
+    })),
+    ...numeros.map((numero) => ({
+      params: { slug: numero.id },
+      props: { tipo: 'numero' as const, numero },
+    })),
+  ];
+
+  const vistos = new Set<string>();
+  for (const { params } of rutas) {
+    if (fijas.has(params.slug)) {
+      throw new Error(
+        `El slug "${params.slug}" choca con la página fija /${params.slug}. Renombra el contenido en Keystatic.`
+      );
+    }
+    if (vistos.has(params.slug)) {
+      throw new Error(`El slug "${params.slug}" está repetido entre entradas y números.`);
+    }
+    vistos.add(params.slug);
+  }
+
+  return rutas;
+}
+
+const props = Astro.props;
+---
+
+{props.tipo === 'entrada' ? <EntradaPagina entrada={props.entrada} /> : <NumeroPagina numero={props.numero} />}

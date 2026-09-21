@@ -1,0 +1,364 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Blog Literario — Arquitectura",
+    "subtitle": "Astro 7 + Keystatic (GitHub, rama keystatic) + Tailwind + GSAP, deploy en Cloudflare Workers",
+    "output": "blog-literario-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      860,
+      520
+    ],
+    "views": [
+      {
+        "id": "authoring",
+        "label": "Autoría de contenido",
+        "focus": [
+          "editor",
+          "keystatic",
+          "keystatic-branch",
+          "verificar"
+        ],
+        "note": "El cliente guarda en la rama keystatic, no en main. Cada guardado es un commit y GitHub Actions lo comprueba antes de fusionar."
+      },
+      {
+        "id": "build-deploy",
+        "label": "Publicación",
+        "focus": [
+          "verificar",
+          "main",
+          "cloudflare",
+          "astro-build",
+          "static-html"
+        ],
+        "note": "Solo un PR fusionado con squash llega a main. Cloudflare compila main; getStaticPaths genera las páginas y el índice del buscador."
+      },
+      {
+        "id": "client-runtime",
+        "label": "Experiencia en el navegador",
+        "focus": [
+          "visitor",
+          "gsap",
+          "react-islands",
+          "buscador-json"
+        ],
+        "note": "Nada habla con un backend: todo corre sobre HTML ya generado; el buscador filtra en el navegador un JSON estático."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "editor",
+      "type": "external",
+      "label": "Cliente / editor",
+      "sublabel": "cuenta colaboradora",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "keystatic",
+      "type": "frontend",
+      "label": "Keystatic CMS",
+      "sublabel": "/keystatic → rama",
+      "pos": [
+        240,
+        60
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "keystatic-branch",
+      "type": "database",
+      "label": "Rama keystatic",
+      "sublabel": "src/content + imágenes",
+      "pos": [
+        440,
+        60
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "verificar",
+      "type": "backend",
+      "label": "GitHub Actions",
+      "sublabel": "build + verificador",
+      "pos": [
+        640,
+        60
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "main",
+      "type": "database",
+      "label": "Rama main",
+      "sublabel": "PR + squash",
+      "pos": [
+        640,
+        220
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "cloudflare",
+      "type": "cloud",
+      "label": "Cloudflare Workers",
+      "sublabel": "Workers Builds",
+      "pos": [
+        440,
+        220
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "astro-build",
+      "type": "backend",
+      "label": "astro build",
+      "sublabel": "getStaticPaths()",
+      "pos": [
+        240,
+        220
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "static-html",
+      "type": "cloud",
+      "label": "HTML estático",
+      "sublabel": "/slug, /numero-NN",
+      "pos": [
+        40,
+        220
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "visitor",
+      "type": "external",
+      "label": "Visitante",
+      "sublabel": "navegador",
+      "pos": [
+        40,
+        380
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "gsap",
+      "type": "frontend",
+      "label": "GSAP",
+      "sublabel": "gestos y animación",
+      "pos": [
+        240,
+        380
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "react-islands",
+      "type": "frontend",
+      "label": "Islas React",
+      "sublabel": "EntryCard, SearchModal",
+      "pos": [
+        440,
+        380
+      ],
+      "size": [
+        140,
+        60
+      ]
+    },
+    {
+      "id": "buscador-json",
+      "type": "database",
+      "label": "buscador.json",
+      "sublabel": "índice de títulos",
+      "pos": [
+        640,
+        380
+      ],
+      "size": [
+        140,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Autoría: rama keystatic, sin tocar main",
+      "wraps": [
+        "editor",
+        "keystatic",
+        "keystatic-branch",
+        "verificar"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "GitHub main → Cloudflare: build + hosting",
+      "wraps": [
+        "main",
+        "cloudflare",
+        "astro-build",
+        "static-html"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Todo client-side, sin backend propio",
+      "wraps": [
+        "visitor",
+        "gsap",
+        "react-islands",
+        "buscador-json"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "editor-edits",
+      "from": "editor",
+      "to": "keystatic",
+      "label": "edita"
+    },
+    {
+      "id": "keystatic-commits",
+      "from": "keystatic",
+      "to": "keystatic-branch",
+      "label": "commit",
+      "variant": "emphasis"
+    },
+    {
+      "id": "branch-checked",
+      "from": "keystatic-branch",
+      "to": "verificar",
+      "label": "PR"
+    },
+    {
+      "id": "merge-to-main",
+      "from": "verificar",
+      "to": "main",
+      "label": "squash",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "trigger-build",
+      "from": "main",
+      "to": "cloudflare",
+      "label": "dispara",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "runs-build",
+      "from": "cloudflare",
+      "to": "astro-build",
+      "label": "build",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "emits-html",
+      "from": "astro-build",
+      "to": "static-html",
+      "label": "genera",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "serve",
+      "from": "static-html",
+      "to": "visitor",
+      "label": "sirve",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "runs-scripts",
+      "from": "visitor",
+      "to": "gsap",
+      "label": "anima"
+    },
+    {
+      "id": "hydrate-islands",
+      "from": "gsap",
+      "to": "react-islands",
+      "label": "hidrata"
+    },
+    {
+      "id": "loads-index",
+      "from": "react-islands",
+      "to": "buscador-json",
+      "label": "busca"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Autoría",
+      "items": [
+        "Keystatic en modo GitHub: cada guardado del cliente es un commit en la rama keystatic",
+        "/keystatic redirige a esa rama (src/middleware.ts); main no recibe guardados directos",
+        "content.config.ts (Zod) y keystatic.config.ts deben mantenerse sincronizados a mano"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Publicación",
+      "items": [
+        "El check verificar (build + verificar-keystatic.mjs) corre en cada PR hacia main",
+        "Solo se fusiona con squash y verificar en verde; keystatic-sync.mjs alinea las ramas",
+        "Cloudflare compila main: entradas y números comparten la ruta raíz /[slug]"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "En el navegador",
+      "items": [
+        "Nada interactivo llama a un backend: todo opera sobre HTML ya generado",
+        "El buscador carga /buscador.json (solo títulos y nombres) y filtra en el navegador",
+        "GSAP (Observer/Draggable) para carruseles y modo lectura; islas React solo donde hace falta"
+      ]
+    }
+  ]
+}

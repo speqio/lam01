@@ -10,6 +10,10 @@
 // Uso:
 //   node scripts/imagenes-pendientes.mjs quitar [--dry-run]
 //   node scripts/imagenes-pendientes.mjs restaurar [--dry-run]
+//   node scripts/imagenes-pendientes.mjs estado [slug]          (qué sigue pendiente)
+//   node scripts/imagenes-pendientes.mjs descartar <slug…> [--dry-run]
+//       Saca ítems del manifiesto: usar cuando sus imágenes ya se subieron a mano desde
+//       Keystatic, para que `restaurar` no las duplique.
 //
 // Alcance: entradas (portada, galeria, imagenesIndividuales, imágenes sueltas del cuerpo)
 // y autores (foto). Los números NO se tocan aquí (su portada es obligatoria: ver
@@ -26,10 +30,13 @@ const DIR_AUTORES = path.join(root, 'src', 'content', 'autores');
 const LISTAS = ['galeria', 'imagenesIndividuales'];
 const ANCLA_LARGO = 80;
 
-const [modo, ...flags] = process.argv.slice(2);
-const dryRun = flags.includes('--dry-run');
-if (!['quitar', 'restaurar'].includes(modo)) {
-  console.error('Uso: node scripts/imagenes-pendientes.mjs <quitar|restaurar> [--dry-run]');
+const [modo, ...resto] = process.argv.slice(2);
+const dryRun = resto.includes('--dry-run');
+const slugsArg = resto.filter((x) => !x.startsWith('--'));
+if (!['quitar', 'restaurar', 'estado', 'descartar'].includes(modo)) {
+  console.error(
+    'Uso: node scripts/imagenes-pendientes.mjs <quitar|restaurar|estado [slug]|descartar <slug…>> [--dry-run]'
+  );
   process.exit(1);
 }
 
@@ -293,7 +300,7 @@ if (modo === 'quitar') {
     fs.writeFileSync(MANIFIESTO, JSON.stringify(salida, null, 1) + '\n');
   }
   console.log(`${dryRun ? '[dry-run] ' : ''}Referencias quitadas: ${resumen.referencias} en ${resumen.archivos} archivos.`);
-} else {
+} else if (modo === 'restaurar') {
   const quedan = { generado: manifiesto.generado, entradas: {}, autores: {} };
   let sinColocar = 0;
   for (const [slug, rec] of Object.entries(manifiesto.entradas ?? {})) {
@@ -327,4 +334,65 @@ if (modo === 'quitar') {
     `${dryRun ? '[dry-run] ' : ''}Referencias restauradas: ${resumen.referencias} en ${resumen.archivos} archivos. ` +
       `Ítems que aún esperan imágenes: ${pend}.`
   );
+}
+
+// --- estado: qué sigue pendiente ---
+if (modo === 'estado') {
+  const tipos = { portada: 0, galeria: 0, cuerpo: 0 };
+  const contar = (rec) => {
+    const t = { portada: rec.portada ? 1 : 0, galeria: 0, cuerpo: (rec.cuerpo ?? []).length };
+    for (const l of Object.values(rec.listas ?? {})) t.galeria += l.length;
+    return t;
+  };
+  if (slugsArg.length) {
+    for (const slug of slugsArg) {
+      const rec = manifiesto.entradas?.[slug];
+      const aut = manifiesto.autores?.[slug];
+      if (!rec && !aut) {
+        console.log(`${slug}: sin imágenes pendientes en el manifiesto.`);
+        continue;
+      }
+      if (aut) console.log(`${slug} (autor): foto pendiente → ${aut.foto}`);
+      if (rec) {
+        const t = contar(rec);
+        console.log(`${slug}: ${t.portada} portada, ${t.galeria} de galería, ${t.cuerpo} en el cuerpo`);
+        if (rec.portada) console.log(`  portada: ${rec.portada.ruta}`);
+        for (const [clave, l] of Object.entries(rec.listas ?? {})) for (const q of l) console.log(`  ${clave}[${q.indice}]: ${q.ruta}`);
+        for (const c of rec.cuerpo ?? []) console.log(`  cuerpo: ${c.ruta}`);
+      }
+    }
+  } else {
+    const slugs = Object.keys(manifiesto.entradas ?? {});
+    for (const rec of Object.values(manifiesto.entradas ?? {})) {
+      const t = contar(rec);
+      for (const k of Object.keys(tipos)) tipos[k] += t[k];
+    }
+    const total = tipos.portada + tipos.galeria + tipos.cuerpo;
+    console.log(`Entradas con imágenes pendientes: ${slugs.length}`);
+    console.log(`Autores con foto pendiente: ${Object.keys(manifiesto.autores ?? {}).length}`);
+    console.log(`Referencias en entradas: ${total} (${tipos.portada} portadas, ${tipos.galeria} de galería, ${tipos.cuerpo} en el cuerpo)`);
+    console.log('Detalle de una entrada: node scripts/imagenes-pendientes.mjs estado <slug>');
+  }
+}
+
+// --- descartar: sacar ítems del manifiesto ---
+if (modo === 'descartar') {
+  if (!slugsArg.length) {
+    console.error('Indica al menos un slug: node scripts/imagenes-pendientes.mjs descartar <slug…>');
+    process.exit(1);
+  }
+  let quitados = 0;
+  for (const slug of slugsArg) {
+    let hallado = false;
+    for (const grupo of ['entradas', 'autores']) {
+      if (manifiesto[grupo]?.[slug]) {
+        hallado = true;
+        quitados++;
+        if (!dryRun) delete manifiesto[grupo][slug];
+        console.log(`${dryRun ? '[dry-run] ' : ''}${grupo}/${slug}: sale del manifiesto (restaurar ya no le agregará nada).`);
+      }
+    }
+    if (!hallado) console.log(`${slug}: no estaba en el manifiesto.`);
+  }
+  if (!dryRun && quitados) fs.writeFileSync(MANIFIESTO, JSON.stringify(manifiesto, null, 1) + '\n');
 }

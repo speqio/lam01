@@ -205,7 +205,7 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
                   onClick={() => setOpen(false)}
                   onMouseEnter={() => setActivo(i)}
                 >
-                  <span className="w-20 shrink-0 font-mono text-[10px] uppercase tracking-widest text-accent">
+                  <span className="w-20 shrink-0 font-mono text-[10px] font-black uppercase tracking-widest text-ink">
                     {ETIQUETA[result.tipo]}
                   </span>
                   <span className="min-w-0">

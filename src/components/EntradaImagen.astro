@@ -5,6 +5,10 @@
  * EntradaGaleria.astro: `data-bloque-especial` + `data-posicion` los lee el script de
  * `entrada/[slug].astro` para reubicarla en el texto y tratarla como un bloque más del
  * modo lectura.
+ *
+ * La imagen se muestra tal cual la subió el editor: sin recorte (nada de `object-cover` ni
+ * cajas de proporción fija) y sin filtros de color. Ocupa su tamaño natural, limitado al
+ * ancho de la columna y al alto de la pantalla, así que nunca se estira ni se deforma.
  */
 interface Props {
   imagen: string;
@@ -18,13 +22,30 @@ const { imagen, alt, leyenda, posicion, titulo } = Astro.props;
 ---
 
 <figure
-  class="not-prose my-10"
+  class="not-prose mx-auto my-10 w-fit max-w-full"
   data-bloque-especial
   data-etiqueta="Imagen"
   data-posicion={posicion ?? ''}
 >
-  <div class="relative aspect-[16/9] w-full overflow-hidden border border-ink/15">
-    <img src={imagen} alt={alt || leyenda || titulo} class="h-full w-full object-cover grayscale contrast-125" />
-  </div>
-  {leyenda && <figcaption class="mt-2 font-mono text-xs text-ink-muted">{leyenda}</figcaption>}
+  <img
+    src={imagen}
+    alt={alt || leyenda || titulo}
+    loading="lazy"
+    decoding="async"
+    class="entrada-imagen block h-auto max-h-[80vh] w-auto max-w-full border border-ink/15"
+  />
+  {
+    leyenda && (
+      <figcaption class="entrada-leyenda mt-2 font-mono text-xs text-ink-muted">{leyenda}</figcaption>
+    )
+  }
 </figure>
+
+<style>
+  /* Una leyenda larga no debe ensanchar la figura más allá de la imagen: con ancho 0 y
+     min-width 100% el texto se ajusta al ancho que ya fijó la imagen. */
+  .entrada-leyenda {
+    width: 0;
+    min-width: 100%;
+  }
+</style>

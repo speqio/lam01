@@ -206,7 +206,9 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
   // posición del array termine cayendo. Varios en la misma posición conservan su orden
   // en el DOM (cada uno se inserta antes del mismo nodo de referencia).
   const especiales = Array.from(document.querySelectorAll<HTMLElement>('[data-bloque-especial]'));
-  const esEspecial = (el: Element | undefined): el is HTMLElement =>
+  // Devuelve boolean a propósito (no un predicado de tipo `el is HTMLElement`): con un
+  // predicado, TypeScript deja `source` como `never` en la rama contraria.
+  const esEspecial = (el: Element | undefined): boolean =>
     !!el && especiales.includes(el as HTMLElement);
   if (blocksRoot) {
     const textos = Array.from(blocksRoot.children);
@@ -501,7 +503,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     overflow: hidden;
   }
 
-  /* La galería (imagen suelta o grilla/carrusel) necesita más ancho que una columna
+  /* La galería (imagen suelta o cinta horizontal) necesita más ancho que una columna
      de texto — se ensancha el stage solo cuando el bloque activo es el de galería. */
   #entrada-content.is-reading-mode .entrada-reading-stage:has(.entrada-reading-fade) {
     max-width: min(90vw, 70rem);
@@ -515,8 +517,12 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     overflow-y: auto;
   }
 
-  .entrada-reading-fade h2 {
-    display: none;
+  /* En modo lectura las imágenes de la cinta bajan de altura para que cinta, leyendas e
+     indicador quepan en el alto del bloque (80vh) sin scroll vertical. Solo cambia el
+     tamaño: la proporción y los colores siguen siendo los originales. */
+  #entrada-content.is-reading-mode .entrada-reading-fade [data-galeria-slide] img {
+    max-height: min(42vh, 400px);
+    max-width: 100cqw;
   }
 
   /* Prosa: bloque centrado en el stage. */

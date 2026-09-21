@@ -2,13 +2,19 @@
 import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
 
 /**
- * Galería carrusel de una entrada: dinámica según cuántas imágenes haya.
- * - 1 imagen: se muestra sola, sin grid ni carrusel — la leyenda (si tiene) va igual.
- * - 2+ imágenes: grilla en desktop, carrusel horizontal en mobile con scroll-snap
- *   NATIVO (mismo patrón que NumeroSequence.astro — nada de Draggable/Observer
- *   controlando el carril, ver el comentario ahí sobre por qué se descartó la física
- *   de arrastre hecha a mano) + el mismo indicador "dial" (`src/lib/dialNav.ts`).
- *
+ * Galería de una entrada: una "cinta" horizontal donde cada imagen se ve completa, con su
+ * proporción y sus colores originales (sin recorte ni filtros).
+ * - Cada imagen se muestra en su tamaño natural (nunca se agranda), limitada al ancho de
+ *   la columna y a ~60vh de alto: una vertical queda angosta, una panorámica ancha. Nada
+ *   de cajas de proporción fija con `object-cover`, que recortarían fotos de formatos
+ *   mixtos, ni de estirar todas a una misma altura, que desenfocaría las chicas.
+ * - Un solo diseño para escritorio y móvil, con scroll-snap NATIVO (mismo patrón que
+ *   NumeroSequence.astro — nada de Draggable/Observer controlando el carril, ver el
+ *   comentario ahí). En escritorio se suman flechas anterior/siguiente, porque con mouse
+ *   no hay un gesto horizontal natural.
+ * - Cada imagen lleva su leyenda debajo. El indicador "01 / N" (`src/lib/dialNav.ts`)
+ *   sigue a la imagen más cercana al centro.
+ * - 1 sola imagen: se muestra sola, en su tamaño natural, sin cinta ni indicador.
  */
 interface GaleriaItem {
   imagen: string;
@@ -24,6 +30,10 @@ interface Props {
 }
 
 const { imagenes: items, titulo, posicion } = Astro.props;
+const altDe = (item: GaleriaItem) => item.alt || item.leyenda || titulo;
+
+const botonFlecha =
+  'hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border border-ink/15 bg-surface text-ink transition-colors hover:border-accent hover:text-accent disabled:cursor-default disabled:opacity-30 disabled:hover:border-ink/15 disabled:hover:text-ink md:flex';
 ---
 
 {
@@ -36,67 +46,54 @@ const { imagenes: items, titulo, posicion } = Astro.props;
       data-posicion={posicion ?? ''}
     >
       {items.length === 1 ? (
-        <figure>
-          <div class="relative aspect-[16/9] w-full overflow-hidden border border-ink/15">
-            <img
-              src={items[0].imagen}
-              alt={items[0].alt || items[0].leyenda || titulo}
-              class="h-full w-full object-cover grayscale contrast-125"
-            />
-          </div>
+        <figure class="mx-auto w-fit max-w-full">
+          <img
+            src={items[0].imagen}
+            alt={altDe(items[0])}
+            decoding="async"
+            class="entrada-imagen block h-auto max-h-[80vh] w-auto max-w-full border border-ink/15"
+          />
           {items[0].leyenda && (
-            <figcaption class="mt-2 font-mono text-xs text-ink-muted">{items[0].leyenda}</figcaption>
+            <figcaption class="entrada-galeria-leyenda mt-2 font-mono text-xs text-ink-muted">
+              {items[0].leyenda}
+            </figcaption>
           )}
         </figure>
       ) : (
         <>
-          {/* Desktop: grilla estática, cada celda con su leyenda debajo. */}
-          <div class="hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-3">
-            {items.map((item) => (
-              <figure>
-                <div class="relative aspect-square overflow-hidden border border-ink/15">
-                  <img
-                    src={item.imagen}
-                    alt={item.alt || item.leyenda || titulo}
-                    class="h-full w-full object-cover grayscale contrast-125"
-                  />
-                </div>
+          <div
+            class="entrada-galeria-carousel relative flex snap-x snap-mandatory items-start gap-4 overflow-x-auto pb-2"
+            data-galeria-scroll
+            role="region"
+            aria-label="Galería de imágenes"
+            tabindex="0"
+          >
+            {items.map((item, i) => (
+              <figure class="w-fit shrink-0 snap-center" data-galeria-slide>
+                <img
+                  src={item.imagen}
+                  alt={altDe(item)}
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  class="block h-auto max-h-[min(60vh,520px)] w-auto max-w-[100cqw] border border-ink/15"
+                />
                 {item.leyenda && (
-                  <figcaption class="mt-2 font-mono text-xs text-ink-muted">{item.leyenda}</figcaption>
+                  <figcaption class="entrada-galeria-leyenda mt-2 font-mono text-xs text-ink-muted">
+                    {item.leyenda}
+                  </figcaption>
                 )}
               </figure>
             ))}
           </div>
 
-          {/* Mobile: carrusel horizontal con scroll-snap nativo (ver docstring). */}
-          <div class="md:hidden">
-            <div
-              class="entrada-galeria-carousel flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2"
-              data-galeria-scroll
-            >
-              {items.map((item) => (
-                <div
-                  class="w-[85vw] max-w-sm shrink-0 snap-center"
-                  data-galeria-slide
-                  data-leyenda={item.leyenda ?? ''}
-                >
-                  <div class="relative aspect-square overflow-hidden border border-ink/15">
-                    <img
-                      src={item.imagen}
-                      alt={item.alt || item.leyenda || titulo}
-                      class="h-full w-full object-cover grayscale contrast-125"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div class="mt-3 flex items-center gap-2">
+            <button type="button" class={botonFlecha} data-galeria-prev aria-label="Imagen anterior">
+              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="m15 6-6 6 6 6" />
+              </svg>
+            </button>
 
-            <p
-              class="mt-2 min-h-[1.2em] text-center font-mono text-xs text-ink-muted"
-              data-galeria-caption
-            />
-
-            <div class={dialWrap}>
+            <div class={`${dialWrap} flex-1`}>
               <span class={dialCount} data-dial-count>
                 {`01 / ${String(items.length).padStart(2, '0')}`}
               </span>
@@ -104,6 +101,12 @@ const { imagenes: items, titulo, posicion } = Astro.props;
                 <div class={dialThumb} data-dial-thumb />
               </div>
             </div>
+
+            <button type="button" class={botonFlecha} data-galeria-next aria-label="Imagen siguiente">
+              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="m9 6 6 6-6 6" />
+              </svg>
+            </button>
           </div>
         </>
       )}
@@ -112,15 +115,24 @@ const { imagenes: items, titulo, posicion } = Astro.props;
 }
 
 <style>
-  /* Oculta la scrollbar nativa del carril horizontal en mobile — cosmético, el gesto
-     de scroll sigue siendo el nativo del navegador (mismo criterio que
-     NumeroSequence.astro). */
+  /* Oculta la scrollbar nativa del carril horizontal — cosmético, el gesto de scroll
+     sigue siendo el nativo del navegador (mismo criterio que NumeroSequence.astro). */
   .entrada-galeria-carousel {
     scrollbar-width: none;
+    /* Las imágenes limitan su ancho con `cqw` (1% del ancho de este carril): una imagen
+       ancha nunca queda más ancha que la columna, sin deformarse ni cortarse. */
+    container-type: inline-size;
   }
 
   .entrada-galeria-carousel::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Una leyenda larga no debe ensanchar la figura más allá de la imagen: con ancho 0 y
+     min-width 100% el texto se ajusta al ancho que ya fijó la imagen. */
+  .entrada-galeria-leyenda {
+    width: 0;
+    min-width: 100%;
   }
 </style>
 
@@ -128,44 +140,74 @@ const { imagenes: items, titulo, posicion } = Astro.props;
   import { gsap } from 'gsap';
 
   /**
-   * Puramente observador del scroll nativo (igual que NumeroSequence.astro): mueve el
-   * thumb del dial y actualiza el contador + la leyenda de la imagen activa según
-   * `scrollLeft`. Nada de Draggable/Observer controlando el carril.
+   * Observa el scroll nativo de la cinta (igual que NumeroSequence.astro): mueve el thumb
+   * del dial, actualiza el contador según la imagen más cercana al centro y activa/desactiva
+   * las flechas. Nada de Draggable/Observer controlando el carril.
    *
-   * Se inicializa siempre (no solo en mobile): si el modo lectura de la entrada mueve
-   * este mismo nodo al centro de la pantalla, el carrusel debe seguir andando ahí sin
-   * reinicializarse — este listener queda armado sobre el elemento real desde el
+   * Se inicializa siempre (no solo en escritorio): si el modo lectura de la entrada mueve
+   * este mismo nodo al centro de la pantalla, la cinta debe seguir andando ahí sin
+   * reinicializarse — estos listeners quedan armados sobre el elemento real desde el
    * principio, se mueva a donde se mueva.
    */
   const galeria = document.getElementById('entrada-galeria');
   const scrollEl = galeria?.querySelector<HTMLElement>('[data-galeria-scroll]');
   const thumb = galeria?.querySelector<HTMLElement>('[data-dial-thumb]');
   const countEl = galeria?.querySelector<HTMLElement>('[data-dial-count]');
-  const captionEl = galeria?.querySelector<HTMLElement>('[data-galeria-caption]');
+  const prev = galeria?.querySelector<HTMLButtonElement>('[data-galeria-prev]');
+  const next = galeria?.querySelector<HTMLButtonElement>('[data-galeria-next]');
   const slides = galeria ? Array.from(galeria.querySelectorAll<HTMLElement>('[data-galeria-slide]')) : [];
 
   if (scrollEl && thumb && slides.length > 1) {
     const total = slides.length;
     const track = thumb.parentElement as HTMLElement;
+    const reducirMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     thumb.style.width = `${100 / total}%`;
 
-    const updateDial = () => {
-      const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
-      const ratio = maxScroll > 0 ? scrollEl.scrollLeft / maxScroll : 0;
+    // Con imágenes de ancho distinto, la proporción del scroll no dice cuál se está mirando:
+    // se toma la que tiene su centro más cerca del centro del carril (y los extremos
+    // cuentan como primera/última, porque la última quizá nunca llegue a centrarse).
+    const indiceActivo = () => {
+      const max = scrollEl.scrollWidth - scrollEl.clientWidth;
+      if (scrollEl.scrollLeft <= 2) return 0;
+      if (scrollEl.scrollLeft >= max - 2) return total - 1;
+      const centro = scrollEl.scrollLeft + scrollEl.clientWidth / 2;
+      let mejor = 0;
+      let distancia = Infinity;
+      slides.forEach((slide, i) => {
+        const d = Math.abs(slide.offsetLeft + slide.offsetWidth / 2 - centro);
+        if (d < distancia) {
+          distancia = d;
+          mejor = i;
+        }
+      });
+      return mejor;
+    };
+
+    const actualizar = () => {
+      const max = scrollEl.scrollWidth - scrollEl.clientWidth;
+      const ratio = max > 0 ? scrollEl.scrollLeft / max : 0;
       const trackWidth = track.clientWidth;
       const thumbWidth = trackWidth / total;
-      const x = ratio * (trackWidth - thumbWidth);
+      gsap.to(thumb, { x: ratio * (trackWidth - thumbWidth), duration: 0.2, ease: 'power2.out', overwrite: true });
 
-      gsap.to(thumb, { x, duration: 0.2, ease: 'power2.out', overwrite: true });
-
-      const activeIndex = Math.round(ratio * (total - 1));
+      const activo = indiceActivo();
       if (countEl) {
-        countEl.textContent = `${String(activeIndex + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
+        countEl.textContent = `${String(activo + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
       }
-      if (captionEl) {
-        captionEl.textContent = slides[activeIndex]?.dataset.leyenda ?? '';
-      }
+      if (prev) prev.disabled = activo === 0;
+      if (next) next.disabled = activo === total - 1;
     };
+
+    const ir = (indice: number) => {
+      const slide = slides[Math.max(0, Math.min(total - 1, indice))];
+      scrollEl.scrollTo({
+        left: slide.offsetLeft - (scrollEl.clientWidth - slide.offsetWidth) / 2,
+        behavior: reducirMovimiento ? 'auto' : 'smooth',
+      });
+    };
+
+    prev?.addEventListener('click', () => ir(indiceActivo() - 1));
+    next?.addEventListener('click', () => ir(indiceActivo() + 1));
 
     let ticking = false;
     scrollEl.addEventListener(
@@ -174,15 +216,17 @@ const { imagenes: items, titulo, posicion } = Astro.props;
         if (ticking) return;
         ticking = true;
         requestAnimationFrame(() => {
-          updateDial();
+          actualizar();
           ticking = false;
         });
       },
       { passive: true }
     );
+    // Las imágenes cargan de forma diferida: sus anchos recién se conocen al cargar, y el
+    // indicador (y las flechas) tienen que recalcularse cuando eso pasa.
+    slides.forEach((slide) => slide.querySelector('img')?.addEventListener('load', actualizar));
+    window.addEventListener('resize', actualizar);
 
-    updateDial();
-  } else if (captionEl && slides.length === 1) {
-    captionEl.textContent = slides[0]?.dataset.leyenda ?? '';
+    actualizar();
   }
 </script>

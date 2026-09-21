@@ -14,12 +14,17 @@ interface EntradaItem {
 interface Props {
   titulo: string;
   descripcion?: string;
-  fechaFormateada: string;
+  /** Sin valor (p. ej. en la página de un autor) no se muestra la línea de fecha. */
+  fechaFormateada?: string;
   entradas: EntradaItem[];
+  /** Usa el título tal cual (p. ej. un nombre propio), sin pasarlo a minúsculas de oración. */
+  tituloLiteral?: boolean;
 }
 
-const { titulo, descripcion, fechaFormateada, entradas } = Astro.props;
-const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
+const { titulo, descripcion, fechaFormateada, entradas, tituloLiteral = false } = Astro.props;
+const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
+  ? { titulo, subtitulo: '' }
+  : splitNumeroTitle(titulo);
 ---
 
 <section
@@ -27,7 +32,7 @@ const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
   class="relative w-full overflow-hidden md:grid md:h-[75vh] md:grid-cols-2 md:gap-10"
 >
   <div class="numero-sequence-info flex flex-col items-center justify-center px-4 text-center md:sticky md:top-20 md:z-10 md:min-w-0 md:items-start md:self-start md:px-0 md:text-left">
-    <p class="font-mono text-xs uppercase tracking-widest text-ink-muted">{fechaFormateada}</p>
+    {fechaFormateada && <p class="font-mono text-xs uppercase tracking-widest text-ink-muted">{fechaFormateada}</p>}
     <h1 class="numero-sequence-title mt-2 font-headline leading-[0.9] text-ink">{tituloPrincipal}</h1>
     {
       subtitulo && (

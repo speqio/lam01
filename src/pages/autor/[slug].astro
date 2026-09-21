@@ -1,7 +1,7 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import CategoriasCards from '../../components/CategoriasCards.astro';
+import NumeroSequence from '../../components/NumeroSequence.astro';
 
 export async function getStaticPaths() {
   const autores = await getCollection('autores');
@@ -34,40 +34,24 @@ entradasConRelaciones.sort(
   title={autor.data.metaTitulo || `${autor.data.nombre} — La Antorcha Magacín`}
   description={autor.data.metaDescripcion || autor.data.biografia}
 >
-  <div class="grid grid-cols-1 items-center gap-10 py-4 lg:min-h-[70vh] lg:grid-cols-2 lg:gap-16">
-    <header class="text-left">
-      {
-        autor.data.foto && (
-          <img
-            src={autor.data.foto}
-            alt={autor.data.nombre}
-            class="mb-6 h-28 w-28 rounded-full border border-ink/15 object-cover"
-          />
-        )
-      }
-      <h1 class="font-headline text-4xl leading-tight text-ink md:text-5xl">{autor.data.nombre}</h1>
-      <p class="mt-6 max-w-prose whitespace-pre-line text-left font-serif text-lg leading-relaxed text-ink-muted">
-        {autor.data.biografia}
-      </p>
-    </header>
+  <NumeroSequence
+    titulo={autor.data.nombre}
+    tituloLiteral
+    descripcion={autor.data.biografia}
+    entradas={entradasConRelaciones.map(({ entrada, categoria }) => ({
+      slug: entrada.id,
+      titulo: entrada.data.titulo,
+      categoriaNombre: categoria?.data.nombre ?? '',
+      autorNombre: autor.data.nombre,
+      portada: entrada.data.portada,
+    }))}
+  />
 
-    <section aria-label="Artículos publicados" class="min-w-0">
-      {
-        entradasConRelaciones.length > 0 ? (
-          <CategoriasCards
-            compact
-            categorias={entradasConRelaciones.map(({ entrada }) => ({
-              slug: entrada.id,
-              nombre: entrada.data.titulo,
-              coverImage: entrada.data.portada,
-              alt: entrada.data.portadaAlt || entrada.data.titulo,
-              href: `/entrada/${entrada.id}`,
-            }))}
-          />
-        ) : (
-          <p class="font-sans text-ink-muted">Este autor todavía no tiene artículos publicados.</p>
-        )
-      }
-    </section>
-  </div>
+  {
+    entradasConRelaciones.length === 0 && (
+      <p class="text-center font-sans text-ink-muted">
+        Este autor todavía no tiene artículos publicados.
+      </p>
+    )
+  }
 </BaseLayout>

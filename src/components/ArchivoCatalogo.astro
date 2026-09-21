@@ -19,9 +19,10 @@ import EntryCard from './EntryCard.tsx';
  * propio (mismo patrón que cualquier otro popover del sitio) es la única forma de
  * asegurar que los colores coincidan siempre con el design system.
  *
- * El buscador de autor sí sigue siendo un <input> + <datalist> nativo — ese popup de
- * sugerencias de autocompletado sí respeta `color-scheme` de forma confiable (se
- * verificó que funciona), así que no hace falta reemplazarlo por lo mismo.
+ * El buscador de autor es un <input> con lista de sugerencias propia (combobox): solo
+ * muestra coincidencias mientras se escribe (máximo 6, sin distinguir tildes ni mayúsculas),
+ * en vez del <datalist> nativo, que despliega todos los autores. Escala con la cantidad de
+ * autores sin alargar la página.
  *
  * Reusa EntryCard.tsx (misma anatomía de card que /categoria, /autor, /numero) en vez
  * de reinventar el layout, y el mismo mecanismo de filtro por atributos +
@@ -131,21 +132,30 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
           </div>
         ))}
 
-        <input
-          type="search"
-          id="archivo-filtro-autor"
-          name="archivo-filtro-autor"
-          class={inputClass}
-          data-filtro-autor
-          list="archivo-catalogo-autores"
-          placeholder="Autor"
-          aria-label="Buscar por autor"
-        />
-        <datalist id="archivo-catalogo-autores">
-          {autorNombres.map((nombre) => (
-            <option value={nombre} />
-          ))}
-        </datalist>
+        <div class="relative" data-autor-combo data-autores={JSON.stringify(autorNombres)}>
+          <input
+            type="search"
+            id="archivo-filtro-autor"
+            name="archivo-filtro-autor"
+            class={inputClass}
+            data-filtro-autor
+            placeholder="Autor"
+            aria-label="Buscar por autor"
+            autocomplete="off"
+            role="combobox"
+            aria-expanded="false"
+            aria-controls="archivo-autor-sugerencias"
+            aria-autocomplete="list"
+          />
+          <ul
+            id="archivo-autor-sugerencias"
+            class="archivo-catalogo-dropdown-menu"
+            role="listbox"
+            aria-label="Sugerencias de autor"
+            data-autor-sugerencias
+            hidden
+          />
+        </div>
       </div>
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" data-catalogo-grid>
@@ -178,9 +188,9 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
 }
 
 <style>
-  /* El buscador de autor (<input> + <datalist>) sí respeta color-scheme de forma
-     confiable para el popup de sugerencias — no así el <select> nativo, que por eso ya
-     no se usa acá (ver comentario del frontmatter). */
+  /* Las sugerencias de autor son una lista propia (no el <datalist> nativo, que en varios
+     navegadores despliega TODOS los autores al hacer clic): solo aparecen al escribir y
+     con pocas coincidencias. */
   .archivo-catalogo-autor {
     color-scheme: dark;
   }
@@ -316,5 +326,88 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
     if (event.key === 'Escape') closeAllDropdowns();
   });
 
-  autorInput?.addEventListener('input', aplicarFiltros);
+  // Sugerencias de autor: aparecen solo al escribir, máximo MAX_SUGERENCIAS, sin lista larga.
+  const MAX_SUGERENCIAS = 6;
+  const combo = document.querySelector<HTMLElement>('[data-autor-combo]');
+  const lista = combo?.querySelector<HTMLElement>('[data-autor-sugerencias]') ?? null;
+  const autores: string[] = JSON.parse(combo?.dataset.autores ?? '[]');
+  const normalizar = (t: string) =>
+    t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('es');
+  let activa = -1;
+
+  function cerrarSugerencias() {
+    if (lista) lista.hidden = true;
+    autorInput?.setAttribute('aria-expanded', 'false');
+    activa = -1;
+  }
+
+  function elegir(nombre: string) {
+    if (!autorInput) return;
+    autorInput.value = nombre;
+    cerrarSugerencias();
+    aplicarFiltros();
+  }
+
+  function marcarActiva() {
+    lista?.querySelectorAll<HTMLElement>('[role=option]').forEach((op, i) => {
+      op.setAttribute('aria-selected', String(i === activa));
+    });
+  }
+
+  function mostrarSugerencias() {
+    if (!lista || !autorInput) return;
+    const q = normalizar(autorInput.value.trim());
+    const coincidencias = q ? autores.filter((n) => normalizar(n).includes(q)).slice(0, MAX_SUGERENCIAS) : [];
+    lista.replaceChildren();
+    // Sin texto, sin coincidencias, o ya escrito el nombre exacto: no hay nada que sugerir.
+    if (coincidencias.length === 0 || (coincidencias.length === 1 && normalizar(coincidencias[0]) === q)) {
+      cerrarSugerencias();
+      return;
+    }
+    coincidencias.forEach((nombre) => {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'presentation');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('aria-selected', 'false');
+      btn.className = 'archivo-catalogo-dropdown-option';
+      btn.textContent = nombre;
+      // mousedown (no click): se elige antes de que el input pierda el foco.
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        elegir(nombre);
+      });
+      li.appendChild(btn);
+      lista.appendChild(li);
+    });
+    lista.hidden = false;
+    autorInput.setAttribute('aria-expanded', 'true');
+    activa = -1;
+  }
+
+  autorInput?.addEventListener('input', () => {
+    mostrarSugerencias();
+    aplicarFiltros();
+  });
+
+  autorInput?.addEventListener('keydown', (event) => {
+    const opciones = lista ? Array.from(lista.querySelectorAll<HTMLElement>('[role=option]')) : [];
+    if (event.key === 'ArrowDown' && opciones.length) {
+      event.preventDefault();
+      activa = (activa + 1) % opciones.length;
+      marcarActiva();
+    } else if (event.key === 'ArrowUp' && opciones.length) {
+      event.preventDefault();
+      activa = (activa - 1 + opciones.length) % opciones.length;
+      marcarActiva();
+    } else if (event.key === 'Enter' && activa >= 0 && opciones[activa]) {
+      event.preventDefault();
+      elegir(opciones[activa].textContent ?? '');
+    } else if (event.key === 'Escape') {
+      cerrarSugerencias();
+    }
+  });
+
+  autorInput?.addEventListener('blur', cerrarSugerencias);
 </script>

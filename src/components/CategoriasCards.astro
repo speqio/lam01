@@ -23,23 +23,28 @@ export interface CategoriaCardItem {
   slug: string;
   nombre: string;
   coverImage?: string;
+  /** Destino del enlace; por defecto la página de la categoría. */
+  href?: string;
+  alt?: string;
 }
 
 interface Props {
   categorias: CategoriaCardItem[];
+  /** Versión para media columna (p. ej. página de autor): escenario y cards más chicos en escritorio. */
+  compact?: boolean;
 }
 
-const { categorias } = Astro.props;
+const { categorias, compact = false } = Astro.props;
 ---
 
 {
   categorias.length > 0 && (
-    <div class="categorias-wheel-outer">
+    <div class:list={['categorias-wheel-outer', { 'categorias-wheel-outer--compact': compact }]}>
       <div class="categorias-wheel-stage" id="categorias-wheel-stage">
         <div class="categorias-wheel-track" id="categorias-wheel-track">
           {categorias.map((categoria, index) => (
             <a
-              href={`/categoria/${categoria.slug}`}
+              href={categoria.href ?? `/categoria/${categoria.slug}`}
               class="categorias-wheel-card"
               data-index={index}
               data-nombre={normalizeTitleText(categoria.nombre)}
@@ -56,7 +61,7 @@ const { categorias } = Astro.props;
                 {categoria.coverImage && (
                   <img
                     src={categoria.coverImage}
-                    alt=""
+                    alt={categoria.alt ?? ''}
                     class="h-full w-full object-cover grayscale contrast-125"
                     loading="lazy"
                     draggable="false"
@@ -240,6 +245,16 @@ const { categorias } = Astro.props;
   }
 
   @media (min-width: 1024px) {
+    .categorias-wheel-outer--compact .categorias-wheel-stage {
+      height: 24rem;
+    }
+
+    .categorias-wheel-outer--compact .categorias-wheel-card {
+      width: 22rem;
+      margin-left: -11rem;
+      margin-top: -9.17rem;
+    }
+
     .categorias-wheel-stage {
       height: 32.5rem;
     }

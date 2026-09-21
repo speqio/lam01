@@ -10,8 +10,10 @@ import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
  *   mixtos, ni de estirar todas a una misma altura, que desenfocaría las chicas.
  * - Un solo diseño para escritorio y móvil, con scroll-snap NATIVO (mismo patrón que
  *   NumeroSequence.astro — nada de Draggable/Observer controlando el carril, ver el
- *   comentario ahí). En escritorio se suman flechas anterior/siguiente, porque con mouse
- *   no hay un gesto horizontal natural.
+ *   comentario ahí). Sin botones de navegación: en los extremos hay un degradado del color
+ *   de fondo de la página (`--color-canvas`, así también funciona en el tema claro) que
+ *   funde las imágenes con el fondo y avisa que hay más a ese lado; cada degradado solo
+ *   aparece cuando hay contenido por ver hacia ese lado.
  * - Cada imagen lleva su leyenda debajo. El indicador "01 / N" (`src/lib/dialNav.ts`)
  *   sigue a la imagen más cercana al centro.
  * - 1 sola imagen: se muestra sola, en su tamaño natural, sin cinta ni indicador.
@@ -31,9 +33,6 @@ interface Props {
 
 const { imagenes: items, titulo, posicion } = Astro.props;
 const altDe = (item: GaleriaItem) => item.alt || item.leyenda || titulo;
-
-const botonFlecha =
-  'hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border border-ink/15 bg-surface text-ink transition-colors hover:border-accent hover:text-accent disabled:cursor-default disabled:opacity-30 disabled:hover:border-ink/15 disabled:hover:text-ink md:flex';
 ---
 
 {
@@ -61,39 +60,38 @@ const botonFlecha =
         </figure>
       ) : (
         <>
-          <div
-            class="entrada-galeria-carousel relative flex snap-x snap-mandatory items-start gap-4 overflow-x-auto pb-2"
-            data-galeria-scroll
-            role="region"
-            aria-label="Galería de imágenes"
-            tabindex="0"
-          >
-            {items.map((item, i) => (
-              <figure class="w-fit shrink-0 snap-center" data-galeria-slide>
-                <img
-                  src={item.imagen}
-                  alt={altDe(item)}
-                  loading={i === 0 ? 'eager' : 'lazy'}
-                  decoding="async"
-                  class="block h-auto max-h-[min(60vh,520px)] w-auto max-w-[100cqw] border border-ink/15"
-                />
-                {item.leyenda && (
-                  <figcaption class="entrada-galeria-leyenda mt-2 font-mono text-xs text-ink-muted">
-                    {item.leyenda}
-                  </figcaption>
-                )}
-              </figure>
-            ))}
+          <div class="relative">
+            <div
+              class="entrada-galeria-carousel relative flex snap-x snap-mandatory items-start gap-4 overflow-x-auto pb-2"
+              data-galeria-scroll
+              role="region"
+              aria-label="Galería de imágenes"
+              tabindex="0"
+            >
+              {items.map((item, i) => (
+                <figure class="w-fit shrink-0 snap-center" data-galeria-slide>
+                  <img
+                    src={item.imagen}
+                    alt={altDe(item)}
+                    loading={i === 0 ? 'eager' : 'lazy'}
+                    decoding="async"
+                    class="block h-auto max-h-[min(60vh,520px)] w-auto max-w-[100cqw] border border-ink/15"
+                  />
+                  {item.leyenda && (
+                    <figcaption class="entrada-galeria-leyenda mt-2 font-mono text-xs text-ink-muted">
+                      {item.leyenda}
+                    </figcaption>
+                  )}
+                </figure>
+              ))}
+            </div>
+
+            <div class="entrada-galeria-fade entrada-galeria-fade--izq" aria-hidden="true" data-galeria-fade-izq />
+            <div class="entrada-galeria-fade entrada-galeria-fade--der" aria-hidden="true" data-galeria-fade-der />
           </div>
 
-          <div class="mt-3 flex items-center gap-2">
-            <button type="button" class={botonFlecha} data-galeria-prev aria-label="Imagen anterior">
-              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="m15 6-6 6 6 6" />
-              </svg>
-            </button>
-
-            <div class={`${dialWrap} flex-1`}>
+          <div class="mt-3">
+            <div class={dialWrap}>
               <span class={dialCount} data-dial-count>
                 {`01 / ${String(items.length).padStart(2, '0')}`}
               </span>
@@ -101,12 +99,6 @@ const botonFlecha =
                 <div class={dialThumb} data-dial-thumb />
               </div>
             </div>
-
-            <button type="button" class={botonFlecha} data-galeria-next aria-label="Imagen siguiente">
-              <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="m9 6 6 6-6 6" />
-              </svg>
-            </button>
           </div>
         </>
       )}
@@ -128,6 +120,31 @@ const botonFlecha =
     display: none;
   }
 
+  /* Degradados de los extremos: van del color de fondo de la página a transparente, así
+     las imágenes se funden con el fondo en cualquier tema. No capturan clics ni gestos
+     (pointer-events: none) y solo se ven cuando hay más contenido hacia ese lado (el
+     script cambia su opacidad). */
+  .entrada-galeria-fade {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    width: 3.5rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  .entrada-galeria-fade--izq {
+    left: 0;
+    background: linear-gradient(to right, rgb(var(--color-canvas)), rgb(var(--color-canvas) / 0));
+  }
+
+  .entrada-galeria-fade--der {
+    right: 0;
+    background: linear-gradient(to left, rgb(var(--color-canvas)), rgb(var(--color-canvas) / 0));
+  }
+
   /* Una leyenda larga no debe ensanchar la figura más allá de la imagen: con ancho 0 y
      min-width 100% el texto se ajusta al ancho que ya fijó la imagen. */
   .entrada-galeria-leyenda {
@@ -141,8 +158,8 @@ const botonFlecha =
 
   /**
    * Observa el scroll nativo de la cinta (igual que NumeroSequence.astro): mueve el thumb
-   * del dial, actualiza el contador según la imagen más cercana al centro y activa/desactiva
-   * las flechas. Nada de Draggable/Observer controlando el carril.
+   * del dial, actualiza el contador según la imagen más cercana al centro y muestra u
+   * oculta los degradados de los extremos. Nada de Draggable/Observer controlando el carril.
    *
    * Se inicializa siempre (no solo en escritorio): si el modo lectura de la entrada mueve
    * este mismo nodo al centro de la pantalla, la cinta debe seguir andando ahí sin
@@ -153,14 +170,13 @@ const botonFlecha =
   const scrollEl = galeria?.querySelector<HTMLElement>('[data-galeria-scroll]');
   const thumb = galeria?.querySelector<HTMLElement>('[data-dial-thumb]');
   const countEl = galeria?.querySelector<HTMLElement>('[data-dial-count]');
-  const prev = galeria?.querySelector<HTMLButtonElement>('[data-galeria-prev]');
-  const next = galeria?.querySelector<HTMLButtonElement>('[data-galeria-next]');
+  const fadeIzq = galeria?.querySelector<HTMLElement>('[data-galeria-fade-izq]');
+  const fadeDer = galeria?.querySelector<HTMLElement>('[data-galeria-fade-der]');
   const slides = galeria ? Array.from(galeria.querySelectorAll<HTMLElement>('[data-galeria-slide]')) : [];
 
   if (scrollEl && thumb && slides.length > 1) {
     const total = slides.length;
     const track = thumb.parentElement as HTMLElement;
-    const reducirMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     thumb.style.width = `${100 / total}%`;
 
     // Con imágenes de ancho distinto, la proporción del scroll no dice cuál se está mirando:
@@ -190,24 +206,13 @@ const botonFlecha =
       const thumbWidth = trackWidth / total;
       gsap.to(thumb, { x: ratio * (trackWidth - thumbWidth), duration: 0.2, ease: 'power2.out', overwrite: true });
 
-      const activo = indiceActivo();
       if (countEl) {
-        countEl.textContent = `${String(activo + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
+        countEl.textContent = `${String(indiceActivo() + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
       }
-      if (prev) prev.disabled = activo === 0;
-      if (next) next.disabled = activo === total - 1;
+      // Cada degradado solo se ve si hay algo más por ver hacia ese lado.
+      if (fadeIzq) fadeIzq.style.opacity = scrollEl.scrollLeft > 2 ? '1' : '0';
+      if (fadeDer) fadeDer.style.opacity = scrollEl.scrollLeft < max - 2 ? '1' : '0';
     };
-
-    const ir = (indice: number) => {
-      const slide = slides[Math.max(0, Math.min(total - 1, indice))];
-      scrollEl.scrollTo({
-        left: slide.offsetLeft - (scrollEl.clientWidth - slide.offsetWidth) / 2,
-        behavior: reducirMovimiento ? 'auto' : 'smooth',
-      });
-    };
-
-    prev?.addEventListener('click', () => ir(indiceActivo() - 1));
-    next?.addEventListener('click', () => ir(indiceActivo() + 1));
 
     let ticking = false;
     scrollEl.addEventListener(
@@ -223,7 +228,7 @@ const botonFlecha =
       { passive: true }
     );
     // Las imágenes cargan de forma diferida: sus anchos recién se conocen al cargar, y el
-    // indicador (y las flechas) tienen que recalcularse cuando eso pasa.
+    // indicador (y los degradados) tienen que recalcularse cuando eso pasa.
     slides.forEach((slide) => slide.querySelector('img')?.addEventListener('load', actualizar));
     window.addEventListener('resize', actualizar);
 

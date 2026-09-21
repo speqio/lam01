@@ -12,7 +12,7 @@
 ## Flujo de Keystatic
 - **Protección de `main`:** los rulesets no funcionan en repos privados con plan gratuito. Hoy la única barrera es la redirección `/keystatic` → rama `keystatic` y fusionar solo con `verificar` en verde. Opciones: GitHub Team, o repo público (riesgos evaluados: contenido no publicado y correos de commits visibles).
 - **Vista previa por rama** en Cloudflare (builds de ramas no productivas): sin verificar en el panel.
-- **Aviso de builds fallidos:** un build roto de `main` sigue congelando producción sin notificación.
+- **Aviso de builds fallidos (mejora opcional, hoy no hay ninguno roto):** si algún día un commit directo a `main` rompe el build, Cloudflare mantiene la versión anterior sin avisar. Los cambios que llegan por la rama `keystatic` ya pasan por `verificar`; solo queda sin cubrir un push directo a `main`.
 - **Ampliar `verificar-keystatic.mjs`:** que avise de etiquetas HTML en títulos y de líneas "Missing image" en el cuerpo (hoy solo se limpiaron a mano).
 - **Prueba pendiente:** confirmar que un simple F5 basta en la pestaña de la colaboradora tras `cerrar-ciclo`.
 

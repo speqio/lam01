@@ -1,0 +1,23 @@
+name: verificar
+
+# Comprueba que el contenido guardado desde Keystatic compila y no tiene referencias rotas
+# ANTES de fusionarlo a main (un build roto en main congela producción sin aviso).
+# El job "verificar" es el check obligatorio de la protección de main.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [keystatic]
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node scripts/verificar-keystatic.mjs

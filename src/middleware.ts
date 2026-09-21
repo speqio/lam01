@@ -9,7 +9,16 @@ import { defineMiddleware } from 'astro:middleware';
  * propio (azul, para distinguir el panel admin del sitio público) antes de que el HTML
  * llegue al navegador.
  */
+// Rama donde el cliente guarda desde Keystatic (ver docs/flujo-keystatic.md). Keystatic, sin
+// más, abre la rama predeterminada del repo (`main`); así que la entrada al panel se manda
+// acá. `main` queda protegida en GitHub: allí solo llega contenido por pull request.
+const RAMA_KEYSTATIC = 'keystatic';
+
 export const onRequest = defineMiddleware(async (context, next) => {
+  if (context.url.pathname === '/keystatic' || context.url.pathname === '/keystatic/') {
+    return context.redirect(`/keystatic/branch/${RAMA_KEYSTATIC}`, 302);
+  }
+
   const response = await next();
 
   if (!context.url.pathname.startsWith('/keystatic')) return response;

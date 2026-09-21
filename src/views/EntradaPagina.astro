@@ -52,7 +52,6 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
       {autor && (
         <a
           href={`/autor/${autor.id}`}
-          data-pagefind-meta="author"
           class="text-ink no-underline hover:text-accent"
         >
           {autor.data.nombre}
@@ -62,12 +61,11 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
     </p>
   </header>
 
-  {/* La portada no se muestra en la entrada: solo sirve de metadato para la búsqueda
-      (Pagefind) y como imagen de las cards. Queda como <img> oculta para que Pagefind
-      siga leyendo su src. */}
+  {/* La portada no se muestra en la entrada: solo sirve como imagen de las cards. Queda
+      como <img> oculta para conservar su texto alternativo (SEO). */}
   {
     entrada.data.portada && (
-      <img src={entrada.data.portada} alt={entrada.data.portadaAlt || tituloEntrada} hidden loading="lazy" data-pagefind-meta="image[src]" />
+      <img src={entrada.data.portada} alt={entrada.data.portadaAlt || tituloEntrada} hidden loading="lazy" />
     )
   }
 
@@ -176,8 +174,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
    *
    * Sin JS moderno (sin Observer/glitched-writer disponibles): no se agrega ninguna
    * clase ni se muestra el botón de entrada, el contenido se lee completo y nítido de
-   * entrada (Content siempre trae el texto completo en el HTML servido, Pagefind lo
-   * indexa en build antes de que corra este script: SEO/accesibilidad intactos).
+   * entrada (Content siempre trae el texto completo en el HTML servido: SEO/accesibilidad intactos).
    */
   const container = document.getElementById('entrada-content');
   // @astrojs/markdoc envuelve el documento renderizado en su propio <article>, así

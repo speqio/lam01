@@ -1,20 +1,48 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-interface PagefindResult {
-  id: string;
-  data: () => Promise<{
-    url: string;
-    excerpt: string;
-    meta: Record<string, string>;
-  }>;
+type Tipo = 'entrada' | 'autor' | 'categoria' | 'numero';
+
+interface ItemBusqueda {
+  tipo: Tipo;
+  titulo: string;
+  url: string;
+  autor?: string;
 }
 
-interface PagefindModule {
-  search: (query: string) => Promise<{ results: PagefindResult[] }>;
-}
+const ETIQUETA: Record<Tipo, string> = {
+  entrada: 'Entrada',
+  autor: 'Autor',
+  categoria: 'Categoría',
+  numero: 'Número',
+};
 
-type ResultData = Awaited<ReturnType<PagefindResult['data']>>;
+const MAX_RESULTADOS = 8;
+const MIN_CARACTERES = 2;
+
+// Sin distinguir tildes ni mayúsculas.
+const normalizar = (texto: string) =>
+  texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('es');
+
+// Con la misma coincidencia, autores, categorías y números van antes que las entradas.
+const ORDEN_TIPO: Record<Tipo, number> = { autor: 0, categoria: 1, numero: 2, entrada: 3 };
+
+/** Coincidencia exacta, luego los que empiezan con lo escrito (o cuya palabra empieza así), luego los que lo contienen. */
+function buscar(indice: { item: ItemBusqueda; clave: string }[], consulta: string): ItemBusqueda[] {
+  const q = normalizar(consulta.trim());
+  if (q.length < MIN_CARACTERES) return [];
+  const puntuados: { item: ItemBusqueda; puntos: number }[] = [];
+  for (const { item, clave } of indice) {
+    let puntos: number;
+    if (clave === q) puntos = 0;
+    else if (clave.startsWith(q) || clave.includes(' ' + q)) puntos = 1;
+    else if (clave.includes(q)) puntos = 2;
+    else continue;
+    puntuados.push({ item, puntos });
+  }
+  puntuados.sort((x, y) => x.puntos - y.puntos || ORDEN_TIPO[x.item.tipo] - ORDEN_TIPO[y.item.tipo]);
+  return puntuados.slice(0, MAX_RESULTADOS).map((x) => x.item);
+}
 
 interface SearchModalProps {
   /** "compact": ícono solo, sin label ni atajo — para la barra flotante mobile. */
@@ -24,9 +52,9 @@ interface SearchModalProps {
 export default function SearchModal({ variant = 'default' }: SearchModalProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<ResultData[]>([]);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'unavailable'>('idle');
-  const pagefindRef = useRef<PagefindModule | null>(null);
+  const [indice, setIndice] = useState<{ item: ItemBusqueda; clave: string }[] | null>(null);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [activo, setActivo] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -46,40 +74,42 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
       inputRef.current?.focus();
     } else {
       setQuery('');
-      setResults([]);
-      setStatus('idle');
+      setActivo(-1);
     }
   }, [open]);
 
+  // El índice (/buscador.json, generado en el build) se pide una sola vez, al abrir.
   useEffect(() => {
-    if (!open || query.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-
-    const timeout = setTimeout(async () => {
-      setStatus('loading');
-      try {
-        if (!pagefindRef.current) {
-          // Generado por `pagefind --site dist` durante el build (ver package.json).
-          // No existe en el repo ni en modo desarrollo, solo después de `npm run build`.
-          // La ruta se arma en runtime (no como string literal) para que Vite/Rolldown
-          // no intente resolverla como import estático en build time.
-          const pagefindPath = ['', 'pagefind', 'pagefind.js'].join('/');
-          // @ts-ignore
-          pagefindRef.current = await import(/* @vite-ignore */ pagefindPath);
-        }
-        const search = await pagefindRef.current!.search(query);
-        const data = await Promise.all(search.results.slice(0, 8).map((r) => r.data()));
-        setResults(data);
+    if (!open || indice) return;
+    setStatus('loading');
+    fetch('/buscador.json')
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json() as Promise<ItemBusqueda[]>;
+      })
+      .then((items) => {
+        setIndice(items.map((item) => ({ item, clave: normalizar(item.titulo) })));
         setStatus('idle');
-      } catch {
-        setStatus('unavailable');
-      }
-    }, 250);
+      })
+      .catch(() => setStatus('error'));
+  }, [open, indice]);
 
-    return () => clearTimeout(timeout);
-  }, [query, open]);
+  const results = useMemo(() => (indice ? buscar(indice, query) : []), [indice, query]);
+
+  useEffect(() => setActivo(-1), [query]);
+
+  function handleInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'ArrowDown' && results.length) {
+      event.preventDefault();
+      setActivo((prev) => (prev + 1) % results.length);
+    } else if (event.key === 'ArrowUp' && results.length) {
+      event.preventDefault();
+      setActivo((prev) => (prev - 1 + results.length) % results.length);
+    } else if (event.key === 'Enter' && activo >= 0 && results[activo]) {
+      event.preventDefault();
+      window.location.href = results[activo].url;
+    }
+  }
 
   return (
     <>
@@ -141,7 +171,8 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
                 name="buscador-sitio"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar por título, autor o texto..."
+                onKeyDown={handleInputKeyDown}
+                placeholder="Buscar entrada, autor, categoría o número..."
                 className="flex-1 bg-transparent font-sans text-ink outline-none placeholder:text-ink-muted/60"
               />
               <button
@@ -154,42 +185,41 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
             </div>
 
             <div className="max-h-[60vh] overflow-y-auto p-2">
-              {status === 'unavailable' && (
+              {status === 'error' && (
                 <p className="p-4 text-center font-sans text-sm text-ink-muted">
-                  El índice de búsqueda no está disponible en desarrollo. Pagefind indexa el
-                  sitio ya construido — corré <code className="text-accent">npm run build</code> para generarlo.
+                  No se pudo cargar el buscador. Intenta de nuevo en un momento.
                 </p>
               )}
 
-              {status === 'idle' && query.trim().length >= 2 && results.length === 0 && (
+              {status === 'idle' && query.trim().length >= MIN_CARACTERES && results.length === 0 && (
                 <p className="p-4 text-center font-sans text-sm text-ink-muted">
                   Sin resultados para &ldquo;{query}&rdquo;.
                 </p>
               )}
 
-              {results.map((result) => (
+              {results.map((result, i) => (
                 <a
                   key={result.url}
                   href={result.url}
-                  className="block px-3 py-3 transition-colors hover:bg-ink/5"
+                  className={`flex items-baseline gap-3 px-3 py-3 transition-colors hover:bg-ink/5 ${i === activo ? 'bg-ink/5' : ''}`}
                   onClick={() => setOpen(false)}
+                  onMouseEnter={() => setActivo(i)}
                 >
-                  <p className="font-serif text-base text-ink">{result.meta.title}</p>
-                  {result.meta.author && (
-                    <p className="mt-0.5 font-sans text-xs text-ink-muted">
-                      Por {result.meta.author}
-                    </p>
-                  )}
-                  <p
-                    className="mt-1 font-sans text-sm text-ink-muted [&_mark]:bg-accent/30 [&_mark]:font-medium [&_mark]:text-ink"
-                    dangerouslySetInnerHTML={{ __html: result.excerpt }}
-                  />
+                  <span className="w-20 shrink-0 font-mono text-[10px] uppercase tracking-widest text-accent">
+                    {ETIQUETA[result.tipo]}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-serif text-base text-ink">{result.titulo}</span>
+                    {result.autor && (
+                      <span className="mt-0.5 block font-sans text-xs text-ink-muted">Por {result.autor}</span>
+                    )}
+                  </span>
                 </a>
               ))}
 
-              {query.trim().length < 2 && status !== 'unavailable' && (
+              {query.trim().length < MIN_CARACTERES && status !== 'error' && (
                 <p className="p-4 text-center font-sans text-sm text-ink-muted">
-                  Escribí al menos 2 caracteres para buscar.
+                  Escribe al menos {MIN_CARACTERES} caracteres para buscar.
                 </p>
               )}
             </div>

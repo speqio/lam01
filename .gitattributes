@@ -1,0 +1,2 @@
+# Las entradas son Markdoc, no man pages roff: sin esto GitHub las cuenta como "Roff".
+*.mdoc linguist-language=Markdown

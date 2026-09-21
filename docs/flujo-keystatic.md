@@ -13,7 +13,7 @@ Reemplaza a `pendiente-rama-keystatic.md`.
 3. **Cloudflare → Worker → Builds**: la rama de producción es `main`.
 
 ## Ciclo normal de contenido
-1. El cliente edita y guarda en Keystatic (rama `keystatic`). Un guardado = un ítem, luego recargar (Ctrl+Shift+R) — ver CLAUDE.md.
+1. El cliente edita y guarda en Keystatic (rama `keystatic`). Un guardado = un ítem, luego recargar (recargar la página (F5; Ctrl+Shift+R solo si persiste)) — ver CLAUDE.md.
 2. El cliente avisa (por fuera) que terminó.
 3. El dueño abre el PR `keystatic` → `main` en GitHub y espera el check `verificar`:
    - ✅ → revisa el diff → **Squash and merge** → Cloudflare publica.

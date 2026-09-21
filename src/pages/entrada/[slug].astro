@@ -20,6 +20,15 @@ const autor = await getEntry('autores', entrada.data.autor);
 const categoria = await getEntry('categorias', entrada.data.categoria);
 const tituloEntrada = normalizeTitleText(entrada.data.titulo);
 
+// Un espacio de galería o de imagen individual sin imagen (Keystatic lo guarda como `- {}`
+// si el campo no era obligatorio) se ignora en vez de romper la entrada.
+const galeriaConImagen = (entrada.data.galeria ?? []).filter(
+  (item): item is typeof item & { imagen: string } => !!item.imagen
+);
+const individualesConImagen = (entrada.data.imagenesIndividuales ?? []).filter(
+  (item): item is typeof item & { imagen: string } => !!item.imagen
+);
+
 const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
   year: 'numeric',
   month: 'long',
@@ -105,7 +114,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
   </button>
 
   {
-    entrada.data.imagenesIndividuales?.map((item) => (
+    individualesConImagen.map((item) => (
       <EntradaImagen
         imagen={item.imagen}
         alt={item.alt}
@@ -117,9 +126,9 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
   }
 
   {
-    entrada.data.galeria && entrada.data.galeria.length > 0 && (
+    galeriaConImagen.length > 0 && (
       <EntradaGaleria
-        imagenes={entrada.data.galeria}
+        imagenes={galeriaConImagen}
         titulo={tituloEntrada}
         posicion={entrada.data.galeriaPosicion}
       />

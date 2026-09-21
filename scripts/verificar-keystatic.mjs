@@ -4,6 +4,8 @@
 //
 // 1. Lee TODOS los ítems con el lector de Keystatic (mismo parser que usa el editor):
 //    detecta entradas que Keystatic no puede abrir (p. ej. imágenes dentro de un enlace).
+//    También detecta lo que rompería el build de Astro: campos exigidos por el esquema
+//    (fecha, extracto, biografía, portada de número) vacíos y espacios de galería sin imagen.
 // 2. Comprueba que cada ruta de imagen del contenido sigue la convención de Keystatic
 //    (/images/<colección>/<slug>/archivo) y que el archivo existe en public/. Una ruta
 //    fuera de convención o un archivo faltante provoca el error de GitHub "A path was
@@ -33,6 +35,7 @@ const mostrar = (titulo, lista) => {
 
 // 1. Legibilidad
 const ilegibles = [];
+const camposVacios = [];
 const totales = {};
 for (const col of Object.keys(config.collections)) {
   const slugs = await reader.collections[col].list();
@@ -41,12 +44,24 @@ for (const col of Object.keys(config.collections)) {
     try {
       const v = await reader.collections[col].read(slug, { resolveLinkedFiles: true });
       if (v === null) ilegibles.push(`${col}/${slug}: no se pudo leer`);
+      else {
+        // Campos que Astro exige: si quedan vacíos, el build de todo el sitio falla.
+        const vacio = (x) => x === null || x === undefined || String(x).trim() === '';
+        const exigidos = { entradas: ['fecha', 'extracto'], numeros: ['fecha', 'portada'], autores: ['biografia'] }[col] ?? [];
+        for (const campo of exigidos) if (vacio(v[campo])) camposVacios.push(`${col}/${slug}: falta "${campo}"`);
+        for (const lista of ['galeria', 'imagenesIndividuales']) {
+          (v[lista] ?? []).forEach((item, i) => {
+            if (vacio(item.imagen)) camposVacios.push(`${col}/${slug}: ${lista}[${i}] no tiene imagen`);
+          });
+        }
+      }
     } catch (e) {
       ilegibles.push(`${col}/${slug}: ${String(e.message).split('\n').filter(Boolean).slice(-1)[0]}`);
     }
   }
 }
 mostrar('Ítems que Keystatic no puede abrir', ilegibles);
+mostrar('Campos obligatorios vacíos o espacios de imagen sin imagen (romperían el build)', camposVacios);
 
 // 2. Rutas de imagen
 const fueraDeConvencion = [];

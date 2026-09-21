@@ -21,6 +21,7 @@ export default config({
         biografia: fields.text({
           label: 'Biografía',
           multiline: true,
+          validation: { isRequired: true },
         }),
         metaTitulo: fields.text({
           label: 'Meta título (SEO)',
@@ -63,7 +64,7 @@ export default config({
             description: 'Ej. Número 1: Primavera',
           },
         }),
-        fecha: fields.date({ label: 'Fecha' }),
+        fecha: fields.date({ label: 'Fecha', validation: { isRequired: true } }),
         portada: fields.image({
           label: 'Portada',
           directory: 'public/images/numeros',
@@ -92,7 +93,7 @@ export default config({
       format: { contentField: 'contenido' },
       schema: {
         titulo: fields.slug({ name: { label: 'Título' } }),
-        fecha: fields.date({ label: 'Fecha' }),
+        fecha: fields.date({ label: 'Fecha', validation: { isRequired: true } }),
         numero: fields.relationship({
           label: 'Número',
           collection: 'numeros',
@@ -124,6 +125,7 @@ export default config({
               label: 'Imagen',
               directory: 'public/images/entradas',
               publicPath: '/images/entradas/',
+              validation: { isRequired: true },
             }),
             alt: fields.text({
               label: 'Texto alternativo (SEO)',
@@ -152,6 +154,7 @@ export default config({
               label: 'Imagen',
               directory: 'public/images/entradas',
               publicPath: '/images/entradas/',
+              validation: { isRequired: true },
             }),
             alt: fields.text({
               label: 'Texto alternativo (SEO)',
@@ -177,6 +180,7 @@ export default config({
         extracto: fields.text({
           label: 'Extracto',
           multiline: true,
+          validation: { isRequired: true },
         }),
         metaTitulo: fields.text({
           label: 'Meta título (SEO)',

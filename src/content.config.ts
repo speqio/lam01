@@ -45,7 +45,10 @@ const entradas = defineCollection({
     portadaAlt: z.string().optional(),
     // Todas las entradas ya migradas a esta forma (script de migración, ver commit) —
     // coincide con el campo de Keystatic (fields.array(fields.object({imagen, leyenda}))).
-    galeria: z.array(z.object({ imagen: z.string(), alt: z.string().optional(), leyenda: z.string().optional() })).optional(),
+    // `imagen` es opcional acá a propósito: un espacio vacío (`- {}`) no debe tumbar todo el
+    // build (una sola entrada inválida frena el deploy de todo el sitio). Keystatic ya lo exige
+    // como obligatorio; la página de la entrada ignora los ítems sin imagen.
+    galeria: z.array(z.object({ imagen: z.string().optional(), alt: z.string().optional(), leyenda: z.string().optional() })).optional(),
     // Después de qué bloque (párrafo/verso, contando desde 1) del cuerpo va la
     // galería — sin valor, se mantiene al final de la entrada (comportamiento previo).
     galeriaPosicion: z.number().int().min(1).optional(),
@@ -53,7 +56,7 @@ const entradas = defineCollection({
     imagenesIndividuales: z
       .array(
         z.object({
-          imagen: z.string(),
+          imagen: z.string().optional(),
           alt: z.string().optional(),
           leyenda: z.string().optional(),
           posicion: z.number().int().min(1).optional(),

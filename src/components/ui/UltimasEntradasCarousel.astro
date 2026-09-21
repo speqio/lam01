@@ -1,5 +1,5 @@
 ---
-import { cardImageWrap, cardBadge } from '../../lib/cardStyles';
+import { cardImageWrap, cardBadgeClass } from '../../lib/cardStyles';
 import { normalizeTitleText } from '../../lib/text';
 
 /**
@@ -58,7 +58,7 @@ const { items } = Astro.props;
                     draggable="false"
                   />
                 )}
-                <span class={cardBadge}>{item.categoryName}</span>
+                <span class={cardBadgeClass(item.categoryName)}>{item.categoryName}</span>
               </div>
               <div class="flex w-3/5 flex-col justify-center gap-1 p-3">
                 <h3 class="font-headline text-sm leading-[1.05] text-ink line-clamp-2">

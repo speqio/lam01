@@ -6,7 +6,7 @@ import {
   cardShell,
   cardImageWrap,
   cardImage,
-  cardBadge,
+  cardBadgeClass,
   cardBody,
   cardTitle,
   cardCta,
@@ -81,7 +81,7 @@ export default function EntryCard({
     <a ref={ref} href={`/${slug}`} className={`entry-card-reveal ${cardShell}`}>
       <div className={cardImageWrap}>
         {coverImage && <img src={coverImage} alt={coverAlt || normalizedTitle} className={cardImage} />}
-        <span className={cardBadge}>{categoryName}</span>
+        <span className={cardBadgeClass(categoryName)}>{categoryName}</span>
       </div>
 
       <div className={cardBody}>

@@ -19,8 +19,19 @@ export const cardImageWrap = 'relative h-full w-2/5 shrink-0 bg-surface';
 // pone la clase "card-badge" en global.css, no una utilidad de Tailwind acá — así un
 // solo lugar controla el color en todos los badges del sitio (cards de categoría,
 // EntradasCarousel3D, ArchivoCascade, CategoriasCards, /numeros).
-export const cardBadge =
-  'card-badge absolute left-2 top-2 px-3 py-2 font-mono text-[12px] font-black uppercase tracking-[0.2em] drop-shadow-[0_0_1.2px_rgba(0,0,0,0.95)] md:text-sm';
+const cardBadgeBase =
+  'card-badge absolute left-2 top-2 font-mono font-black uppercase drop-shadow-[0_0_1.2px_rgba(0,0,0,0.95)]';
+export const cardBadge = `${cardBadgeBase} px-3 py-2 text-[12px] tracking-[0.2em] md:text-sm`;
+
+// Variante compacta para nombres largos (p. ej. "Galería Rectángulo de Plata"): con el
+// tamaño normal esos nombres rompían en 3 líneas dentro del 40% de ancho de la imagen.
+// Letra más chica, menos espaciado y menos relleno para que quepan en 2 líneas como máximo.
+const BADGE_LARGO = 18;
+export const cardBadgeCompacto = `${cardBadgeBase} px-2 py-1.5 text-[10px] leading-tight tracking-[0.04em] md:text-[11px]`;
+
+/** Clases del badge según el largo del texto: las etiquetas largas usan la variante compacta. */
+export const cardBadgeClass = (texto: string) =>
+  texto.length > BADGE_LARGO ? cardBadgeCompacto : cardBadge;
 
 // Variante de card completa (EntryCard, /numeros): imagen que reacciona al hover del
 // link que envuelve toda la card.

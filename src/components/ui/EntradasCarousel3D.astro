@@ -1,5 +1,5 @@
 ---
-import { cardBadge } from '../../lib/cardStyles';
+import { cardBadgeClass } from '../../lib/cardStyles';
 import { normalizeTitleText } from '../../lib/text';
 import { dialCount } from '../../lib/dialNav';
 
@@ -61,7 +61,7 @@ const { items } = Astro.props;
               ) : (
                 <div class="h-full w-full bg-surface" />
               )}
-              <span class={cardBadge}>{item.categoryName}</span>
+              <span class={cardBadgeClass(item.categoryName)}>{item.categoryName}</span>
             </a>
           ))}
         </div>

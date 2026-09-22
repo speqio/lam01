@@ -23,6 +23,12 @@ export default config({
           multiline: true,
           validation: { isRequired: true },
         }),
+        esTraductor: fields.checkbox({
+          label: 'Es traductor',
+          description:
+            'Marca esta casilla si esta persona traduce entradas (además de o en vez de escribirlas). En el buscador del sitio, su ficha aparece con la etiqueta "Traductor" en vez de "Autor".',
+          defaultValue: false,
+        }),
         metaTitulo: fields.text({
           label: 'Meta título (SEO)',
           description: 'Título para buscadores/redes. Si se deja vacío, se usa el nombre.',

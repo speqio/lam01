@@ -8,6 +8,10 @@ interface ItemBusqueda {
   titulo: string;
   url: string;
   autor?: string;
+  /** Solo entradas: nombre de quien tradujo, si corresponde — también se busca por este nombre. */
+  traductor?: string;
+  /** Solo autores: si está marcado en Keystatic, la etiqueta es "Traductor" en vez de "Autor". */
+  esTraductor?: boolean;
 }
 
 const ETIQUETA: Record<Tipo, string> = {
@@ -16,6 +20,9 @@ const ETIQUETA: Record<Tipo, string> = {
   categoria: 'Categoría',
   numero: 'Número',
 };
+
+const etiquetaDe = (item: ItemBusqueda) =>
+  item.tipo === 'autor' && item.esTraductor ? 'Traductor' : ETIQUETA[item.tipo];
 
 const MAX_RESULTADOS = 8;
 const MIN_CARACTERES = 2;
@@ -27,18 +34,32 @@ const normalizar = (texto: string) =>
 // Con la misma coincidencia, autores, categorías y números van antes que las entradas.
 const ORDEN_TIPO: Record<Tipo, number> = { autor: 0, categoria: 1, numero: 2, entrada: 3 };
 
-/** Coincidencia exacta, luego los que empiezan con lo escrito (o cuya palabra empieza así), luego los que lo contienen. */
-function buscar(indice: { item: ItemBusqueda; clave: string }[], consulta: string): ItemBusqueda[] {
+function puntuar(clave: string, q: string): number | null {
+  if (clave === q) return 0;
+  if (clave.startsWith(q) || clave.includes(' ' + q)) return 1;
+  if (clave.includes(q)) return 2;
+  return null;
+}
+
+/**
+ * Coincidencia exacta, luego los que empiezan con lo escrito (o cuya palabra empieza así),
+ * luego los que lo contienen. Una entrada también aparece si lo escrito coincide con el
+ * nombre de quien la tradujo (`claveTraductor`), no solo con el título — así buscar al
+ * traductor encuentra sus entradas, igual que buscar su propia ficha de autor.
+ */
+function buscar(
+  indice: { item: ItemBusqueda; clave: string; claveTraductor?: string }[],
+  consulta: string
+): ItemBusqueda[] {
   const q = normalizar(consulta.trim());
   if (q.length < MIN_CARACTERES) return [];
   const puntuados: { item: ItemBusqueda; puntos: number }[] = [];
-  for (const { item, clave } of indice) {
-    let puntos: number;
-    if (clave === q) puntos = 0;
-    else if (clave.startsWith(q) || clave.includes(' ' + q)) puntos = 1;
-    else if (clave.includes(q)) puntos = 2;
-    else continue;
-    puntuados.push({ item, puntos });
+  for (const { item, clave, claveTraductor } of indice) {
+    const puntosTitulo = puntuar(clave, q);
+    const puntosTraductor = claveTraductor ? puntuar(claveTraductor, q) : null;
+    const candidatos = [puntosTitulo, puntosTraductor].filter((p): p is number => p !== null);
+    if (candidatos.length === 0) continue;
+    puntuados.push({ item, puntos: Math.min(...candidatos) });
   }
   puntuados.sort((x, y) => x.puntos - y.puntos || ORDEN_TIPO[x.item.tipo] - ORDEN_TIPO[y.item.tipo]);
   return puntuados.slice(0, MAX_RESULTADOS).map((x) => x.item);
@@ -52,7 +73,9 @@ interface SearchModalProps {
 export default function SearchModal({ variant = 'default' }: SearchModalProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [indice, setIndice] = useState<{ item: ItemBusqueda; clave: string }[] | null>(null);
+  const [indice, setIndice] = useState<
+    { item: ItemBusqueda; clave: string; claveTraductor?: string }[] | null
+  >(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [activo, setActivo] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -88,7 +111,13 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
         return r.json() as Promise<ItemBusqueda[]>;
       })
       .then((items) => {
-        setIndice(items.map((item) => ({ item, clave: normalizar(item.titulo) })));
+        setIndice(
+          items.map((item) => ({
+            item,
+            clave: normalizar(item.titulo),
+            claveTraductor: item.traductor ? normalizar(item.traductor) : undefined,
+          }))
+        );
         setStatus('idle');
       })
       .catch(() => setStatus('error'));
@@ -206,12 +235,17 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
                   onMouseEnter={() => setActivo(i)}
                 >
                   <span className="w-20 shrink-0 font-mono text-[10px] font-black uppercase tracking-widest text-ink">
-                    {ETIQUETA[result.tipo]}
+                    {etiquetaDe(result)}
                   </span>
                   <span className="min-w-0">
                     <span className="block font-serif text-base text-ink">{result.titulo}</span>
                     {result.autor && (
                       <span className="mt-0.5 block font-sans text-xs text-ink-muted">Por {result.autor}</span>
+                    )}
+                    {result.traductor && (
+                      <span className="mt-0.5 block font-sans text-xs text-ink-muted">
+                        Traducción de {result.traductor}
+                      </span>
                     )}
                   </span>
                 </a>

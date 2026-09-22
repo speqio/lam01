@@ -16,6 +16,10 @@ export interface ItemBusqueda {
   url: string;
   /** Solo entradas: nombre del autor. */
   autor?: string;
+  /** Solo entradas: nombre de quien tradujo, si corresponde — también se busca por este nombre. */
+  traductor?: string;
+  /** Solo autores: si está marcado en Keystatic, el buscador muestra "Traductor" en vez de "Autor". */
+  esTraductor?: boolean;
 }
 
 // Algunos títulos migrados de WordPress traen etiquetas HTML (<strong>…).
@@ -36,11 +40,13 @@ export const GET: APIRoute = async () => {
       titulo: normalizeTitleText(sinHtml(entrada.data.titulo)),
       url: `/${entrada.id}`,
       autor: nombreAutor.get(entrada.data.autor),
+      traductor: entrada.data.traducidoPor ? nombreAutor.get(entrada.data.traducidoPor) : undefined,
     })),
     ...autores.map((autor) => ({
       tipo: 'autor' as const,
       titulo: autor.data.nombre,
       url: `/autor/${autor.id}`,
+      esTraductor: autor.data.esTraductor || undefined,
     })),
     ...categorias.map((categoria) => ({
       tipo: 'categoria' as const,

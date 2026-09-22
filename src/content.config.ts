@@ -7,6 +7,7 @@ const autores = defineCollection({
     nombre: z.string(),
     foto: z.string().optional(),
     biografia: z.string(),
+    esTraductor: z.boolean().optional(),
     metaTitulo: z.string().optional(),
     metaDescripcion: z.string().optional(),
   }),

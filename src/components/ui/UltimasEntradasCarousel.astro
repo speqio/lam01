@@ -29,6 +29,8 @@ import { normalizeTitleText } from '../../lib/text';
 export interface UltimaEntradaItem {
   title: string;
   authorName: string;
+  /** Nombre de quien tradujo la entrada, si corresponde. */
+  translatorName?: string;
   categoryName: string;
   slug: string;
   coverImage?: string;
@@ -67,6 +69,11 @@ const { items } = Astro.props;
                 <p class="font-mono text-[9px] uppercase tracking-widest text-ink-muted">
                   Por {item.authorName}
                 </p>
+                {item.translatorName && (
+                  <p class="font-mono text-[9px] uppercase tracking-widest text-ink-muted">
+                    Trad. de {item.translatorName}
+                  </p>
+                )}
               </div>
             </div>
           </a>

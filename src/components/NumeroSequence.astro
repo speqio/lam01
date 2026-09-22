@@ -8,6 +8,8 @@ interface EntradaItem {
   titulo: string;
   categoriaNombre: string;
   autorNombre: string;
+  /** Nombre de quien tradujo la entrada, si corresponde. */
+  translatorName?: string;
   portada?: string;
 }
 
@@ -86,6 +88,7 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
               client:visible
               title={item.titulo}
               authorName={item.autorNombre}
+              translatorName={item.translatorName}
               categoryName={item.categoriaNombre}
               slug={item.slug}
               coverImage={item.portada}
@@ -138,6 +141,11 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
                 <p class="font-mono text-[10px] uppercase tracking-widest text-ink-muted md:text-xs">
                   Por {item.autorNombre}
                 </p>
+                {item.translatorName && (
+                  <p class="font-mono text-[10px] uppercase tracking-widest text-ink-muted md:text-xs">
+                    Traducción de {item.translatorName}
+                  </p>
+                )}
                 <span class="relative mt-auto inline-block">
                   <span class="font-mono text-xs font-medium uppercase tracking-widest text-accent md:text-sm">
                     Leer entrada

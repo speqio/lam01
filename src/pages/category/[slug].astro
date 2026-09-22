@@ -22,7 +22,10 @@ const entradasDeCategoria = todasLasEntradas.filter(
 const entradasConRelaciones = await Promise.all(
   entradasDeCategoria.map(async (entrada) => {
     const autor = await getEntry('autores', entrada.data.autor);
-    return { entrada, autor };
+    const traductor = entrada.data.traducidoPor
+      ? await getEntry('autores', entrada.data.traducidoPor)
+      : null;
+    return { entrada, autor, traductor };
   })
 );
 
@@ -56,11 +59,12 @@ const todasLasCategorias = await getCollection('categorias');
 
   <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
     {
-      entradasConRelaciones.map(({ entrada, autor }) => (
+      entradasConRelaciones.map(({ entrada, autor, traductor }) => (
         <EntryCard
           client:visible
           title={entrada.data.titulo}
           authorName={autor?.data.nombre ?? ''}
+          translatorName={traductor?.data.nombre}
           categoryName={categoria.data.nombre}
           slug={entrada.id}
           coverImage={entrada.data.portada}

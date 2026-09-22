@@ -35,6 +35,8 @@ export interface ArchivoCatalogoItem {
   slug: string;
   title: string;
   authorName: string;
+  /** Nombre de quien tradujo la entrada, si corresponde. */
+  translatorName?: string;
   categoryName: string;
   coverImage?: string;
   coverAlt?: string;
@@ -171,6 +173,7 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
               client:visible
               title={item.title}
               authorName={item.authorName}
+              translatorName={item.translatorName}
               categoryName={item.categoryName}
               slug={item.slug}
               coverImage={item.coverImage}

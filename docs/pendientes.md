@@ -9,6 +9,10 @@
 - **`/proyecto-2`:** la página vieja está en `/proyecto-2`; en el sitio nuevo es `/proyecto` (decisión: dejar así, el enlace viejo dará 404).
 - **Tema claro y móvil:** no se verificó el badge compacto en el carrusel móvil, ni la etiqueta del buscador en tema claro, ni la galería de la entrada en un teléfono real.
 
+## Campos nuevos: `notas` y `traducidoPor` (sin migrar)
+- **`notas`:** 39 entradas ya tienen una sección `**Notas**` (notas al pie) escrita a mano dentro del cuerpo, antes de donde hoy va Biografía del autor / Bibliografía. El campo nuevo existe, pero esas 39 entradas no se migraron — el texto sigue en el cuerpo. Mover ese contenido al campo es un pedido aparte.
+- **`traducidoPor`:** relación opcional con `autores`, para separar autoría original de traducción. Ninguna entrada existente fue migrada (las que dicen "Traducción de X" a mano en el cuerpo, o mencionan "traducción" en el texto, ~128 entradas) — sigue siendo texto libre en el cuerpo. Para completar el campo en una entrada hace falta que el traductor (y en algunos casos el autor original) exista como ficha en `autores`; hoy solo existen "Redacción" y "Riccardo Morello".
+
 ## Flujo de Keystatic
 - **Protección de `main`:** los rulesets no funcionan en repos privados con plan gratuito. Hoy la única barrera es la redirección `/keystatic` → rama `keystatic` y fusionar solo con `verificar` en verde. Opciones: GitHub Team, o repo público (riesgos evaluados: contenido no publicado y correos de commits visibles).
 - **Vista previa por rama** en Cloudflare (builds de ramas no productivas): sin verificar en el panel.

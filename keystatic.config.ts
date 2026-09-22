@@ -104,6 +104,12 @@ export default config({
           collection: 'autores',
           validation: { isRequired: true },
         }),
+        traducidoPor: fields.relationship({
+          label: 'Traducido por',
+          collection: 'autores',
+          description:
+            'Opcional. Si esta entrada es una traducción, elige quién la tradujo (debe existir como autor). "Autor" arriba sigue siendo la autoría original.',
+        }),
         categoria: fields.relationship({
           label: 'Categoría',
           collection: 'categorias',
@@ -209,6 +215,11 @@ export default config({
         bibliografia: fields.text({
           label: 'Bibliografía',
           description: 'Fuentes/referencias citadas, se muestran al final de la entrada.',
+          multiline: true,
+        }),
+        notas: fields.text({
+          label: 'Notas',
+          description: 'Notas al pie o aclaraciones, se muestran antes de Biografía del autor / Bibliografía.',
           multiline: true,
         }),
       },

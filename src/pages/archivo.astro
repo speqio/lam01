@@ -10,7 +10,10 @@ const entradasConRelaciones = await Promise.all(
   todasLasEntradas.map(async (entrada) => {
     const autor = await getEntry('autores', entrada.data.autor);
     const categoria = await getEntry('categorias', entrada.data.categoria);
-    return { entrada, autor, categoria };
+    const traductor = entrada.data.traducidoPor
+      ? await getEntry('autores', entrada.data.traducidoPor)
+      : null;
+    return { entrada, autor, categoria, traductor };
   })
 );
 
@@ -20,10 +23,11 @@ entradasConRelaciones.sort(
 
 // Catálogo completo (ArchivoCatalogo.astro): todas las entradas, sin recortar, con
 // filtros de año/categoría/número y buscador de autor.
-const catalogoItems = entradasConRelaciones.map(({ entrada, autor, categoria }) => ({
+const catalogoItems = entradasConRelaciones.map(({ entrada, autor, categoria, traductor }) => ({
   slug: entrada.id,
   title: entrada.data.titulo,
   authorName: autor?.data.nombre ?? '',
+  translatorName: traductor?.data.nombre,
   categoryName: categoria?.data.nombre ?? '',
   coverImage: entrada.data.portada,
   coverAlt: entrada.data.portadaAlt,

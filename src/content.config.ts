@@ -40,6 +40,9 @@ const entradas = defineCollection({
     fecha: z.coerce.date(),
     numero: z.string(),
     autor: z.string(),
+    // Opcional: quién tradujo la entrada (relación con autores). `autor` sigue siendo la
+    // autoría original — ver keystatic.config.ts.
+    traducidoPor: z.string().optional(),
     categoria: z.string(),
     portada: z.string().optional(),
     portadaAlt: z.string().optional(),
@@ -68,6 +71,7 @@ const entradas = defineCollection({
     metaDescripcion: z.string().optional(),
     biografiaAutor: z.string().optional(),
     bibliografia: z.string().optional(),
+    notas: z.string().optional(),
   }),
 });
 

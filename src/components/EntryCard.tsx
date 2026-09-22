@@ -36,6 +36,8 @@ gsap.registerPlugin(ScrollTrigger);
 interface EntryCardProps {
   title: string;
   authorName: string;
+  /** Nombre de quien tradujo la entrada, si corresponde — se muestra debajo del autor. */
+  translatorName?: string;
   categoryName: string;
   slug: string;
   coverImage?: string;
@@ -45,6 +47,7 @@ interface EntryCardProps {
 export default function EntryCard({
   title,
   authorName,
+  translatorName,
   categoryName,
   slug,
   coverImage,
@@ -89,6 +92,11 @@ export default function EntryCard({
         <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">
           Por {authorName}
         </p>
+        {translatorName && (
+          <p className="mt-0.5 font-mono text-[10px] uppercase tracking-widest text-ink-muted">
+            Traducción de {translatorName}
+          </p>
+        )}
         <span className={cardCtaWrap}>
           <span className={cardCta}>Leer entrada</span>
           <span className={cardCtaUnderline} />

@@ -15,7 +15,10 @@ const entradasConRelaciones = await Promise.all(
   entradasDelNumero.map(async (entrada) => {
     const autor = await getEntry('autores', entrada.data.autor);
     const categoria = await getEntry('categorias', entrada.data.categoria);
-    return { entrada, autor, categoria };
+    const traductor = entrada.data.traducidoPor
+      ? await getEntry('autores', entrada.data.traducidoPor)
+      : null;
+    return { entrada, autor, categoria, traductor };
   })
 );
 
@@ -41,11 +44,12 @@ const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : 
     titulo={numero.data.titulo}
     descripcion={numero.data.descripcion}
     fechaFormateada={formattedDate}
-    entradas={entradasConRelaciones.map(({ entrada, autor, categoria }) => ({
+    entradas={entradasConRelaciones.map(({ entrada, autor, categoria, traductor }) => ({
       slug: entrada.id,
       titulo: entrada.data.titulo,
       categoriaNombre: categoria?.data.nombre ?? '',
       autorNombre: autor?.data.nombre ?? '',
+      translatorName: traductor?.data.nombre,
       portada: entrada.data.portada,
     }))}
   />

@@ -10,6 +10,9 @@ const { Content } = await render(entrada);
 
 const autor = await getEntry('autores', entrada.data.autor);
 const categoria = await getEntry('categorias', entrada.data.categoria);
+const traductor = entrada.data.traducidoPor
+  ? await getEntry('autores', entrada.data.traducidoPor)
+  : null;
 const tituloEntrada = normalizeTitleText(entrada.data.titulo);
 
 // Un espacio de galería o de imagen individual sin imagen (Keystatic lo guarda como `- {}`
@@ -59,6 +62,19 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
       )}
       {' '}&middot; {formattedDate}
     </p>
+    {
+      traductor && (
+        <p class="mt-1 font-mono text-xs uppercase tracking-widest text-ink-muted">
+          Traducción de{' '}
+          <a
+            href={`/autor/${traductor.id}`}
+            class="text-ink no-underline hover:text-accent"
+          >
+            {traductor.data.nombre}
+          </a>
+        </p>
+      )
+    }
   </header>
 
   {/* La portada no se muestra en la entrada: solo sirve como imagen de las cards. Queda
@@ -122,6 +138,17 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
         titulo={tituloEntrada}
         posicion={entrada.data.galeriaPosicion}
       />
+    )
+  }
+
+  {
+    entrada.data.notas && (
+      <div class="not-prose mt-12 border-t border-ink/15 pt-8">
+        <h2 class="mb-3 font-headline text-2xl text-ink">Notas</h2>
+        <p class="whitespace-pre-line font-serif text-sm leading-relaxed text-ink-muted">
+          {entrada.data.notas}
+        </p>
+      </div>
     )
   }
 

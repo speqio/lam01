@@ -14,14 +14,22 @@ export async function getStaticPaths() {
 const { autor } = Astro.props;
 
 const todasLasEntradas = await getCollection('entradas');
+// Entradas donde este autor escribió el original o donde lo tradujo — ambos roles se
+// muestran en su página (ver EntradaPagina.astro / EntryCard.tsx para el rótulo de traductor).
 const entradasDelAutor = todasLasEntradas.filter(
-  (entrada) => entrada.data.autor === autor.id
+  (entrada) => entrada.data.autor === autor.id || entrada.data.traducidoPor === autor.id
 );
 
 const entradasConRelaciones = await Promise.all(
   entradasDelAutor.map(async (entrada) => {
     const categoria = await getEntry('categorias', entrada.data.categoria);
-    return { entrada, categoria };
+    // El autor de la card no es necesariamente este perfil: puede ser la autoría
+    // original de una entrada que este perfil solo tradujo.
+    const autorEntrada = await getEntry('autores', entrada.data.autor);
+    const traductor = entrada.data.traducidoPor
+      ? await getEntry('autores', entrada.data.traducidoPor)
+      : null;
+    return { entrada, categoria, autorEntrada, traductor };
   })
 );
 
@@ -39,11 +47,12 @@ entradasConRelaciones.sort(
     tituloLiteral
     descripcionCompleta
     descripcion={autor.data.biografia}
-    entradas={entradasConRelaciones.map(({ entrada, categoria }) => ({
+    entradas={entradasConRelaciones.map(({ entrada, categoria, autorEntrada, traductor }) => ({
       slug: entrada.id,
       titulo: entrada.data.titulo,
       categoriaNombre: categoria?.data.nombre ?? '',
-      autorNombre: autor.data.nombre,
+      autorNombre: autorEntrada?.data.nombre ?? '',
+      translatorName: traductor?.data.nombre,
       portada: entrada.data.portada,
     }))}
   />

@@ -21,7 +21,10 @@ const todasConRelaciones = await Promise.all(
   todasLasEntradas.map(async (entrada) => {
     const autor = await getEntry('autores', entrada.data.autor);
     const categoria = await getEntry('categorias', entrada.data.categoria);
-    return { entrada, autor, categoria };
+    const traductor = entrada.data.traducidoPor
+      ? await getEntry('autores', entrada.data.traducidoPor)
+      : null;
+    return { entrada, autor, categoria, traductor };
   })
 );
 
@@ -31,18 +34,20 @@ todasConRelaciones.sort(
 
 const ultimasEntradas = todasConRelaciones.slice(0, 6);
 
-const swipeItems = ultimasEntradas.map(({ entrada, autor, categoria }) => ({
+const swipeItems = ultimasEntradas.map(({ entrada, autor, categoria, traductor }) => ({
   title: normalizeTitleText(entrada.data.titulo),
   authorName: autor?.data.nombre ?? '',
+  translatorName: traductor?.data.nombre,
   categoryName: categoria?.data.nombre ?? '',
   slug: entrada.id,
   coverImage: entrada.data.portada,
   excerpt: entrada.data.extracto,
 }));
 
-const carousel3DItems = todasConRelaciones.slice(0, 8).map(({ entrada, autor, categoria }) => ({
+const carousel3DItems = todasConRelaciones.slice(0, 8).map(({ entrada, autor, categoria, traductor }) => ({
   title: normalizeTitleText(entrada.data.titulo),
   authorName: autor?.data.nombre ?? '',
+  translatorName: traductor?.data.nombre,
   categoryName: categoria?.data.nombre ?? '',
   coverImage: entrada.data.portada,
   href: `/${entrada.id}`,

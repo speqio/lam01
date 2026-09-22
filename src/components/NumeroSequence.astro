@@ -1,6 +1,7 @@
 ---
 import { normalizeTitleText, splitNumeroTitle } from '../lib/text';
 import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
+import { cardBadgeClass } from '../lib/cardStyles';
 import EntryCard from './EntryCard.tsx';
 
 interface EntradaItem {
@@ -130,7 +131,7 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
                     loading="lazy"
                   />
                 )}
-                <span class="absolute left-2 top-2 bg-accent px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-canvas md:px-3.5 md:py-2 md:text-sm">
+                <span class={cardBadgeClass(item.categoriaNombre)}>
                   {item.categoriaNombre}
                 </span>
               </div>

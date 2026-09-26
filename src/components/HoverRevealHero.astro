@@ -2,8 +2,8 @@
 import { splitNumeroTitle } from '../lib/text';
 
 /**
- * Hero de "Último número" — título, descripción y link, con una animación de
- * partículas en canvas (GSAP, sin isla de React) al lado del título, no de fondo.
+ * Hero de "Último número" — título, descripción y link, con una estampilla 3D (CSS + GSAP, sin isla de React) que gira y flota
+ * al lado del título, no de fondo. (Versión anterior con partículas: HoverRevealHero.particulas.astro.bak.)
  * Sin portada (se sacó a propósito) y sin ningún comportamiento de hover/tap (esa
  * mecánica interfería con el click en el botón "Ver número completo").
  *
@@ -20,20 +20,20 @@ const { titulo, descripcion, href } = Astro.props;
 const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
 ---
 
-<section class="relative mb-16 w-full px-4 py-4 text-center sm:py-6 md:mb-32 lg:mb-40">
+<section class="relative mb-16 w-full px-4 py-4 sm:py-6 md:mb-32 lg:mb-40">
   <div
-    class="mx-auto flex max-w-4xl flex-col items-center justify-center gap-2 md:grid md:max-w-none md:grid-cols-2 md:items-center md:gap-6 lg:gap-12"
+    class="mx-auto grid max-w-none grid-cols-2 items-center gap-3 md:gap-6 lg:gap-12"
   >
-    <div class="order-2 flex w-full flex-col items-center md:order-1 md:items-start md:text-left">
+    <div class="flex w-full min-w-0 flex-col items-start text-left">
       <h1
-        class="max-w-full font-headline leading-[0.85] tracking-tight text-ink text-[9vw] md:text-[min(7vw,7rem)] lg:text-[min(6.5vw,8.5rem)]"
+        class="max-w-full font-headline leading-[0.85] tracking-tight text-ink text-[7.5vw] md:text-[min(7vw,7rem)] lg:text-[min(6.5vw,8.5rem)]"
       >
         {tituloPrincipal}
       </h1>
 
       {
         subtitulo && (
-          <p class="mt-2 max-w-full font-serif italic leading-tight text-ink/70 text-[4.5vw] md:text-[min(3vw,2.75rem)] lg:text-[min(2.6vw,3.25rem)]">
+          <p class="mt-2 max-w-full font-serif italic leading-tight text-ink/70 text-[3.8vw] md:text-[min(3vw,2.75rem)] lg:text-[min(2.6vw,3.25rem)]">
             {subtitulo}
           </p>
         )
@@ -41,7 +41,7 @@ const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
 
       {
         descripcion && (
-          <p class="mx-auto mt-6 max-w-2xl font-serif text-lg italic text-ink/70 md:mx-0 md:text-xl">
+          <p class="mt-6 max-w-2xl font-serif text-base italic text-ink/70 md:text-xl">
             {descripcion}
           </p>
         )
@@ -51,7 +51,7 @@ const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
         href && (
           <a
             href={href}
-            class="mt-6 inline-block rounded-full border border-ink px-6 py-3 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:bg-ink hover:text-canvas md:mt-8 md:px-8 md:py-4 md:text-sm"
+            class="mt-5 inline-block rounded-full border border-ink px-4 py-2.5 font-mono text-[0.65rem] sm:px-6 sm:py-3 sm:text-xs uppercase tracking-widest text-ink transition-colors hover:bg-ink hover:text-canvas md:mt-8 md:px-8 md:py-4 md:text-sm"
           >
             Ver número completo
           </a>
@@ -59,102 +59,176 @@ const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
       }
     </div>
 
-    <canvas
-      class="order-1 shrink-0 md:order-2 md:mx-auto"
-      width="174"
-      height="224"
-      data-hero-particles
-    ></canvas>
+    <div
+      class="stamp-scene shrink-0 justify-self-center"
+      data-stamp-scene
+      aria-hidden="true"
+    >
+      <div class="stamp" data-stamp>
+        <div class="stamp-face stamp-front">
+          <img src="/images/home/estampilla.jpg" alt="" draggable="false" />
+        </div>
+        <div class="stamp-face stamp-back">
+          <img src="/images/home/estampilla.jpg" alt="" draggable="false" />
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
+<style>
+  .stamp-scene {
+    --stamp-w: min(38vw, 200px);
+    width: var(--stamp-w);
+    aspect-ratio: 300 / 460;
+    perspective: 1200px;
+    /* Solo el scroll vertical pasa al navegador; el giro horizontal lo captura Observer. */
+    touch-action: pan-y;
+    cursor: grab;
+  }
+  .stamp-scene:active {
+    cursor: grabbing;
+  }
+  @media (min-width: 768px) {
+    .stamp-scene {
+      --stamp-w: 260px;
+    }
+  }
+  @media (min-width: 1024px) {
+    .stamp-scene {
+      --stamp-w: 300px;
+    }
+  }
+  .stamp {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+  }
+  .stamp-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    /* Perforado: círculos transparentes repetidos en el borde y el centro. */
+    -webkit-mask-image: radial-gradient(circle, transparent 4.5px, black 5px);
+    -webkit-mask-size: 20px 20px;
+    -webkit-mask-position: -10px -10px;
+    mask-image: radial-gradient(circle, transparent 4.5px, black 5px);
+    mask-size: 20px 20px;
+    mask-position: -10px -10px;
+  }
+  .stamp-front {
+    background-color: #fff;
+    overflow: hidden;
+  }
+  .stamp-front img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+  }
+  .stamp-front::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+  .stamp-back {
+    transform: rotateY(180deg);
+    background-color: #fff;
+    overflow: hidden;
+  }
+  .stamp-back img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+  }
+  .stamp-back::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+</style>
+
 <script>
   import { gsap } from 'gsap';
+  import { Observer } from 'gsap/Observer';
 
-  {
-    /* Partículas junto al título, adaptadas del demo de referencia respetando su
-       configuración geométrica y de animación casi al pie de la letra: mismo xDist
-       (59), yDist (84), freq (4.3), duration (2.3) y cantidad de partículas (230) —
-       el resultado es la misma cinta de cuentas superpuestas oscilando en cascada que
-       arma el original, solo que en el color accent del design system en vez del
-       raster embebido. Composición "source-over" por defecto (sin blending aditivo)
-       y esferas de borde nítido en vez de un gradiente que se desvanece a
-       transparente, para que se lea como cuentas sólidas y no como un halo
-       difuminado. El tamaño del canvas es fijo (no depende del viewport, igual que
-       el original no reescalaba xDist/yDist con la pantalla), así que no hace falta
-       resize: el widget siempre ocupa la misma caja al lado del título. */
-  }
-  const canvas = document.querySelector<HTMLCanvasElement>('[data-hero-particles]');
-  const ctx = canvas?.getContext('2d');
+  gsap.registerPlugin(Observer);
 
-  if (canvas && ctx) {
-    // En desktop la sección pasó a ser dos columnas mucho más grandes — el widget de
-    // partículas escala junto con el título en vez de quedar chico y perdido al lado
-    // de un texto ahora bastante más alto.
-    const SCALE = window.matchMedia('(min-width: 1024px)').matches
-      ? 1.7
-      : window.matchMedia('(min-width: 768px)').matches
-        ? 1.35
-        : 1;
+  /* Estampilla 3D junto al título (adaptada de estampilla home.htm): giro automático
+     + flotación, y giro manual por arrastre HORIZONTAL solamente. El mockup capturaba
+     pointer events en todo el documento con touch-action:none y arrastre en ambos
+     ejes; aquí el gesto queda acotado a la estampilla y el scroll vertical del
+     celular pasa de largo (ver "Mobile vs. desktop" en CLAUDE.md). */
+  const scene = document.querySelector<HTMLElement>('[data-stamp-scene]');
+  const stamp = scene?.querySelector<HTMLElement>('[data-stamp]');
 
-    const DOT_SIZE = 56 * SCALE;
-    const X_DIST = 59 * SCALE;
-    const Y_DIST = 84 * SCALE;
-    const FREQ = 4.3;
-    const COUNT = 230;
+  if (scene && stamp) {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let idle: gsap.core.Tween | null = null;
+    let float: gsap.core.Tween | null = null;
+    let resume: gsap.core.Tween | null = null;
+    let visible = true;
 
-    const cw = canvas.width * SCALE;
-    const ch = canvas.height * SCALE;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.style.width = `${cw}px`;
-    canvas.style.height = `${ch}px`;
-    canvas.width = cw * dpr;
-    canvas.height = ch * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    // Esfera con sombreado sutil (highlight arriba a la izquierda) pero borde
-    // completamente opaco y nítido — nada de alpha desvaneciéndose hacia afuera.
-    const dot = document.createElement('canvas');
-    dot.width = DOT_SIZE;
-    dot.height = DOT_SIZE;
-    const dotCtx = dot.getContext('2d')!;
-    dotCtx.beginPath();
-    dotCtx.arc(DOT_SIZE / 2, DOT_SIZE / 2, DOT_SIZE / 2, 0, Math.PI * 2);
-    dotCtx.closePath();
-    const gradient = dotCtx.createRadialGradient(
-      DOT_SIZE * 0.35,
-      DOT_SIZE * 0.35,
-      DOT_SIZE * 0.05,
-      DOT_SIZE / 2,
-      DOT_SIZE / 2,
-      DOT_SIZE / 2
-    );
-    gradient.addColorStop(0, '#c85a7a');
-    gradient.addColorStop(1, '#a6294a');
-    dotCtx.fillStyle = gradient;
-    dotCtx.fill();
-
-    const parts = Array.from({ length: COUNT }, (_, i) => {
-      const pt = { x: -X_DIST, y: gsap.utils.interpolate(-Y_DIST, Y_DIST, i / COUNT) };
-      const tween = gsap
-        .to(pt, {
-          duration: 2.3,
-          ease: 'sine.inOut',
-          yoyo: true,
-          repeat: -1,
-          x: X_DIST,
-        })
-        .progress((i / COUNT) * FREQ);
-      return { pt, tween };
-    });
-
-    gsap.ticker.add(() => {
-      ctx.clearRect(0, 0, cw, ch);
-      const cx = cw / 2;
-      const cy = ch / 2;
-      parts.forEach(({ pt }) => {
-        ctx.drawImage(dot, cx + pt.x - DOT_SIZE / 2, cy + pt.y - DOT_SIZE / 2, DOT_SIZE, DOT_SIZE);
+    const startIdle = () => {
+      idle?.kill();
+      const from = (gsap.getProperty(stamp, 'rotationY') as number) % 360;
+      gsap.set(stamp, { rotationY: from });
+      idle = gsap.to(stamp, {
+        rotationY: from + 360,
+        duration: 15,
+        repeat: -1,
+        ease: 'none',
       });
+      if (!visible) idle.pause();
+    };
+
+    if (!reduced) {
+      startIdle();
+      float = gsap.to(stamp, {
+        y: -15,
+        duration: 2.5,
+        yoyo: true,
+        repeat: -1,
+        ease: 'sine.inOut',
+      });
+
+      // Sin trabajo continuo mientras la estampilla está fuera de pantalla.
+      new IntersectionObserver(
+        ([entry]) => {
+          visible = entry.isIntersecting;
+          for (const t of [idle, float]) visible ? t?.resume() : t?.pause();
+        },
+        { rootMargin: '200px' }
+      ).observe(scene);
+    }
+
+    let target = 0;
+    Observer.create({
+      target: scene,
+      type: 'touch,pointer',
+      lockAxis: true,
+      onPress: () => {
+        resume?.kill();
+        idle?.pause();
+        target = gsap.getProperty(stamp, 'rotationY') as number;
+      },
+      onDrag: (self) => {
+        if (self.axis === 'y') return;
+        target += self.deltaX * 0.6;
+        gsap.to(stamp, { rotationY: target, duration: 0.8, ease: 'power3.out', overwrite: 'auto' });
+      },
+      onRelease: () => {
+        if (reduced) return;
+        resume = gsap.delayedCall(2, startIdle);
+      },
     });
   }
 </script>

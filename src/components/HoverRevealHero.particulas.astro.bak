@@ -1,0 +1,160 @@
+---
+import { splitNumeroTitle } from '../lib/text';
+
+/**
+ * Hero de "Último número" — título, descripción y link, con una animación de
+ * partículas en canvas (GSAP, sin isla de React) al lado del título, no de fondo.
+ * Sin portada (se sacó a propósito) y sin ningún comportamiento de hover/tap (esa
+ * mecánica interfería con el click en el botón "Ver número completo").
+ *
+ * Tokens del design system Riptype-dark (canvas/ink/accent), font-headline = Lekton en
+ * mixed-case, bold real.
+ */
+interface Props {
+  titulo: string;
+  descripcion?: string;
+  href?: string;
+}
+
+const { titulo, descripcion, href } = Astro.props;
+const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
+---
+
+<section class="relative mb-16 w-full px-4 py-4 text-center sm:py-6 md:mb-32 lg:mb-40">
+  <div
+    class="mx-auto flex max-w-4xl flex-col items-center justify-center gap-2 md:grid md:max-w-none md:grid-cols-2 md:items-center md:gap-6 lg:gap-12"
+  >
+    <div class="order-2 flex w-full flex-col items-center md:order-1 md:items-start md:text-left">
+      <h1
+        class="max-w-full font-headline leading-[0.85] tracking-tight text-ink text-[9vw] md:text-[min(7vw,7rem)] lg:text-[min(6.5vw,8.5rem)]"
+      >
+        {tituloPrincipal}
+      </h1>
+
+      {
+        subtitulo && (
+          <p class="mt-2 max-w-full font-serif italic leading-tight text-ink/70 text-[4.5vw] md:text-[min(3vw,2.75rem)] lg:text-[min(2.6vw,3.25rem)]">
+            {subtitulo}
+          </p>
+        )
+      }
+
+      {
+        descripcion && (
+          <p class="mx-auto mt-6 max-w-2xl font-serif text-lg italic text-ink/70 md:mx-0 md:text-xl">
+            {descripcion}
+          </p>
+        )
+      }
+
+      {
+        href && (
+          <a
+            href={href}
+            class="mt-6 inline-block rounded-full border border-ink px-6 py-3 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:bg-ink hover:text-canvas md:mt-8 md:px-8 md:py-4 md:text-sm"
+          >
+            Ver número completo
+          </a>
+        )
+      }
+    </div>
+
+    <canvas
+      class="order-1 shrink-0 md:order-2 md:mx-auto"
+      width="174"
+      height="224"
+      data-hero-particles
+    ></canvas>
+  </div>
+</section>
+
+<script>
+  import { gsap } from 'gsap';
+
+  {
+    /* Partículas junto al título, adaptadas del demo de referencia respetando su
+       configuración geométrica y de animación casi al pie de la letra: mismo xDist
+       (59), yDist (84), freq (4.3), duration (2.3) y cantidad de partículas (230) —
+       el resultado es la misma cinta de cuentas superpuestas oscilando en cascada que
+       arma el original, solo que en el color accent del design system en vez del
+       raster embebido. Composición "source-over" por defecto (sin blending aditivo)
+       y esferas de borde nítido en vez de un gradiente que se desvanece a
+       transparente, para que se lea como cuentas sólidas y no como un halo
+       difuminado. El tamaño del canvas es fijo (no depende del viewport, igual que
+       el original no reescalaba xDist/yDist con la pantalla), así que no hace falta
+       resize: el widget siempre ocupa la misma caja al lado del título. */
+  }
+  const canvas = document.querySelector<HTMLCanvasElement>('[data-hero-particles]');
+  const ctx = canvas?.getContext('2d');
+
+  if (canvas && ctx) {
+    // En desktop la sección pasó a ser dos columnas mucho más grandes — el widget de
+    // partículas escala junto con el título en vez de quedar chico y perdido al lado
+    // de un texto ahora bastante más alto.
+    const SCALE = window.matchMedia('(min-width: 1024px)').matches
+      ? 1.7
+      : window.matchMedia('(min-width: 768px)').matches
+        ? 1.35
+        : 1;
+
+    const DOT_SIZE = 56 * SCALE;
+    const X_DIST = 59 * SCALE;
+    const Y_DIST = 84 * SCALE;
+    const FREQ = 4.3;
+    const COUNT = 230;
+
+    const cw = canvas.width * SCALE;
+    const ch = canvas.height * SCALE;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.style.width = `${cw}px`;
+    canvas.style.height = `${ch}px`;
+    canvas.width = cw * dpr;
+    canvas.height = ch * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Esfera con sombreado sutil (highlight arriba a la izquierda) pero borde
+    // completamente opaco y nítido — nada de alpha desvaneciéndose hacia afuera.
+    const dot = document.createElement('canvas');
+    dot.width = DOT_SIZE;
+    dot.height = DOT_SIZE;
+    const dotCtx = dot.getContext('2d')!;
+    dotCtx.beginPath();
+    dotCtx.arc(DOT_SIZE / 2, DOT_SIZE / 2, DOT_SIZE / 2, 0, Math.PI * 2);
+    dotCtx.closePath();
+    const gradient = dotCtx.createRadialGradient(
+      DOT_SIZE * 0.35,
+      DOT_SIZE * 0.35,
+      DOT_SIZE * 0.05,
+      DOT_SIZE / 2,
+      DOT_SIZE / 2,
+      DOT_SIZE / 2
+    );
+    gradient.addColorStop(0, '#c85a7a');
+    gradient.addColorStop(1, '#a6294a');
+    dotCtx.fillStyle = gradient;
+    dotCtx.fill();
+
+    const parts = Array.from({ length: COUNT }, (_, i) => {
+      const pt = { x: -X_DIST, y: gsap.utils.interpolate(-Y_DIST, Y_DIST, i / COUNT) };
+      const tween = gsap
+        .to(pt, {
+          duration: 2.3,
+          ease: 'sine.inOut',
+          yoyo: true,
+          repeat: -1,
+          x: X_DIST,
+        })
+        .progress((i / COUNT) * FREQ);
+      return { pt, tween };
+    });
+
+    gsap.ticker.add(() => {
+      ctx.clearRect(0, 0, cw, ch);
+      const cx = cw / 2;
+      const cy = ch / 2;
+      parts.forEach(({ pt }) => {
+        ctx.drawImage(dot, cx + pt.x - DOT_SIZE / 2, cy + pt.y - DOT_SIZE / 2, DOT_SIZE, DOT_SIZE);
+      });
+    });
+  }
+</script>

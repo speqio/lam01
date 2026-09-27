@@ -4,6 +4,11 @@ import { normalizeTitleText } from '../../lib/text';
 // Encabezado de página estándar: eyebrow + h1 + descripción opcional, centrado. Era el
 // mismo bloque de 3 líneas copiado a mano en /archivo, /categorias, /numeros, /autores,
 // /contacto y /proyecto — un cambio de tamaño/espaciado tenía que replicarse en los 6.
+//
+// `md:mt-header-clear` (ver tailwind.config.mjs): Header.astro es un masthead absoluto
+// que flota encima del contenido y solo aparece en md+ — sin este margen, el eyebrow
+// quedaba pegado/tapado por el masthead en desktop. En mobile no hace falta (Header no
+// se muestra ahí), por eso el margen chico de siempre (mt-8) no cambia debajo de md.
 interface Props {
   eyebrow: string;
   title: string;
@@ -16,7 +21,7 @@ const normalizedTitle = normalizeTitleText(title);
 const normalizedEyebrow = normalizeTitleText(eyebrow);
 ---
 
-<header class:list={['mb-12 text-center', className]}>
+<header class:list={['mb-12 mt-8 text-center md:mt-header-clear', className]}>
   <p class="font-sans text-sm uppercase tracking-widest text-accent">{normalizedEyebrow}</p>
   <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">{normalizedTitle}</h1>
   {

@@ -1,43 +1,21 @@
 ---
-import { cardImageWrap, cardBadgeClass } from '../../lib/cardStyles';
-import { normalizeTitleText } from '../../lib/text';
+import EntradaTicket, { type EntradaTicketItem } from './EntradaTicket.astro';
+import { dialWrap, dialCount, dialTrack, dialThumb } from '../../lib/dialNav';
 
 /**
- * Carrusel "arco" para Últimas entradas en mobile — reemplaza a SwipeCard.tsx
- * (framer-motion) tras reportes repetidos de que el mazo quedaba trabado al soltar una
- * card. Adaptado de una referencia HTML/JS standalone (arco 3D con rueda de tarjetas
- * arrastrable, ver historial) a Astro + GSAP + este design system, sin React: no hace
- * falta una isla, es más liviano.
+ * "Últimas entradas" en mobile: carrusel horizontal con scroll-snap NATIVO del
+ * navegador, mismo criterio que ya se probó y quedó en NumeroSequence.astro (ver ese
+ * archivo) tras descartar tres carruseles drag/arco custom por bugs de física de
+ * arrastre. Reemplaza al carrusel de arco 3D que tenía antes este mismo archivo
+ * (Observer + quickTo, ver historial) — cada tarjeta ahora es un elemento normal en
+ * flujo horizontal, sin ninguna transformación 3D ni posición absoluta calculada por
+ * JS, así que no hay física que se pueda romper.
  *
- * Geometría: cada tarjeta se posiciona según su "distancia lógica" (con wrap circular)
- * a una posición central `pos.value` — X separa, Y arma la parábola del arco, Z empuja
- * hacia el fondo, rotateY/rotateZ dan el giro e inclinación de abanico. Un solo
- * `gsap.quickTo` anima `pos.value` con inercia al soltar (releva al lerp manual del
- * original); mientras se arrastra, la posición seguí 1:1 al dedo, sin ease — mismo
- * criterio que el resto del sitio (NumeroSequence, categorías): arrastre = seguimiento
- * directo, soltar = animación suave hacia el objetivo.
- *
- * El render de cada tarjeta corre desde el propio `onUpdate` del tween/drag, no en un
- * requestAnimationFrame infinito: en reposo no hay ningún loop corriendo. La
- * inicialización se difiere con IntersectionObserver (equivalente hecho a mano al
- * client:visible que tenía la versión en React).
- *
- * touch-action: pan-y (no `none` como la referencia) — deja pasar el scroll vertical
- * de la página y solo reclama el gesto horizontal, mismo criterio ya establecido en
- * NumeroSequence/CategoriasCarousel tras el bug de scroll bloqueado de esa sección.
+ * El dial "01 / N" debajo (dialNav.ts) es un observador PASIVO del scroll nativo
+ * (scroll listener + gsap.to para suavizar el thumb) — no reimplementa el gesto.
  */
-export interface UltimaEntradaItem {
-  title: string;
-  authorName: string;
-  /** Nombre de quien tradujo la entrada, si corresponde. */
-  translatorName?: string;
-  categoryName: string;
-  slug: string;
-  coverImage?: string;
-}
-
 interface Props {
-  items: UltimaEntradaItem[];
+  items: EntradaTicketItem[];
 }
 
 const { items } = Astro.props;
@@ -45,173 +23,107 @@ const { items } = Astro.props;
 
 {
   items.length > 0 && (
-    <div class="entradas-arco-scene" id="entradas-arco-scene">
-      <div class="entradas-arco-carousel" id="entradas-arco-carousel">
-        {items.map((item, i) => (
-          <a href={`/${item.slug}`} class="entradas-arco-card" data-index={i}>
-            <div class="flex h-full w-full overflow-hidden border border-ink/15 bg-surface">
-              <div class={cardImageWrap}>
-                {item.coverImage && (
-                  <img
-                    src={item.coverImage}
-                    alt=""
-                    class="pointer-events-none h-full w-full object-cover grayscale contrast-125"
-                    loading="lazy"
-                    draggable="false"
-                  />
-                )}
-                <span class={cardBadgeClass(item.categoryName)}>{item.categoryName}</span>
-              </div>
-              <div class="flex w-3/5 flex-col justify-center gap-1 p-3">
-                <h3 class="font-headline text-sm leading-[1.05] text-ink line-clamp-2">
-                  {normalizeTitleText(item.title)}
-                </h3>
-                <p class="font-mono text-[9px] uppercase tracking-widest text-ink-muted">
-                  Por {item.authorName}
-                </p>
-                {item.translatorName && (
-                  <p class="font-mono text-[9px] uppercase tracking-widest text-ink-muted">
-                    Trad. de {item.translatorName}
-                  </p>
-                )}
-              </div>
-            </div>
-          </a>
+    <div class="entradas-carrusel mt-8 flex flex-col gap-4 md:hidden" id="entradas-carrusel">
+      <div class="entradas-carrusel-scroll flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2" data-entradas-scroll>
+        {items.map((item) => (
+          <div class="w-[85vw] max-w-sm shrink-0 snap-center" data-entrada-slide>
+            <EntradaTicket {...item} class="h-64" />
+          </div>
         ))}
       </div>
+
+      {
+        items.length > 1 && (
+          <div class={dialWrap}>
+            <span class={dialCount} data-dial-count>
+              {`01 / ${String(items.length).padStart(2, '0')}`}
+            </span>
+            <div class={dialTrack}>
+              <div class={dialThumb} data-dial-thumb />
+            </div>
+          </div>
+        )
+      }
     </div>
   )
 }
 
 <style>
-  .entradas-arco-scene {
-    position: relative;
-    width: 100%;
-    height: 17rem;
-    margin-top: 0.5rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    perspective: 1400px;
-    touch-action: pan-y;
-    /* Las cards de los extremos del abanico quedaban tapadas de golpe por el borde de
-       la escena (overflow: hidden, necesario para que no generen scroll horizontal en
-       la página, ver UltimasEntradasCarousel). Con esta máscara se desvanecen hacia los
-       costados en vez de cortarse en seco — mismo recurso que ya usa
-       CategoriasCarousel para su ticker. */
-    mask-image: linear-gradient(to right, transparent 0, black 12%, black 88%, transparent 100%);
-    -webkit-mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      black 12%,
-      black 88%,
-      transparent 100%
-    );
+  /* Oculta la scrollbar nativa del carril — el gesto sigue siendo el scroll nativo del
+     navegador, esto es puramente cosmético (mismo criterio que numero-entradas-scroll
+     en NumeroSequence.astro). */
+  .entradas-carrusel-scroll {
+    scrollbar-width: none;
   }
 
-  .entradas-arco-carousel {
-    position: relative;
-    width: 18rem;
-    height: 12rem;
-    transform-style: preserve-3d;
-  }
-
-  .entradas-arco-card {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 18rem;
-    height: 12rem;
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-    -webkit-user-drag: none;
+  .entradas-carrusel-scroll::-webkit-scrollbar {
+    display: none;
   }
 </style>
 
 <script>
   import { gsap } from 'gsap';
-  import { Observer } from 'gsap/Observer';
 
-  gsap.registerPlugin(Observer);
-
-  const SPACING_X = 110;
-  const ARCH_HEIGHT = 7;
-  const DEPTH = 90;
-  const YAW = 24;
-  const ROLL = 7;
-  const DRAG_SENSITIVITY = 0.012;
-
-  // Distancia circular más corta entre un índice y la posición actual — el mismo
-  // índice puede quedar "más cerca" rodeando por el otro lado de la rueda.
-  function shortestDistance(index: number, position: number, total: number) {
-    let dist = (((index - position) % total) + total) % total;
-    if (dist > total / 2) dist -= total;
-    return dist;
-  }
-
-  function initEntradasArco() {
-    const scene = document.getElementById('entradas-arco-scene');
-    if (!(scene instanceof HTMLElement)) return;
+  function initEntradasCarrusel() {
+    const root = document.getElementById('entradas-carrusel');
+    if (!(root instanceof HTMLElement)) return;
     if (window.matchMedia('(min-width: 768px)').matches) return;
 
-    const cards = Array.from(scene.querySelectorAll<HTMLElement>('.entradas-arco-card'));
-    const total = cards.length;
-    if (total === 0) return;
+    const scrollEl = root.querySelector<HTMLElement>('[data-entradas-scroll]');
+    const thumb = root.querySelector<HTMLElement>('[data-dial-thumb]');
+    const countEl = root.querySelector<HTMLElement>('[data-dial-count]');
+    const slides = Array.from(root.querySelectorAll<HTMLElement>('[data-entrada-slide]'));
+    if (!scrollEl || !thumb || slides.length < 2) return;
 
-    const pos = { value: 0 };
+    const total = slides.length;
+    const track = thumb.parentElement as HTMLElement;
+    thumb.style.width = `${100 / total}%`;
 
-    function render() {
-      cards.forEach((card, i) => {
-        const dist = shortestDistance(i, pos.value, total);
-        const absDist = Math.abs(dist);
+    const updateDial = () => {
+      const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+      const ratio = maxScroll > 0 ? scrollEl.scrollLeft / maxScroll : 0;
+      const trackWidth = track.clientWidth;
+      const thumbWidth = trackWidth / total;
+      const x = ratio * (trackWidth - thumbWidth);
 
-        gsap.set(card, {
-          x: dist * SPACING_X,
-          y: -(dist * dist) * ARCH_HEIGHT,
-          z: -absDist * DEPTH,
-          rotateY: dist * -YAW,
-          rotateZ: dist * ROLL,
-          opacity: Math.max(0.2, 1 - absDist * 0.28),
-          zIndex: Math.round(100 - absDist * 10),
+      gsap.to(thumb, { x, duration: 0.2, ease: 'power2.out', overwrite: true });
+
+      if (countEl) {
+        const activeIndex = Math.round(ratio * (total - 1));
+        countEl.textContent = `${String(activeIndex + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
+      }
+    };
+
+    let ticking = false;
+    scrollEl.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          updateDial();
+          ticking = false;
         });
-      });
-    }
-
-    const snapTo = gsap.quickTo(pos, 'value', {
-      duration: 0.55,
-      ease: 'power3.out',
-      onUpdate: render,
-    });
-
-    render();
-
-    Observer.create({
-      target: scene,
-      type: 'touch,pointer',
-      preventDefault: true,
-      onPress: () => gsap.killTweensOf(pos),
-      onChange: (self) => {
-        pos.value -= self.deltaX * DRAG_SENSITIVITY;
-        render();
       },
-      onRelease: () => snapTo(Math.round(pos.value)),
-    });
+      { passive: true }
+    );
+
+    updateDial();
   }
 
-  const scene = document.getElementById('entradas-arco-scene');
-  if (scene && 'IntersectionObserver' in window) {
+  const root = document.getElementById('entradas-carrusel');
+  if (root && 'IntersectionObserver' in window) {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
-          initEntradasArco();
+          initEntradasCarrusel();
           observer.disconnect();
         }
       },
       { rootMargin: '200px' }
     );
-    observer.observe(scene);
+    observer.observe(root);
   } else {
-    initEntradasArco();
+    initEntradasCarrusel();
   }
 </script>

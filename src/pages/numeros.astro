@@ -3,17 +3,20 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/ui/PageHeader.astro';
 import {
-  cardShell,
-  cardImageWrap,
-  cardImage,
-  cardBadge,
-  cardBody,
-  cardTitle,
-  cardCta,
-  cardCtaWrap,
-  cardCtaUnderline,
-} from '../lib/cardStyles';
+  ticketNotchedEdges,
+  ticketImageWrap,
+  ticketImage,
+  ticketBody,
+  ticketCta,
+} from '../lib/ticketCardStyles';
 import { splitNumeroTitle } from '../lib/text';
+
+// Texto más grande que el boleto de entradas (ticketBadgeText/ticketTitle en
+// ticketCardStyles.ts) — pedido explícito, solo para esta página. No se tocan los
+// tamaños compartidos: eso afectaría también a EntradaTicket.astro (últimas
+// entradas, categoría, archivo, mobile de un número), que no se pidió agrandar.
+const numeroBadge = 'inline-block self-start font-mono text-sm lowercase tracking-widest text-ink';
+const numeroTitle = 'font-headline text-xl leading-[1.15] text-ink md:text-2xl';
 
 // "octubre de 2026" -> "oct·26": abreviatura de mes (3 letras) + separador de viñeta +
 // dos últimos dígitos del año. getUTCMonth/getUTCFullYear, no local, por la misma razón
@@ -93,30 +96,22 @@ const chipClass =
         const { titulo, subtitulo } = splitNumeroTitle(numero.data.titulo);
         const rangoId = Math.floor((numeroIndice(numero) - 1) / RANGO_SIZE);
         return (
-        <a href={`/${numero.id}`} class={cardShell} data-numero-rango={rangoId}>
-          <div class={cardImageWrap}>
-            {numero.data.portada && (
-              <img src={numero.data.portada} alt={titulo} class={cardImage} />
-            )}
-            <span class={cardBadge}>{formatoBadgeFecha(numero.data.fecha)}</span>
+        <a
+          href={`/${numero.id}`}
+          class:list={['group flex h-64 overflow-hidden bg-surface lg:h-72', ticketNotchedEdges]}
+          data-numero-rango={rangoId}
+        >
+          <div class={ticketImageWrap}>
+            {numero.data.portada && <img src={numero.data.portada} alt={titulo} class={ticketImage} />}
           </div>
 
-          <div class={cardBody}>
-            <div>
-              <h2 class={cardTitle}>{titulo}</h2>
-              {subtitulo && (
-                <p class="font-serif text-sm italic text-ink/70">{subtitulo}</p>
-              )}
-            </div>
-            {numero.data.descripcion && (
-              <p class="line-clamp-3 font-serif text-sm italic leading-relaxed text-ink-muted">
-                {numero.data.descripcion}
-              </p>
+          <div class={ticketBody}>
+            <span class={numeroBadge}>{formatoBadgeFecha(numero.data.fecha)}</span>
+            <h2 class={numeroTitle}>{titulo}</h2>
+            {subtitulo && (
+              <p class="font-serif text-sm italic text-ink/70">{subtitulo}</p>
             )}
-            <span class={cardCtaWrap}>
-              <span class={cardCta}>Ver número</span>
-              <span class={cardCtaUnderline} />
-            </span>
+            <span class={ticketCta}>Ver número</span>
           </div>
         </a>
         );

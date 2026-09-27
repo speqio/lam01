@@ -63,7 +63,10 @@ const numeroOpciones = todosLosNumeros
       <p class="text-center font-sans text-ink-muted">Todavía no hay entradas en el archivo.</p>
     ) : (
       <>
-        <div class="text-center md:pt-24 md:text-left">
+        {/* md:pt-header-clear (ver tailwind.config.mjs): mismo despeje estándar del
+            masthead flotante que PageHeader.astro — antes era un md:pt-24 propio de
+            esta página, con un valor distinto al resto del sitio. */}
+        <div class="text-center md:pt-header-clear md:text-left">
           <p class="font-sans text-sm uppercase tracking-widest text-accent">Últimas entradas</p>
           <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">Archivo</h1>
           <p class="mx-auto mt-4 max-w-xl font-serif text-lg text-ink-muted md:mx-0">

@@ -412,10 +412,53 @@ Si se confirma lo deducido en §2, el mensaje al cliente pasa de "recargá despu
 guardado" a **"recargá solo si vas a volver a guardar la misma entrada"**. No toca código.
 Hay que validarlo primero con dos guardados reales seguidos en la rama `keystatic`.
 
-### Opción A — recarga automática tras guardar (detalle)
+### Opción A — recarga automática tras guardar — **IMPLEMENTADA** (10-oct-2026)
 
-**Idea:** si la única manera fiable de refrescar el estado es una carga de página, que la
-página se recargue sola y el editor no tenga que acordarse.
+Está en `src/lib/adminReload.ts`, inyectada por `src/middleware.ts`, y **funcionando en
+producción**: tras cada guardado exitoso sale un aviso a pantalla completa y el panel se
+recarga solo. Lo que sigue describe el diseño; al final, las tres suposiciones que hubo que
+descartar, que es la parte útil si alguien toca la detección.
+
+**Lo que cuesta saber y nadie documenta.** La detección del guardado se hizo tres veces mal
+antes de acertar, y cada corrección salió de un dato real del modo registro en producción:
+
+| Intento | Suposición | Lo que pasa de verdad |
+|---|---|---|
+| v1 | leer la respuesta dirá si el commit salió bien | **`res.clone()` se rechaza**: urql aborta la petición en su *teardown* y eso cancela la rama clonada del cuerpo antes de terminar de leerla. El cuerpo de la respuesta es ilegible desde un envoltorio de `fetch`. |
+| v3 | el cuerpo de la petición nombrará `createCommitOnBranch` | ese es el nombre del **campo** GraphQL; nunca viaja en la petición. |
+| v4 | buscar el nombre de la **operación**, `CreateCommit` | correcto. Aparece como `"operationName":"CreateCommit"` y, cuando viaja el documento, como `mutation CreateCommit`. |
+
+Reglas que se derivan, para quien herede esto:
+
+- **No leer el cuerpo de la respuesta.** Ni `clone().json()` ni `clone().text()`. Usar solo
+  `res.ok` / `res.status`.
+- **Mirar la petición, y por el nombre de la operación.** El cuerpo está en `init.body` como
+  string y se puede leer antes de lanzar el `fetch`, sin streams y sin abortos.
+- **No detectar por el texto del aviso "Saved"**: cambia con el idioma y con cualquier
+  rediseño.
+- GitHub devuelve **200 también cuando el GraphQL trae errores**, así que `res.ok` no basta
+  por sí solo: si llega otra petición de commit antes de que dispare la recarga, se cancela
+  la programada y decide el reintento (ese es el camino de `STALE_DATA` de Keystatic).
+- `persistedExchange` está en la cadena de urql, pero **no interviene en las mutaciones**: el
+  commit viaja con el documento completo (~16 KB). Da igual, porque buscar `CreateCommit`
+  cubre las dos formas.
+
+**Los dos modos de diagnóstico se quedan**, porque sin ellos esto no se podía depurar: sin
+servidor de desarrollo usable y sin navegador automatizable, la caja en pantalla fue la única
+fuente de verdad. Van tras un parámetro en la URL y el cliente no los ve:
+`?aviso=prueba` monta el overlay 5 s; `?aviso=registro` imprime cada petición a
+GitHub/Keystatic —con el tipo, el tamaño y el principio del cuerpo— y **no** recarga.
+
+**Pendiente conocido:** tras la recarga el panel vuelve al *dashboard*, no a la entrada que se
+estaba editando, porque se usa `location.reload()` sobre la URL que haya en ese momento. Para
+volver a la entrada habría que capturar su URL al detectar el guardado y navegar a ella; hay
+que comprobar antes qué hace Keystatic al **crear** una entrada nueva, que redirige por su
+cuenta y podría dejar la URL vieja.
+
+---
+
+**Idea original:** si la única manera fiable de refrescar el estado es una carga de página, que
+la página se recargue sola y el editor no tenga que acordarse.
 
 **Dónde engancharlo.** La UI de `/keystatic` la monta la integración, no es una página
 nuestra, así que no podemos añadirle un `<script>` en el código fuente. Dos enganches

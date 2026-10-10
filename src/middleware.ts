@@ -1,4 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
+import { AVISO_RECARGA_ADMIN } from './lib/adminReload';
 
 /**
  * La ruta /keystatic la inyecta la integración @keystatic/astro (ver
@@ -29,17 +30,27 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const html = await response.text();
   if (html.includes('<title>')) return response;
 
+  // Además del <head>, se inyecta el aviso que recarga el panel tras guardar: Keystatic en
+  // modo GitHub no refresca su estado al guardar y el siguiente guardado de la misma entrada
+  // falla. Ver src/lib/adminReload.ts y docs/keystatic-upstream.md (§2).
   const head =
     '<head><meta charset="UTF-8" /><title>Admin — La Antorcha Magacín</title>' +
-    '<link rel="icon" type="image/svg+xml" href="/favicon-admin.svg" /></head>';
+    '<link rel="icon" type="image/svg+xml" href="/favicon-admin.svg" />' +
+    AVISO_RECARGA_ADMIN +
+    '</head>';
 
   const withHead = html.includes('<!DOCTYPE html>')
     ? html.replace('<!DOCTYPE html>', `<!DOCTYPE html>${head}`)
     : `${head}${html}`;
 
+  // El cuerpo cambia de tamaño al inyectar, así que un content-length heredado truncaría la
+  // respuesta. Se copian las cabeceras y se quita esa.
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+
   return new Response(withHead, {
     status: response.status,
     statusText: response.statusText,
-    headers: response.headers,
+    headers,
   });
 });

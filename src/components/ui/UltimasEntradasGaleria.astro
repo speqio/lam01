@@ -1,0 +1,130 @@
+---
+import EntradaTicket, { type EntradaTicketItem } from './EntradaTicket.astro';
+
+/**
+ * "Últimas entradas" en desktop: galería estática en grid (reemplaza al carrusel de
+ * dos columnas sincronizadas que tenía EntradasCarousel3D.astro — se descarta ese
+ * archivo, ver commit). Cada card es EntradaTicket.astro; no hay ningún mecanismo de
+ * scroll/drag propio acá, es una grid común.
+ *
+ * Dos efectos GSAP, ambos livianos y opcionales:
+ * - Reveal on scroll: mismo patrón que EntryCard.tsx (ScrollTrigger + once: true). La
+ *   clase "entry-card-reveal" (estado oculto inicial en CSS, ver global.css) se agrega
+ *   ACÁ, no en EntradaTicket.astro — ese componente también lo usa el carrusel mobile,
+ *   que no corre ningún script de reveal, y el hook dejaría esas cards escondidas para
+ *   siempre (mismo cuidado que ya documenta cardShell en cardStyles.ts).
+ * - Tilt sutil al hover (±5°, mucho más discreto que el giro completo de la estampilla
+ *   de HoverRevealHero): Observer type "pointer" + gsap.quickTo por eje. Gateado a
+ *   hover real (mouse fino) y a que el visitante no pida menos movimiento.
+ */
+interface Props {
+  items: EntradaTicketItem[];
+}
+
+const { items } = Astro.props;
+---
+
+{
+  items.length > 0 && (
+    <div class="entradas-galeria-grid" id="entradas-galeria-grid">
+      {items.map((item) => (
+        <div class="entradas-galeria-cell">
+          <EntradaTicket {...item} class="h-full entry-card-reveal" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+<style>
+  .entradas-galeria-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    perspective: 1200px;
+  }
+
+  @media (min-width: 1024px) {
+    .entradas-galeria-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 2rem;
+    }
+  }
+
+  .entradas-galeria-cell {
+    height: 15rem;
+  }
+
+  @media (min-width: 1024px) {
+    .entradas-galeria-cell {
+      height: 17rem;
+    }
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+  import { Observer } from 'gsap/Observer';
+
+  gsap.registerPlugin(ScrollTrigger, Observer);
+
+  const MAX_TILT = 5;
+
+  function initEntradasGaleria() {
+    const grid = document.getElementById('entradas-galeria-grid');
+    if (!(grid instanceof HTMLElement)) return;
+    if (!window.matchMedia('(min-width: 768px)').matches) return;
+
+    const cards = Array.from(grid.querySelectorAll<HTMLElement>('.entrada-ticket'));
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    cards.forEach((card) => {
+      ScrollTrigger.create({
+        trigger: card,
+        start: 'top bottom-=60px',
+        once: true,
+        onEnter: () => gsap.to(card, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }),
+      });
+
+      if (reduced || !canHover) return;
+
+      const tiltX = gsap.quickTo(card, 'rotateX', { duration: 0.4, ease: 'power3.out' });
+      const tiltY = gsap.quickTo(card, 'rotateY', { duration: 0.4, ease: 'power3.out' });
+
+      Observer.create({
+        target: card,
+        type: 'pointer',
+        onMove: (self) => {
+          if (self.x === undefined || self.y === undefined) return;
+          const rect = card.getBoundingClientRect();
+          const relX = (self.x - rect.left) / rect.width - 0.5;
+          const relY = (self.y - rect.top) / rect.height - 0.5;
+          tiltY(relX * MAX_TILT * 2);
+          tiltX(relY * -MAX_TILT * 2);
+        },
+        onHoverEnd: () => {
+          tiltX(0);
+          tiltY(0);
+        },
+      });
+    });
+  }
+
+  const grid = document.getElementById('entradas-galeria-grid');
+  if (grid && 'IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          initEntradasGaleria();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(grid);
+  } else {
+    initEntradasGaleria();
+  }
+</script>

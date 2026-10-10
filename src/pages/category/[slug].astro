@@ -1,7 +1,7 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import EntryCard from '../../components/EntryCard.tsx';
+import EntradaTicket from '../../components/ui/EntradaTicket.astro';
 import FilterChip from '../../components/ui/FilterChip.astro';
 
 export async function getStaticPaths() {
@@ -40,7 +40,10 @@ const todasLasCategorias = await getCollection('categorias');
   title={categoria.data.metaTitulo || `${categoria.data.nombre} — La Antorcha Magacín`}
   description={categoria.data.metaDescripcion}
 >
-  <header class="mb-8 text-center">
+  {/* mt-8 md:mt-header-clear (ver tailwind.config.mjs, mismo token que PageHeader.astro
+      y /archivo): antes este header no tenía ningún despeje del masthead flotante de
+      Header.astro en desktop. */}
+  <header class="mb-8 mt-8 text-center md:mt-header-clear">
     <p class="font-sans text-sm uppercase tracking-widest text-accent">Categoría</p>
     <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">{categoria.data.nombre}</h1>
   </header>
@@ -60,16 +63,18 @@ const todasLasCategorias = await getCollection('categorias');
   <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
     {
       entradasConRelaciones.map(({ entrada, autor, traductor }) => (
-        <EntryCard
-          client:visible
-          title={entrada.data.titulo}
-          authorName={autor?.data.nombre ?? ''}
-          translatorName={traductor?.data.nombre}
-          categoryName={categoria.data.nombre}
-          slug={entrada.id}
-          coverImage={entrada.data.portada}
-          coverAlt={entrada.data.portadaAlt}
-        />
+        <div class="h-56 lg:h-64">
+          <EntradaTicket
+            title={entrada.data.titulo}
+            authorName={autor?.data.nombre ?? ''}
+            translatorName={traductor?.data.nombre}
+            categoryName={categoria.data.nombre}
+            slug={entrada.id}
+            coverImage={entrada.data.portada}
+            coverAlt={entrada.data.portadaAlt}
+            class="h-full"
+          />
+        </div>
       ))
     }
   </div>

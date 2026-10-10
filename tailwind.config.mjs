@@ -16,6 +16,19 @@ export default {
         mono: ['Lekton', 'monospace'],
         headline: ['Lekton', 'monospace'],
       },
+      spacing: {
+        // Regla global de espaciado responsivo: Header.astro es un masthead ABSOLUTO
+        // (no empuja el contenido, flota encima — `absolute inset-x-0 top-0`, alto
+        // h-20/5rem) y solo aparece en md+ (`hidden md:block`; en mobile la nav vive
+        // abajo, MobileFloatingNav.astro). Cualquier bloque que empiece con texto
+        // cerca del techo de la página (típicamente un PageHeader.astro) necesita
+        // este mismo despeje SOLO en md+ para no quedar tapado/pegado al masthead —
+        // en mobile no hace falta, ahí no hay header flotante. Un solo valor acá
+        // (5rem de alto + ~4rem de aire) en vez de repetir el cálculo a mano en cada
+        // página; usar como `md:mt-header-clear` (o `md:pt-header-clear`), nunca en
+        // mobile.
+        'header-clear': '9rem',
+      },
       colors: {
         // Los tokens ya no son colores fijos: cada uno lee una variable CSS (definida en
         // global.css para :root y para :root[data-theme='light']) para poder alternar

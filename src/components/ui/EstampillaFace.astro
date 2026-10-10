@@ -1,0 +1,46 @@
+---
+/**
+ * Textura de "cara de estampilla" (HoverRevealHero.astro): perforado de círculos
+ * repetidos vía mask-image + viñeta interior vía box-shadow inset. Sin
+ * posicionamiento/tamaño/fondo propio — eso lo define quien la usa vía el prop
+ * `class` (clases Tailwind normales) o, si necesita llegar a un <div> que en
+ * realidad renderiza este componente, vía `:global()` en su propio <style> — ver
+ * HoverRevealHero.astro, que documenta por qué hace falta `:global()` ahí (scoping
+ * de Astro por componente).
+ *
+ * Nota: EntradaTicket.astro (cards de "últimas entradas") NO usa este componente —
+ * se probó adaptarlo (perforado acotado a un anillo en el borde) pero el resultado
+ * seguía leyéndose como "agujeritos" en vez de la silueta dentada de un boleto real;
+ * el borde tipo ticket de EntradaTicket.astro usa su propia técnica de mask
+ * (mordiscos semicirculares en los bordes izquierdo/derecho, ver ticketCardStyles.ts),
+ * sin relación con el mask de puntos de la estampilla.
+ */
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<div class:list={['estampilla-face', className]}>
+  <slot />
+</div>
+
+<style>
+  .estampilla-face {
+    -webkit-mask-image: radial-gradient(circle, transparent 4.5px, black 5px);
+    -webkit-mask-size: 20px 20px;
+    -webkit-mask-position: -10px -10px;
+    mask-image: radial-gradient(circle, transparent 4.5px, black 5px);
+    mask-size: 20px 20px;
+    mask-position: -10px -10px;
+  }
+
+  .estampilla-face::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+</style>

@@ -3,7 +3,7 @@ import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { normalizeTitleText } from '../lib/text';
 import UltimasEntradasCarousel from '../components/ui/UltimasEntradasCarousel.astro';
-import EntradasCarousel3D from '../components/ui/EntradasCarousel3D.astro';
+import UltimasEntradasGaleria from '../components/ui/UltimasEntradasGaleria.astro';
 import HeroAnagram from '../components/HeroAnagram.astro';
 import ArchivoExplorer from '../components/ArchivoExplorer.astro';
 import HoverRevealHero from '../components/HoverRevealHero.astro';
@@ -34,23 +34,13 @@ todasConRelaciones.sort(
 
 const ultimasEntradas = todasConRelaciones.slice(0, 6);
 
-const swipeItems = ultimasEntradas.map(({ entrada, autor, categoria, traductor }) => ({
+const ultimasEntradasItems = ultimasEntradas.map(({ entrada, autor, categoria, traductor }) => ({
   title: normalizeTitleText(entrada.data.titulo),
   authorName: autor?.data.nombre ?? '',
   translatorName: traductor?.data.nombre,
   categoryName: categoria?.data.nombre ?? '',
   slug: entrada.id,
   coverImage: entrada.data.portada,
-  excerpt: entrada.data.extracto,
-}));
-
-const carousel3DItems = todasConRelaciones.slice(0, 8).map(({ entrada, autor, categoria, traductor }) => ({
-  title: normalizeTitleText(entrada.data.titulo),
-  authorName: autor?.data.nombre ?? '',
-  translatorName: traductor?.data.nombre,
-  categoryName: categoria?.data.nombre ?? '',
-  coverImage: entrada.data.portada,
-  href: `/${entrada.id}`,
 }));
 
 const categorias = await getCollection('categorias');
@@ -86,27 +76,39 @@ const CATEGORIA_IMAGENES: Record<string, string> = {
   }
 
   {
-    swipeItems.length > 0 && (
+    ultimasEntradasItems.length > 0 && (
       <section class="mb-16 md:mb-32 md:mt-24 md:flex md:min-h-[85vh] md:flex-col md:justify-center lg:mb-40 lg:mt-32">
-        <div class="md:hidden">
+        <div class="flex items-center justify-between gap-4 md:hidden">
           <h2 class="font-headline text-2xl lg:text-3xl">Últimas entradas</h2>
+          <a
+            href="/archivo"
+            class="shrink-0 rounded-full border border-ink/30 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-ink hover:text-canvas"
+          >
+            Todas las entradas
+          </a>
         </div>
 
-        {/* Mobile: carrusel de arco (GSAP, sin isla de React). Desktop: carrusel 3D
-            arrastrable (círculo/onda/grilla), centrado igual que Categorías/Archivo. */}
-        <div class="mt-8 md:hidden">
-          <UltimasEntradasCarousel items={swipeItems} />
-        </div>
+        {/* Mobile: carrusel tipo boleto con scroll-snap nativo. Desktop: galería en
+            grid, mismas entradas, sin mecanismo de scroll/drag propio. */}
+        <UltimasEntradasCarousel items={ultimasEntradasItems} />
         <div class="hidden md:block">
-          <div class="mb-6">
-            <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
-              Recién publicado
-            </span>
-            <h2 class="font-headline text-4xl leading-none tracking-tight text-ink lg:text-6xl">
-              Últimas entradas
-            </h2>
+          <div class="mb-6 flex items-end justify-between gap-6">
+            <div>
+              <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+                Recién publicado
+              </span>
+              <h2 class="font-headline text-4xl leading-none tracking-tight text-ink lg:text-6xl">
+                Últimas entradas
+              </h2>
+            </div>
+            <a
+              href="/archivo"
+              class="shrink-0 rounded-full border border-ink/30 px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-ink hover:text-canvas"
+            >
+              Todas las entradas
+            </a>
           </div>
-          <EntradasCarousel3D items={carousel3DItems} />
+          <UltimasEntradasGaleria items={ultimasEntradasItems} />
         </div>
       </section>
     )

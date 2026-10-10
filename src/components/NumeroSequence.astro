@@ -1,8 +1,17 @@
 ---
 import { normalizeTitleText, splitNumeroTitle } from '../lib/text';
 import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
-import { cardBadgeClass } from '../lib/cardStyles';
-import EntryCard from './EntryCard.tsx';
+import {
+  ticketNotchedEdges,
+  ticketImageWrap,
+  ticketImage,
+  ticketBadgeText,
+  ticketBody,
+  ticketTitle,
+  ticketMeta,
+  ticketCta,
+} from '../lib/ticketCardStyles';
+import EntradaTicket from './ui/EntradaTicket.astro';
 
 interface EntradaItem {
   slug: string;
@@ -66,9 +75,9 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
        transformación 3D ni posición absoluta calculada por JS, cada tarjeta es un
        elemento normal en flujo horizontal. Sigue resolviendo el problema real (mucho
        scroll vertical cuando un número tiene muchas entradas) sin repetir la clase de
-       bug que tuvieron los intentos anteriores. Cada tarjeta usa EntryCard.tsx (mismo
-       componente que /categoria y /autor) envuelta en un ancho fijo para que el
-       scroll-snap tenga contra qué encastrar.
+       bug que tuvieron los intentos anteriores. Cada tarjeta usa EntradaTicket.astro
+       (misma card tipo "boleto" que /categoria, /archivo y el home) envuelta en un
+       ancho fijo para que el scroll-snap tenga contra qué encastrar.
 
        Debajo va un indicador tipo "dial": una franja delgada donde un segmento (ancho
        proporcional a 1/total) se desplaza en función de `scrollLeft` del carril, más un
@@ -84,15 +93,15 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
     >
       {
         entradas.map((item) => (
-          <div class="w-[85vw] max-w-sm shrink-0 snap-center" data-entrada-slide>
-            <EntryCard
-              client:visible
+          <div class="h-56 w-[85vw] max-w-sm shrink-0 snap-center" data-entrada-slide>
+            <EntradaTicket
               title={item.titulo}
               authorName={item.autorNombre}
               translatorName={item.translatorName}
               categoryName={item.categoriaNombre}
               slug={item.slug}
               coverImage={item.portada}
+              class="h-full"
             />
           </div>
         ))
@@ -121,38 +130,16 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
             href={`/${item.slug}`}
             class="numero-sequence-card group absolute left-1/2 top-1/2 w-full min-w-0 max-w-md md:max-w-xl lg:max-w-2xl"
           >
-            <div class="flex h-56 w-full overflow-hidden border border-ink/15 bg-surface md:h-80 lg:h-96">
-              <div class="relative h-full w-2/5 shrink-0 bg-surface">
-                {item.portada && (
-                  <img
-                    src={item.portada}
-                    alt=""
-                    class="pointer-events-none h-full w-full object-cover grayscale contrast-125"
-                    loading="lazy"
-                  />
-                )}
-                <span class={cardBadgeClass(item.categoriaNombre)}>
-                  {item.categoriaNombre}
-                </span>
+            <div class:list={['flex h-56 w-full overflow-hidden bg-surface md:h-80 lg:h-96', ticketNotchedEdges]}>
+              <div class={ticketImageWrap}>
+                {item.portada && <img src={item.portada} alt="" class={ticketImage} loading="lazy" />}
               </div>
-              <div class="flex w-3/5 flex-col gap-1 p-4 md:gap-2 md:p-6">
-                <h3 class="font-headline text-lg leading-[1.05] text-ink md:text-2xl lg:text-3xl">
-                  {normalizeTitleText(item.titulo)}
-                </h3>
-                <p class="font-mono text-[10px] uppercase tracking-widest text-ink-muted md:text-xs">
-                  Por {item.autorNombre}
-                </p>
-                {item.translatorName && (
-                  <p class="font-mono text-[10px] uppercase tracking-widest text-ink-muted md:text-xs">
-                    Traducción de {item.translatorName}
-                  </p>
-                )}
-                <span class="relative mt-auto inline-block">
-                  <span class="font-mono text-xs font-medium uppercase tracking-widest text-accent md:text-sm">
-                    Leer entrada
-                  </span>
-                  <span class="absolute -bottom-0.5 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
-                </span>
+              <div class={ticketBody}>
+                <span class={ticketBadgeText}>{item.categoriaNombre}</span>
+                <h3 class={ticketTitle}>{normalizeTitleText(item.titulo)}</h3>
+                <p class={ticketMeta}>Por {item.autorNombre}</p>
+                {item.translatorName && <p class={ticketMeta}>Traducción de {item.translatorName}</p>}
+                <span class={ticketCta}>Leer entrada</span>
               </div>
             </div>
           </a>

@@ -1,5 +1,6 @@
 ---
 import { splitNumeroTitle } from '../lib/text';
+import EstampillaFace from './ui/EstampillaFace.astro';
 
 /**
  * Hero de "Último número" — título, descripción y link, con una estampilla 3D (CSS + GSAP, sin isla de React) que gira y flota
@@ -65,12 +66,12 @@ const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
       aria-hidden="true"
     >
       <div class="stamp" data-stamp>
-        <div class="stamp-face stamp-front">
+        <EstampillaFace class="stamp-face stamp-front">
           <img src="/images/home/estampilla.jpg" alt="" draggable="false" />
-        </div>
-        <div class="stamp-face stamp-back">
+        </EstampillaFace>
+        <EstampillaFace class="stamp-face stamp-back">
           <img src="/images/home/estampilla.jpg" alt="" draggable="false" />
-        </div>
+        </EstampillaFace>
       </div>
     </div>
   </div>
@@ -105,54 +106,38 @@ const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
     height: 100%;
     transform-style: preserve-3d;
   }
-  .stamp-face {
+  /* .stamp-face/.stamp-front/.stamp-back en realidad renderizan como el <div> que
+     devuelve EstampillaFace.astro (perforado + viñeta viven ahí ahora), no un elemento
+     propio de este archivo — un <style> de Astro solo alcanza elementos que el propio
+     archivo renderiza directamente, así que estas reglas de posición/fondo/flip van
+     envueltas en :global() para poder pisar ese <div> de todos modos. */
+  :global(.stamp-face) {
     position: absolute;
     inset: 0;
     backface-visibility: hidden;
-    /* Perforado: círculos transparentes repetidos en el borde y el centro. */
-    -webkit-mask-image: radial-gradient(circle, transparent 4.5px, black 5px);
-    -webkit-mask-size: 20px 20px;
-    -webkit-mask-position: -10px -10px;
-    mask-image: radial-gradient(circle, transparent 4.5px, black 5px);
-    mask-size: 20px 20px;
-    mask-position: -10px -10px;
   }
-  .stamp-front {
+  :global(.stamp-front) {
     background-color: #fff;
     overflow: hidden;
   }
-  .stamp-front img {
+  :global(.stamp-front img) {
     width: 100%;
     height: 100%;
     object-fit: cover;
     pointer-events: none;
     user-select: none;
   }
-  .stamp-front::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.5);
-    pointer-events: none;
-  }
-  .stamp-back {
+  :global(.stamp-back) {
     transform: rotateY(180deg);
     background-color: #fff;
     overflow: hidden;
   }
-  .stamp-back img {
+  :global(.stamp-back img) {
     width: 100%;
     height: 100%;
     object-fit: cover;
     pointer-events: none;
     user-select: none;
-  }
-  .stamp-back::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.5);
-    pointer-events: none;
   }
 </style>
 

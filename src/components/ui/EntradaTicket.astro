@@ -1,0 +1,85 @@
+---
+import { normalizeTitleText } from '../../lib/text';
+import {
+  ticketShell,
+  ticketNotchedEdges,
+  ticketImageWrap,
+  ticketImage,
+  ticketBadgeText,
+  ticketBody,
+  ticketTitle,
+  ticketMeta,
+  ticketCta,
+} from '../../lib/ticketCardStyles';
+
+/**
+ * Card tipo "boleto" para últimas entradas (desktop: UltimasEntradasGaleria.astro en
+ * grid; mobile: UltimasEntradasCarousel.astro en carrusel scroll-snap), y reusada
+ * también en /category, /archivo y el mobile de un número — imagen a la izquierda
+ * (recorte a sangre, object-cover, llena toda la columna), info a la derecha
+ * (badge, título, autor/traductor y el botón "Leer entrada", todos alineados abajo).
+ * Adaptada de una referencia visual de un boleto de ómnibus (ver historial), pero sin
+ * el 3D/WebGL de esa referencia (Three.js no se usa en este proyecto, ver CLAUDE.md).
+ *
+ * La silueta de TODA la card (`.ticket-notched-edges`, en global.css): mordiscos
+ * repetidos en los cuatro bordes, más una línea de perforación real en la costura
+ * entre la columna de imagen y la de texto — por eso esa costura no tiene ningún
+ * <div>/<span> de decoración propio en el markup de abajo.
+ *
+ * Badge y CTA intercambiaron su tratamiento visual (pedido explícito): el badge de
+ * categoría ahora es texto plano sin ninguna interacción (antes era una píldora con
+ * borde, después texto con subrayado al hover — se sacó también); el CTA ahora es un
+ * botón sólido (clase global ".card-badge", el mismo color que usa el badge de
+ * categoría en el resto del sitio — EntryCard, /numeros viejo) y es el ÚNICO elemento
+ * del boleto con hover: cambia el color de letra (rojo/acento en oscuro, negro/ink en
+ * claro — reglas en global.css junto a ".card-badge").
+ *
+ * Un solo componente para todos estos contextos evita duplicar el markup del ticket —
+ * mismo criterio que cardImageWrap/cardBadge en cardStyles.ts. Otras cards con la
+ * misma silueta pero datos distintos (números en numeros.astro, entradas de un número
+ * en NumeroSequence.astro desktop) arman su propio markup reusando las clases de
+ * ticketCardStyles.ts directamente, en vez de forzar esos datos a esta interfaz.
+ */
+export interface EntradaTicketItem {
+  title: string;
+  authorName: string;
+  /** Nombre de quien tradujo la entrada, si corresponde. */
+  translatorName?: string;
+  categoryName: string;
+  slug: string;
+  coverImage?: string;
+  coverAlt?: string;
+}
+
+interface Props extends EntradaTicketItem {
+  /** Clases adicionales para el shell (p. ej. tamaño fijo en el carril del carrusel mobile). */
+  class?: string;
+}
+
+const {
+  title,
+  authorName,
+  translatorName,
+  categoryName,
+  slug,
+  coverImage,
+  coverAlt,
+  class: className,
+} = Astro.props;
+
+const normalizedTitle = normalizeTitleText(title);
+---
+
+<a href={`/${slug}`} class:list={['entrada-ticket', ticketShell, ticketNotchedEdges, className]}>
+  <div class={ticketImageWrap}>
+    {coverImage && <img src={coverImage} alt={coverAlt || normalizedTitle} class={ticketImage} loading="lazy" />}
+  </div>
+
+  <div class={ticketBody}>
+    <span class={ticketBadgeText}>{categoryName}</span>
+    <h3 class={ticketTitle}>{normalizedTitle}</h3>
+    <p class={ticketMeta}>Por {authorName}</p>
+    {translatorName && <p class={ticketMeta}>Traducción de {translatorName}</p>}
+    <span class={ticketCta}>Leer entrada</span>
+  </div>
+</a>

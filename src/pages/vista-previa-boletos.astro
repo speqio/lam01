@@ -1,0 +1,121 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { normalizeTitleText } from '../lib/text';
+
+/**
+ * Herramienta de solo lectura para el equipo editorial: para cada entrada con
+ * portada, muestra la imagen completa (sin recortar) con dos marcos superpuestos que
+ * aproximan el recorte que aplica el boleto de "últimas entradas" en el home
+ * (EntradaTicket.astro, lado imagen = 32% del ancho de la card, object-fit: cover
+ * centrado) — uno para el carrusel mobile, otro para la galería desktop. Sirve para
+ * decidir qué reencuadrar/subir de nuevo ANTES de que una imagen importante quede
+ * cortada en el boleto, sin necesidad de ver el home real en cada breakpoint.
+ *
+ * A propósito NO guarda ni modifica nada — ni un punto focal, ni el campo `portada` en
+ * sí: es una página aparte, no una integración con Keystatic. Keystatic es frágil para
+ * cambios en el mecanismo de imágenes (ver "Keystatic y las imágenes" en CLAUDE.md), así
+ * que evitar tocarlo es deliberado, no una limitación de esta herramienta.
+ *
+ * Los marcos son una GUÍA aproximada, no un valor exacto por viewport: el ancho real
+ * de la card (y por lo tanto el alto que le toca al 32% de imagen) varía con el ancho
+ * de pantalla real. Se calculan acá con un viewport de referencia (390px para mobile,
+ * 1152px de 3 columnas para desktop) — suficiente para saber qué zona de la foto es
+ * "segura" en términos generales, no para pixel-perfect.
+ */
+const TICKET_IMAGE_RATIO = 0.32; // ver ticketImageWrap en ticketCardStyles.ts
+
+const MOBILE_VIEWPORT = 390;
+const MOBILE_CARD_WIDTH = Math.min(MOBILE_VIEWPORT * 0.85, 384); // w-[85vw] max-w-sm
+const MOBILE_IMAGE_WIDTH = MOBILE_CARD_WIDTH * TICKET_IMAGE_RATIO;
+const MOBILE_IMAGE_HEIGHT = 256; // h-64
+
+const DESKTOP_CONTAINER_WIDTH = 1152; // ancho de contenido típico en lg
+const DESKTOP_CARD_WIDTH = (DESKTOP_CONTAINER_WIDTH - 2 * 32) / 3; // grid-cols-3 lg, gap-8
+const DESKTOP_IMAGE_WIDTH = DESKTOP_CARD_WIDTH * TICKET_IMAGE_RATIO;
+const DESKTOP_IMAGE_HEIGHT = 272; // h-[17rem] en .entradas-galeria-cell (lg)
+
+const marco = (w: number, h: number) => `${(w / h).toFixed(4)} / 1`;
+const marcoMobile = marco(MOBILE_IMAGE_WIDTH, MOBILE_IMAGE_HEIGHT);
+const marcoDesktop = marco(DESKTOP_IMAGE_WIDTH, DESKTOP_IMAGE_HEIGHT);
+
+const todasLasEntradas = await getCollection('entradas');
+const conPortada = todasLasEntradas.filter((entrada) => entrada.data.portada);
+
+const items = await Promise.all(
+  conPortada.map(async (entrada) => {
+    const autor = await getEntry('autores', entrada.data.autor);
+    return {
+      slug: entrada.id,
+      title: normalizeTitleText(entrada.data.titulo),
+      authorName: autor?.data.nombre ?? '',
+      portada: entrada.data.portada!,
+    };
+  })
+);
+
+items.sort((a, b) => a.title.localeCompare(b.title, 'es'));
+---
+
+<BaseLayout title="Vista previa de recorte — boleto">
+  <section class="px-4 py-10 md:px-8">
+    <h1 class="font-headline text-3xl text-ink md:text-4xl">Vista previa de recorte del boleto</h1>
+    <p class="mt-3 max-w-2xl font-serif text-bone">
+      Herramienta de solo lectura para el equipo editorial. Cada imagen abajo es la portada completa, sin recortar; los dos
+      marcos punteados muestran aproximadamente qué parte queda visible en el boleto de "últimas entradas" del home — el
+      recorte real (<code>object-fit: cover</code>, centrado) usa siempre el centro de la imagen, así que lo que quede fuera de
+      un marco se pierde en ese contexto. No modifica ni guarda nada: es solo una guía para decidir qué reencuadrar antes de
+      subir una imagen.
+    </p>
+    <p class="mt-2 font-mono text-xs uppercase tracking-widest text-ink-muted">
+      <span class="text-accent">■</span> carrusel mobile &nbsp;&nbsp;
+      <span class="text-ink">■</span> galería desktop
+    </p>
+
+    <div class="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        items.map((item) => (
+          <div class="flex flex-col gap-2">
+            <div class="safe-area-preview relative bg-surface">
+              <img src={item.portada} alt="" class="block max-h-[70vh] w-full object-contain" loading="lazy" />
+              <div class="safe-area-frame safe-area-frame--mobile" style={`aspect-ratio: ${marcoMobile};`} />
+              <div class="safe-area-frame safe-area-frame--desktop" style={`aspect-ratio: ${marcoDesktop};`} />
+            </div>
+            <p class="font-headline text-sm text-ink">{item.title}</p>
+            <p class="font-mono text-[10px] uppercase tracking-widest text-ink-muted">Por {item.authorName}</p>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .safe-area-preview {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+
+  .safe-area-preview img {
+    grid-area: 1 / 1;
+  }
+
+  /* Los dos marcos se centran sobre la imagen (mismo criterio que object-position:
+     center, el comportamiento real del boleto) — grid-area compartida con la imagen
+     más place-items: center los apila y centra sin necesitar position:absolute. */
+  .safe-area-frame {
+    grid-area: 1 / 1;
+    pointer-events: none;
+    width: 55%;
+    max-height: 90%;
+  }
+
+  .safe-area-frame--mobile {
+    border: 2px dashed rgb(var(--color-accent) / 0.85);
+  }
+
+  .safe-area-frame--desktop {
+    border: 2px dashed rgb(var(--color-ink) / 0.85);
+  }
+</style>

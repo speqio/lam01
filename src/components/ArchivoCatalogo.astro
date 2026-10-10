@@ -1,5 +1,5 @@
 ---
-import EntryCard from './EntryCard.tsx';
+import EntradaTicket from './ui/EntradaTicket.astro';
 
 /**
  * Catálogo completo del archivo, con filtros — único componente de /archivo.astro
@@ -24,7 +24,7 @@ import EntryCard from './EntryCard.tsx';
  * en vez del <datalist> nativo, que despliega todos los autores. Escala con la cantidad de
  * autores sin alargar la página.
  *
- * Reusa EntryCard.tsx (misma anatomía de card que /categoria, /autor, /numero) en vez
+ * Reusa EntradaTicket.astro (misma card tipo "boleto" que /categoria y el home) en vez
  * de reinventar el layout, y el mismo mecanismo de filtro por atributos +
  * classList.toggle('hidden', ...) que ya usa /numeros.astro para sus chips de rango —
  * acá extendido a año/categoría/número (dropdown propio, coincidencia exacta) más
@@ -163,14 +163,14 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" data-catalogo-grid>
         {items.map((item) => (
           <div
+            class="h-56 lg:h-64"
             data-catalogo-item
             data-anio={item.anio}
             data-categoria={item.categoriaSlug}
             data-autor-nombre={item.authorName.toLocaleLowerCase('es')}
             data-numero={item.numeroSlug}
           >
-            <EntryCard
-              client:visible
+            <EntradaTicket
               title={item.title}
               authorName={item.authorName}
               translatorName={item.translatorName}
@@ -178,6 +178,7 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
               slug={item.slug}
               coverImage={item.coverImage}
               coverAlt={item.coverAlt}
+              class="h-full"
             />
           </div>
         ))}

@@ -106,6 +106,20 @@
     color: rgb(var(--color-canvas));
   }
 
+  /* Hover del botón "leer entrada"/"ver número" del boleto (ticketCta en
+     ticketCardStyles.ts) — el único hover del boleto ahora, el badge de categoría ya
+     no tiene ninguno. Solo cambia el color de letra (el fondo del .card-badge de
+     arriba queda igual): acento (rojo) en modo oscuro, ink (negro) en modo claro —
+     pedido explícito, por eso es una regla aparte y no una variante más de
+     .card-badge (que sirve a otros badges del sitio sin este hover). */
+  .ticket-cta:hover {
+    color: rgb(var(--color-accent));
+  }
+
+  :root[data-theme='light'] .ticket-cta:hover {
+    color: rgb(var(--color-ink));
+  }
+
   /* Estado inicial (oculto) de las cards con reveal-on-scroll (EntryCard.tsx).
      Solo se esconden si "js" ya está en <html> (agregado sincrónicamente antes del
      primer paint en BaseLayout.astro) Y el visitante no pidió prefers-reduced-motion
@@ -137,5 +151,55 @@
   :root[data-theme='light'] .numeros-chip[data-active='true'] {
     background: rgb(var(--color-accent));
     color: rgb(var(--color-canvas));
+  }
+
+  /* Silueta tipo boleto (nace en EntradaTicket.astro, ver ticketNotchedEdges en
+     ticketCardStyles.ts) — vive acá, no en un <style> scoped de un componente, porque
+     ahora la comparten varias cards de entrada/número en distintos archivos
+     (EntradaTicket.astro, ArchivoCatalogo.astro, category/[slug].astro,
+     NumeroSequence.astro, numeros.astro): mordiscos semicirculares repetidos en los
+     cuatro bordes + una costura perforada real en el 32% donde termina la columna de
+     imagen (el mockup de estampilla) y empieza el texto — ese 32% tiene que coincidir
+     con el ancho de ticketMediaCol (w-[32%] en ticketCardStyles.ts). Cinco capas de
+     mask-image (los 4 bordes + la
+     costura), cada una transparente solo en círculos repetidos sobre su línea y opaca
+     en el resto — combinadas con mask-composite: intersect para que el resultado sea
+     "transparente si CUALQUIERA de las capas lo dice ahí" (el comportamiento por
+     defecto, "add"/over, no sirve: una capa opaca taparía de nuevo los
+     mordiscos/agujeros de las otras). */
+  .ticket-notched-edges {
+    --notch-r: 9px;
+    --notch-gap: 22px;
+    --seam-r: 3px;
+    --seam-gap: 11px;
+    --seam-x: 32%;
+    mask-image:
+      radial-gradient(circle var(--notch-r) at 0 var(--notch-r), transparent calc(var(--notch-r) - 1px), black var(--notch-r)),
+      radial-gradient(circle var(--notch-r) at 100% var(--notch-r), transparent calc(var(--notch-r) - 1px), black var(--notch-r)),
+      radial-gradient(circle var(--notch-r) at var(--notch-r) 0, transparent calc(var(--notch-r) - 1px), black var(--notch-r)),
+      radial-gradient(circle var(--notch-r) at var(--notch-r) 100%, transparent calc(var(--notch-r) - 1px), black var(--notch-r)),
+      radial-gradient(circle var(--seam-r) at var(--seam-x) var(--seam-r), transparent calc(var(--seam-r) - 0.5px), black var(--seam-r));
+    mask-repeat: repeat-y, repeat-y, repeat-x, repeat-x, repeat-y;
+    mask-size:
+      100% var(--notch-gap),
+      100% var(--notch-gap),
+      var(--notch-gap) 100%,
+      var(--notch-gap) 100%,
+      100% var(--seam-gap);
+    mask-composite: intersect;
+    -webkit-mask-image:
+      radial-gradient(circle var(--notch-r) at 0 var(--notch-r), transparent calc(var(--notch-r) - 1px), black var(--notch-r)),
+      radial-gradient(circle var(--notch-r) at 100% var(--notch-r), transparent calc(var(--notch-r) - 1px), black var(--notch-r)),
+      radial-gradient(circle var(--notch-r) at var(--notch-r) 0, transparent calc(var(--notch-r) - 1px), black var(--notch-r)),
+      radial-gradient(circle var(--notch-r) at var(--notch-r) 100%, transparent calc(var(--notch-r) - 1px), black var(--notch-r)),
+      radial-gradient(circle var(--seam-r) at var(--seam-x) var(--seam-r), transparent calc(var(--seam-r) - 0.5px), black var(--seam-r));
+    -webkit-mask-repeat: repeat-y, repeat-y, repeat-x, repeat-x, repeat-y;
+    -webkit-mask-size:
+      100% var(--notch-gap),
+      100% var(--notch-gap),
+      var(--notch-gap) 100%,
+      var(--notch-gap) 100%,
+      100% var(--seam-gap);
+    -webkit-mask-composite: source-in;
   }
 }

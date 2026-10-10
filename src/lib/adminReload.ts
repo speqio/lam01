@@ -58,7 +58,7 @@ const CSS = `
 // Se sirve como script clásico inline, así que va en ES5 llano y sin optional chaining:
 // no pasa por el bundler y tiene que funcionar en cuanto el parser lo encuentra.
 const JS = `
-/* aviso-recarga v3 */
+/* aviso-recarga v4 */
 (function(){
   var CLAVE='recarga-admin', ID='aviso-recarga', FRANJAS=${FRANJAS}, ESPERA=${ESPERA_MS};
   var MINIMO=400, SEGURIDAD=8000;
@@ -200,12 +200,23 @@ const JS = `
     }catch(e){}
     var esGithub=destino.indexOf('api.github.com/graphql')!==-1;
     var esLocal=destino.indexOf('/api/keystatic/update')!==-1;
-    var esCommit=(esGithub && cuerpo.indexOf('createCommitOnBranch')!==-1)||esLocal;
+    // Se busca el NOMBRE de la operación, "CreateCommit", y no "createCommitOnBranch": el
+    // cliente de Keystatic monta urql con persistedExchange, así que la petición normal
+    // lleva solo {operationName, variables, extensions.persistedQuery.sha256Hash} y el
+    // documento GraphQL no viaja. "CreateCommit" aparece en las dos formas: como
+    // operationName en la persistida y como "mutation CreateCommit" cuando manda el
+    // documento completo (el reintento tras PersistedQueryNotFound).
+    var esCommit=(esGithub && cuerpo.indexOf('CreateCommit')!==-1)||esLocal;
     if(esCommit) cancelarPorReintento();
     var promesa=original.apply(this,args);
     try{
       if(modo==='registro' && (esGithub||esLocal||destino.indexOf('graphql')!==-1||destino.indexOf('keystatic')!==-1||destino.indexOf('github')!==-1)){
         apuntar(metodo+' '+destino.slice(0,90)+(esCommit?'  <= COMMIT':(esGithub?'  (github, no commit)':'')));
+        // Con el cuerpo delante se ve por qué encaja o no, sin tener que adivinar.
+        if(esGithub){
+          var tipo=(init&&init.body)?(typeof init.body):'(sin cuerpo)';
+          apuntar('   cuerpo: '+tipo+', '+cuerpo.length+' bytes: '+cuerpo.slice(0,110));
+        }
       }
       if(esCommit){
         promesa.then(function(res){

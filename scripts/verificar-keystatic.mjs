@@ -114,6 +114,24 @@ for (const [slug, cuerpo] of cuerpos) {
 }
 mostrar('Imágenes en línea en el cuerpo: Keystatic no puede abrir la entrada (deja un espacio entre el "!" y el enlace)', enLinea);
 
+// 4. Cuerpos que empiezan por un divisor: dos guardados seguidos borran la entrada.
+// Al guardar, Keystatic normaliza cualquier divisor ("* * *", "___") a "---". Si el divisor
+// era lo primero del cuerpo, el cuerpo queda empezando por "---", y en la siguiente apertura
+// Markdoc lee ese "---" como el principio de un bloque de frontmatter y se traga todo hasta
+// el siguiente "---": el editor muestra la entrada mutilada y el guardado siguiente escribe
+// esa mutilación en el repositorio. Medido: alfredo-soto-guillen 2133 -> 2122 -> 310 bytes.
+// La página publicada no se ve afectada por el primer guardado (allí Markdoc sí ve el
+// frontmatter YAML delante), así que esto no rompe el build: hay que detectarlo a mano.
+// Da igual el campo: fields.document y fields.markdoc se comportan idénticamente.
+const empiezaConDivisor = [];
+for (const [slug, cuerpo] of cuerpos) {
+  const primera = cuerpo.split('\n').find((l) => l.trim() !== '');
+  if (primera && /^\s*(\*\s*){3,}\s*$|^\s*-{3,}\s*$|^\s*_{3,}\s*$/.test(primera)) {
+    empiezaConDivisor.push(`entradas/${slug}: empieza por "${primera.trim()}"`);
+  }
+}
+mostrar('Cuerpos que empiezan por un divisor: el segundo guardado desde Keystatic borraría la entrada (quita el divisor inicial)', empiezaConDivisor);
+
 console.log(
   '\nLeídos: ' + Object.entries(totales).map(([c, n]) => `${c} ${n}`).join(', ') + '.'
 );

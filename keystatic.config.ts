@@ -203,14 +203,26 @@ export default config({
           description: 'Resumen breve para buscadores/redes (ideal hasta ~160 caracteres). Si se deja vacío, se usa el extracto.',
           multiline: true,
         }),
-        contenido: fields.document({
+        contenido: fields.markdoc({
           label: 'Contenido',
-          formatting: true,
-          dividers: true,
-          links: true,
-          images: {
-            directory: 'public/images/entradas',
-            publicPath: '/images/entradas/',
+          extension: 'mdoc',
+          options: {
+            bold: true,
+            italic: true,
+            strikethrough: true,
+            code: true,
+            heading: true,
+            blockquote: true,
+            orderedList: true,
+            unorderedList: true,
+            table: true,
+            link: true,
+            divider: true,
+            codeBlock: true,
+            image: {
+              directory: 'public/images/entradas',
+              publicPath: '/images/entradas/',
+            },
           },
         }),
         biografiaAutor: fields.text({

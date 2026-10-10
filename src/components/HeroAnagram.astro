@@ -9,7 +9,9 @@
  *
  * Es un componente 100% Astro/vanilla JS (sin React): no hay estado de UI que React
  * necesite manejar, es una animación DOM directa sobre un único <h1> — encaja mejor
- * con un <script> nativo que con una isla.
+ * con un script nativo que con una isla. (Ojo: no escribir la etiqueta script con sus
+ * ángulos en este comentario — el pre-escaneo de dependencias de Vite la toma por un
+ * bloque de script real y `astro dev` deja de arrancar. `astro build` no se entera.)
  */
 ---
 

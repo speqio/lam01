@@ -132,6 +132,95 @@ for (const [slug, cuerpo] of cuerpos) {
 }
 mostrar('Cuerpos que empiezan por un divisor: el segundo guardado desde Keystatic borraría la entrada (quita el divisor inicial)', empiezaConDivisor);
 
+// 5. Simula un guardado real y comprueba que la entrada se puede volver a abrir.
+//
+// Los pasos 3 y 4 buscan patrones concretos que ya nos han mordido. Este no adivina: pasa
+// cada cuerpo por el parse() -> validate() -> serialize() DEL PROPIO CAMPO, que es exactamente
+// lo que hace Keystatic al abrir y al guardar, y después intenta reabrir el resultado. Así
+// salen también las trampas que todavía no conocemos.
+//
+// Hace falta el bundle de NAVEGADOR de @keystatic/core: el de Node deja parse/serialize como
+// stubs que lanzan "unexpected call to function that shouldn't be called in React server
+// component environment", porque el editor es solo de navegador. Por eso tampoco se puede
+// reutilizar el campo del config importado arriba, y hay que reconstruirlo con las mismas
+// opciones; se detecta por texto cuál de los dos campos usa el config para no quedar
+// desincronizado en silencio.
+const cuerposCrudos = [];
+for (const col of ['entradas']) {
+  const dir = path.join(root, 'src', 'content', col);
+  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.mdoc'))) {
+    const texto = fs.readFileSync(path.join(dir, f), 'utf8').replace(/\r\n/g, '\n');
+    const fm = /^---\n[\s\S]*?\n---\n/.exec(texto);
+    cuerposCrudos.push([f.replace(/\.mdoc$/, ''), texto.slice(fm ? fm[0].length : 0)]);
+  }
+}
+
+const configTexto = fs.readFileSync(path.join(root, 'keystatic.config.ts'), 'utf8');
+const usaMarkdoc = /contenido:\s*fields\.markdoc\(/.test(configTexto);
+const usaDocument = /contenido:\s*fields\.document\(/.test(configTexto);
+
+if (!usaMarkdoc && !usaDocument) {
+  console.log(
+    '\n⚠ Paso 5 omitido: no se reconoce el campo "contenido" en keystatic.config.ts.\n' +
+      '  Si se cambió de campo, actualizar este paso en scripts/verificar-keystatic.mjs.'
+  );
+} else {
+  const imagen = { directory: 'public/images/entradas', publicPath: '/images/entradas/' };
+  const { fields: fieldsUI } = await import(
+    pathToFileURL(path.join(root, 'node_modules', '@keystatic', 'core', 'dist', 'keystatic-core.js')).href
+  );
+  const campo = usaMarkdoc
+    ? fieldsUI.markdoc({
+        label: 'Contenido',
+        extension: 'mdoc',
+        options: {
+          bold: true, italic: true, strikethrough: true, code: true, heading: true,
+          blockquote: true, orderedList: true, unorderedList: true, table: true,
+          link: true, divider: true, codeBlock: true, image: imagen,
+        },
+      })
+    : fieldsUI.document({
+        label: 'Contenido', formatting: true, dividers: true, links: true, images: imagen,
+      });
+
+  const enc = new TextEncoder();
+  const dec = new TextDecoder();
+  const guardar = (cuerpo, slug) => {
+    const valor = campo.parse(undefined, {
+      content: enc.encode(cuerpo),
+      other: new Map(),
+      external: new Map(),
+      slug,
+    });
+    return dec.decode(campo.serialize(campo.validate(valor), { slug }).content ?? new Uint8Array());
+  };
+
+  const noReabren = [];
+  const seVacian = [];
+  for (const [slug, cuerpo] of cuerposCrudos) {
+    let unaVez;
+    try {
+      unaVez = guardar(cuerpo, slug);
+    } catch (e) {
+      noReabren.push(`entradas/${slug}: ya no se puede abrir — ${String(e.message).split('\n')[0]}`);
+      continue;
+    }
+    try {
+      guardar(unaVez, slug);
+    } catch (e) {
+      noReabren.push(
+        `entradas/${slug}: se abre hoy, pero tras un guardado ya no — ${String(e.message).split('\n')[0]}`
+      );
+      continue;
+    }
+    if (cuerpo.trim() && unaVez.length < cuerpo.length * 0.8) {
+      seVacian.push(`entradas/${slug}: un guardado deja ${unaVez.length} de ${cuerpo.length} bytes`);
+    }
+  }
+  mostrar('Entradas que Keystatic no podría reabrir después de guardarlas (guardado simulado)', noReabren);
+  mostrar('Entradas que perderían la mayor parte del cuerpo al guardarse (guardado simulado)', seVacian);
+}
+
 console.log(
   '\nLeídos: ' + Object.entries(totales).map(([c, n]) => `${c} ${n}`).join(', ') + '.'
 );

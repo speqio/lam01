@@ -58,7 +58,7 @@ const CSS = `
 // Se sirve como script clásico inline, así que va en ES5 llano y sin optional chaining:
 // no pasa por el bundler y tiene que funcionar en cuanto el parser lo encuentra.
 const JS = `
-/* aviso-recarga v2 */
+/* aviso-recarga v3 */
 (function(){
   var CLAVE='recarga-admin', ID='aviso-recarga', FRANJAS=${FRANJAS}, ESPERA=${ESPERA_MS};
   var MINIMO=400, SEGURIDAD=8000;
@@ -161,54 +161,62 @@ const JS = `
   }
 
   // 2. Detectar el siguiente guardado y recargar.
-  var programado=false;
+  var temporizador=null;
   function programarRecarga(motivo){
     apuntar('GUARDADO DETECTADO por '+motivo+(modo==='registro'?' (no recargo: modo registro)':''));
     if(modo==='registro') return;
-    if(programado) return; programado=true;
+    if(temporizador!==null) return;
     try{ sessionStorage.setItem(CLAVE,'1'); }catch(e){}
     montar();
-    setTimeout(function(){ try{ location.reload(); }catch(e){} }, ESPERA);
+    temporizador=setTimeout(function(){ try{ location.reload(); }catch(e){} }, ESPERA);
+  }
+
+  // Si llega otra petición de commit antes de que la recarga dispare, es un reintento de
+  // Keystatic (su camino de STALE_DATA vuelve a pedir la cabeza de la rama y reintenta).
+  // Se cancela lo programado y decide el resultado del reintento, para no recargar encima
+  // de un guardado que aún no ha terminado.
+  function cancelarPorReintento(){
+    if(temporizador===null) return;
+    clearTimeout(temporizador);
+    temporizador=null;
+    try{ sessionStorage.removeItem(CLAVE); }catch(e){}
+    quitar();
+    apuntar('llega otro commit: se cancela la recarga y manda el reintento');
   }
 
   if(typeof window.fetch!=='function'){ apuntar('sin window.fetch: no se puede detectar'); return; }
   var original=window.fetch;
   window.fetch=function(){
     var args=arguments;
-    var destino='', metodo='';
+    var destino='', metodo='', cuerpo='';
     try{
-      var uno=args[0];
+      var uno=args[0], init=args[1];
       destino=typeof uno==='string'?uno:(uno&&uno.url)?uno.url:String(uno);
-      metodo=((args[1]&&args[1].method)||(uno&&uno.method)||'GET').toUpperCase();
+      metodo=((init&&init.method)||(uno&&uno.method)||'GET').toUpperCase();
+      // El cuerpo se lee ANTES de lanzar la petición y solo si es un string, que es lo que
+      // manda urql. Nada de clonar respuestas: urql aborta la petición al terminar y eso
+      // cancela la rama clonada del cuerpo, así que leerla falla (medido en producción).
+      if(init && typeof init.body==='string') cuerpo=init.body;
     }catch(e){}
+    var esGithub=destino.indexOf('api.github.com/graphql')!==-1;
+    var esLocal=destino.indexOf('/api/keystatic/update')!==-1;
+    var esCommit=(esGithub && cuerpo.indexOf('createCommitOnBranch')!==-1)||esLocal;
+    if(esCommit) cancelarPorReintento();
     var promesa=original.apply(this,args);
     try{
-      var esGithub=destino.indexOf('api.github.com/graphql')!==-1;
-      var esLocal=destino.indexOf('/api/keystatic/update')!==-1;
-      var interesa=esGithub||esLocal;
-      if(modo==='registro' && (interesa || destino.indexOf('graphql')!==-1 || destino.indexOf('keystatic')!==-1 || destino.indexOf('github')!==-1)){
-        apuntar(metodo+' '+destino.slice(0,120)+(interesa?'  <= VIGILADA':''));
+      if(modo==='registro' && (esGithub||esLocal||destino.indexOf('graphql')!==-1||destino.indexOf('keystatic')!==-1||destino.indexOf('github')!==-1)){
+        apuntar(metodo+' '+destino.slice(0,90)+(esCommit?'  <= COMMIT':(esGithub?'  (github, no commit)':'')));
       }
-      if(interesa){
+      if(esCommit){
         promesa.then(function(res){
           try{
-            if(esLocal){ if(res && res.ok) programarRecarga('/api/keystatic/update'); return; }
-            // Se mira la RESPUESTA y por texto, no recorriendo el objeto: con consultas
-            // persistidas la petición puede llevar solo un hash, y la forma exacta de la
-            // respuesta ha cambiado entre versiones. Basta con que nombre la mutación y no
-            // traiga errores.
-            res.clone().text().then(function(t){
-              try{
-                apuntar('respuesta de github ('+res.status+', '+t.length+' bytes): '+
-                  (t.indexOf('createCommitOnBranch')!==-1?'nombra la mutación':'NO la nombra')+
-                  (t.indexOf('"errors"')!==-1?' / trae errors':''));
-                if(t.indexOf('createCommitOnBranch')!==-1 && t.indexOf('"errors"')===-1){
-                  programarRecarga('createCommitOnBranch');
-                }
-              }catch(e){}
-            })['catch'](function(){ apuntar('no se pudo leer la respuesta de github'); });
+            apuntar('respuesta del commit: '+(res?res.status:'?')+(res&&res.ok?' ok':' NO ok'));
+            // Solo el código de estado: no se toca el cuerpo. GitHub devuelve 200 también
+            // cuando el GraphQL trae errores, pero ese caso lo cubre el reintento de
+            // Keystatic, que dispara otra petición de commit y cancela esta recarga.
+            if(res && res.ok) programarRecarga('mutación en la petición, respuesta '+res.status);
           }catch(e){}
-        })['catch'](function(){});
+        })['catch'](function(){ apuntar('la petición de commit falló (red)'); });
       }
     }catch(e){}
     return promesa;

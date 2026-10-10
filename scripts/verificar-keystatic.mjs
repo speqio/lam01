@@ -14,13 +14,14 @@
 //    línea con otro texto. El campo document de Keystatic solo admite imágenes de bloque
 //    (solas en su párrafo) y se niega a abrir la entrada con "Unknown inline node type:
 //    image". Cuenta también cuando el "!" es en realidad texto escapado ("\!") pegado a un
-//    enlace, p. ej. una llamada de nota al pie: "...democracia\![\[6\]](#_ftn6)". Ese caso
-//    escapado es el que hace falta este paso: el lector (paso 1) lo lee como texto y lo deja
-//    pasar, pero el editor descarta el escape al abrir la entrada y falla. Y en cuanto el
-//    editor vuelve a guardar el archivo, el escape desaparece del disco y entonces el paso 1
-//    también falla (es lo que pasó con las-trampas-de-virgilio en 7b923c4: el guardado de
-//    una portada reescribió el .mdoc, "\![" quedó como "![" y el Action se puso rojo).
+//    enlace, p. ej. una llamada de nota al pie: "...democracia\![\[6\]](#_ftn6)". Mientras el
+//    escape sigue en el archivo ese caso NO falla: Markdoc lo lee como texto + enlace y el
+//    editor lo abre bien. Se marca igual porque es una bomba de tiempo: cada guardado de
+//    Keystatic reserializa el cuerpo entero y se come los escapes, así que el próximo
+//    guardado (aunque sea para subir una portada) lo convierte en "![" y ahí sí revienta,
+//    para el editor y para el lector del paso 1. Pasó con las-trampas-de-virgilio en 7b923c4.
 //    Solución en ambos casos: dejar un espacio entre el "!" y el enlace.
+//    Detalle completo y reportes upstream: docs/keystatic-upstream.md
 //
 // Sale con código 1 si encuentra cualquier problema. Las referencias que se quitaron a
 // propósito (scripts/imagenes-pendientes.json) no cuentan como problema: ya no están en

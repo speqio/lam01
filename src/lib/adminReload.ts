@@ -58,6 +58,7 @@ const CSS = `
 // Se sirve como script clásico inline, así que va en ES5 llano y sin optional chaining:
 // no pasa por el bundler y tiene que funcionar en cuanto el parser lo encuentra.
 const JS = `
+/* aviso-recarga v2 */
 (function(){
   var CLAVE='recarga-admin', ID='aviso-recarga', FRANJAS=${FRANJAS}, ESPERA=${ESPERA_MS};
   var MINIMO=400, SEGURIDAD=8000;
@@ -116,6 +117,29 @@ const JS = `
     setTimeout(cerrar, SEGURIDAD);   // seguro: el overlay nunca se queda pegado
   }
 
+  // Modos de diagnóstico, solo con un parámetro en la URL (el cliente nunca los ve):
+  //   ?aviso=prueba   monta el overlay 5 s, para comprobar que se ve y cómo queda.
+  //   ?aviso=registro no recarga y muestra abajo a la izquierda qué peticiones ve, para
+  //                   averiguar por qué no se detecta un guardado.
+  var modo='';
+  try{ modo=(String(location.search).match(/[?&]aviso=([a-z]+)/)||[])[1]||''; }catch(e){}
+
+  var caja=null;
+  function apuntar(texto){
+    if(modo!=='registro') return;
+    try{
+      if(!caja){
+        caja=document.createElement('div');
+        caja.style.cssText='position:fixed;left:8px;bottom:8px;z-index:2147483646;max-width:46ch;'+
+          'max-height:45vh;overflow:auto;background:#000;color:#0f0;font:11px/1.35 ui-monospace,monospace;'+
+          'padding:8px;border:1px solid #0f0;white-space:pre-wrap';
+        (document.body||document.documentElement).appendChild(caja);
+      }
+      caja.appendChild(document.createTextNode(new Date().toISOString().slice(11,19)+'  '+texto+'\\n'));
+      caja.scrollTop=caja.scrollHeight;
+    }catch(e){}
+  }
+
   // 1. Venimos de un guardado: el overlay ya tiene que estar en pantalla.
   var veniaDeGuardar=false;
   try{
@@ -127,48 +151,69 @@ const JS = `
     esperarPanel();
   }
 
+  if(modo==='prueba'){
+    montar();
+    setTimeout(quitar, 5000);
+  }
+  if(modo==='registro'){
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', function(){ apuntar('modo registro activo; no se recargará'); });
+    else apuntar('modo registro activo; no se recargará');
+  }
+
   // 2. Detectar el siguiente guardado y recargar.
   var programado=false;
-  function programarRecarga(){
+  function programarRecarga(motivo){
+    apuntar('GUARDADO DETECTADO por '+motivo+(modo==='registro'?' (no recargo: modo registro)':''));
+    if(modo==='registro') return;
     if(programado) return; programado=true;
     try{ sessionStorage.setItem(CLAVE,'1'); }catch(e){}
     montar();
     setTimeout(function(){ try{ location.reload(); }catch(e){} }, ESPERA);
   }
 
-  if(typeof window.fetch!=='function') return;
+  if(typeof window.fetch!=='function'){ apuntar('sin window.fetch: no se puede detectar'); return; }
   var original=window.fetch;
   window.fetch=function(){
     var args=arguments;
-    var destino='';
+    var destino='', metodo='';
     try{
       var uno=args[0];
       destino=typeof uno==='string'?uno:(uno&&uno.url)?uno.url:String(uno);
+      metodo=((args[1]&&args[1].method)||(uno&&uno.method)||'GET').toUpperCase();
     }catch(e){}
     var promesa=original.apply(this,args);
     try{
       var esGithub=destino.indexOf('api.github.com/graphql')!==-1;
       var esLocal=destino.indexOf('/api/keystatic/update')!==-1;
-      if(esGithub||esLocal){
+      var interesa=esGithub||esLocal;
+      if(modo==='registro' && (interesa || destino.indexOf('graphql')!==-1 || destino.indexOf('keystatic')!==-1 || destino.indexOf('github')!==-1)){
+        apuntar(metodo+' '+destino.slice(0,120)+(interesa?'  <= VIGILADA':''));
+      }
+      if(interesa){
         promesa.then(function(res){
           try{
-            if(esLocal){ if(res && res.ok) programarRecarga(); return; }
-            // En GitHub se mira la respuesta, no la petición: con consultas persistidas el
-            // cuerpo puede llevar solo un hash y no el nombre de la mutación.
-            res.clone().json().then(function(d){
+            if(esLocal){ if(res && res.ok) programarRecarga('/api/keystatic/update'); return; }
+            // Se mira la RESPUESTA y por texto, no recorriendo el objeto: con consultas
+            // persistidas la petición puede llevar solo un hash, y la forma exacta de la
+            // respuesta ha cambiado entre versiones. Basta con que nombre la mutación y no
+            // traiga errores.
+            res.clone().text().then(function(t){
               try{
-                if(d && !d.errors && d.data && d.data.createCommitOnBranch &&
-                   d.data.createCommitOnBranch.ref && d.data.createCommitOnBranch.ref.target){
-                  programarRecarga();
+                apuntar('respuesta de github ('+res.status+', '+t.length+' bytes): '+
+                  (t.indexOf('createCommitOnBranch')!==-1?'nombra la mutación':'NO la nombra')+
+                  (t.indexOf('"errors"')!==-1?' / trae errors':''));
+                if(t.indexOf('createCommitOnBranch')!==-1 && t.indexOf('"errors"')===-1){
+                  programarRecarga('createCommitOnBranch');
                 }
               }catch(e){}
-            })['catch'](function(){});
+            })['catch'](function(){ apuntar('no se pudo leer la respuesta de github'); });
           }catch(e){}
         })['catch'](function(){});
       }
     }catch(e){}
     return promesa;
   };
+  apuntar('envoltorio de fetch instalado');
 })();
 `;
 

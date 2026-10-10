@@ -2,7 +2,7 @@
 
 Estado: 10-oct-2026 · `@keystatic/core@0.6.9` · `@keystatic/astro@6.0.0` · modo `github`
 
-Este documento reúne tres fallos que **no son de este proyecto** sino de Keystatic, con la
+Este documento reúne cuatro fallos que **no son de este proyecto** sino de Keystatic, con la
 evidencia necesaria para reportarlos, y evalúa las salidas posibles (parche local, migración
 de campo, fork, soporte). Complementa `docs/flujo-keystatic.md`, que describe el flujo de
 ramas, y `CLAUDE.md`, que recoge las reglas de convivencia con la herramienta.
@@ -179,6 +179,88 @@ asset local corrompe el cuerpo al guardar y produce el mismo error de borrado),
 Mitigación local ya implementada: `scripts/imagenes-pendientes.mjs`,
 `scripts/portadas-provisionales.mjs` y el paso 2 de `scripts/verificar-keystatic.mjs`.
 
+`fields.markdoc` **no** tiene este problema: conserva la referencia aunque falte el archivo
+(ver la tabla de la opción C en §6). Es el segundo argumento a favor de migrar.
+
+---
+
+## 4 bis. Fallo D — un divisor al principio del cuerpo: dos guardados destruyen la entrada
+
+**El más grave de los cuatro, y el único que destruye contenido sin avisar.** Descubierto el
+10-oct-2026 midiendo la opción C. Afecta a **20 entradas** de este repositorio ahora mismo.
+
+**La cadena:**
+
+1. Veinte cuerpos, migrados de WordPress, empiezan con un divisor: `* * *`.
+2. Al guardar, Keystatic normaliza cualquier divisor a `---`. Como era lo primero del cuerpo,
+   el cuerpo queda **empezando por `---`**.
+3. La página publicada sigue bien, porque ahí Markdoc ve delante el frontmatter YAML del
+   archivo y lee ese `---` como un divisor normal. **El build no falla. El CI no se entera.**
+4. Pero Keystatic pasa al campo **solo el cuerpo**, sin el frontmatter. Entonces ese `---`
+   inicial está en la posición 0, y Markdoc lo lee como **el principio de un bloque de
+   frontmatter**: se traga todo hasta el siguiente `---`.
+5. El editor muestra la entrada mutilada, y el siguiente guardado **escribe la mutilación en
+   el repositorio**. Ahí sí se pierde en la web.
+
+**Medido** (`alfredo-soto-guillen`, cuerpo en bytes):
+
+```
+original 2133  ->  1er guardado 2122  ->  2do guardado 310
+```
+
+De 2133 bytes quedan 310: sobrevive el párrafo de la biografía, desaparece el poema completo.
+Lo mismo en las otras 19, entre el 74% y el 96% del cuerpo. Idéntico con `fields.document` y
+con `fields.markdoc`, así que la opción C no protege de esto.
+
+Agrava el asunto que la regla operativa vigente ("un ítem, un guardado, y recargar") **no
+protege**: el guardado peligroso es justo el segundo, después de recargar.
+
+**Detección local:** paso 4 de `scripts/verificar-keystatic.mjs` (rama `prueba-markdoc`),
+que marca todo cuerpo cuya primera línea no vacía sea un divisor.
+
+**Arreglo local:** quitar el divisor inicial de esas 20 entradas. Es decorativo y además
+sobra: hoy renderiza un `<hr>` como primer elemento de la entrada, que casi seguro no era la
+intención de nadie. Hay que hacerlo **por la rama `keystatic`** (es contenido) y aterrizar el
+paso 4 en el mismo ciclo, porque mientras las 20 sigan ahí el check deja el CI en rojo.
+
+**Cuerpo para reportarlo (issue nuevo):**
+
+> **Title:** A thematic break at the start of a content field's body is serialized as `---`, and the next save silently deletes the entry's content
+>
+> **Version:** `@keystatic/core@0.6.9`; happens with both `fields.document` and `fields.markdoc`, `.mdoc` files with YAML frontmatter
+>
+> **What happens**
+>
+> If an entry's body starts with a thematic break written as `* * *` (ours came from a
+> WordPress import), saving the entry normalizes it to `---`. The body now *begins* with
+> `---`. Because the field is handed the body without the frontmatter block, Markdoc parses
+> that leading `---` as the start of a frontmatter block and swallows everything up to the
+> next `---`. The editor then shows the entry nearly empty, and the next save writes that
+> truncation to the repository.
+>
+> Measured on one of our entries, body size in bytes:
+> `2133 (original) -> 2122 (after first save) -> 310 (after second save)`. The 1800 characters
+> in between are a poem, and they are simply gone.
+>
+> The published site survives the *first* save, because there Markdoc sees the YAML
+> frontmatter first and reads the `---` as an ordinary divider — so the build stays green and
+> nothing warns the editor. The loss only becomes visible after the second save.
+>
+> **Steps to reproduce**
+>
+> 1. Create an entry whose body starts with `* * *` followed by some paragraphs.
+> 2. Save it from the admin UI. The file is still complete, but the body now starts with `---`.
+> 3. Reload and open the same entry: the editor shows only whatever came after the *second*
+>    `---` in the body.
+> 4. Save again. The content is now gone from the file.
+>
+> **Suggested fix**
+>
+> Either serialize a leading thematic break as something unambiguous (`* * *`, or `---`
+> preceded by a blank line is not enough — the problem is being at offset 0), or have the
+> field's parse step not treat a leading `---` in a *body* as frontmatter, since the body it
+> receives has already had its frontmatter stripped by the caller.
+
 ---
 
 ## 5. Cómo reportarlo
@@ -194,7 +276,9 @@ Upstream se trabaja en inglés. Abajo van los cuerpos listos para pegar.
    ("usa `fields.markdoc`"). El ángulo nuevo es la **pérdida de escapes en la ida y vuelta**,
    que ninguno de los tres issues cerrados plantea.
 3. **Fallo C** → comentario en [#1625](https://github.com/Thinkmill/keystatic/issues/1625),
-   que es casi idéntico, en vez de un cuarto issue duplicado.
+   que es casi idéntico, en vez de un issue duplicado.
+4. **Fallo D** → issue nuevo (cuerpo en §4 bis). Es el más grave y no hay nada parecido
+   abierto; va primero si solo se va a reportar uno.
 
 **Formulario:** https://github.com/Thinkmill/keystatic/issues/new/choose
 **Discusiones:** https://github.com/Thinkmill/keystatic/discussions
@@ -452,31 +536,50 @@ contenido: fields.markdoc({
 }),
 ```
 
-**A favor:**
-- Es la vía recomendada por quien mantiene la librería, no un invento nuestro.
-- `fields.markdoc` trabaja sobre el **nodo Markdoc** (`ContentFormField<…, { node: MarkdocNode }>`),
-  no sobre el modelo propio del editor de documentos, así que la ida y vuelta es mucho más
-  fiel — es razonable esperar que conserve escapes y tolere imágenes en línea.
-- El formato en disco sigue siendo `.mdoc`: los 324 archivos y el render de Astro no cambian.
-- Quita de encima toda la familia de bugs de `fields.document`, no solo el nuestro.
+#### Resultado de la prueba (10-oct-2026, rama `prueba-markdoc`)
 
-**A verificar antes de tocar nada:**
-- **No está confirmado que sea un reemplazo literal.** `fields.document` y `fields.markdoc`
-  son campos distintos; hay que comprobar sobre una copia si abren el contenido existente sin
-  pedir una migración.
-- Los flags cambian de forma: `formatting: true` se expande en opciones sueltas
-  (`bold`, `italic`, `heading`, …). Hay que mapearlos uno por uno o se pierden botones del
-  editor.
-- Hay que revisar si `format: { contentField: 'contenido' }` sigue siendo necesario o si la
-  `extension` del campo lo sustituye.
-- Y, sobre todo, probarlo **con las entradas reales**, en particular las migradas de
-  WordPress, que son las que tienen el contenido raro.
+Se midió ejercitando el campo directamente — `parse()` → `validate()` → `serialize()`, que es
+lo que hace Keystatic al abrir y guardar — sobre **las 324 entradas reales**. Detalle de
+método: hay que importar el bundle de **navegador**
+(`node_modules/@keystatic/core/dist/keystatic-core.js`), porque el de Node deja `parse` y
+`serialize` como stubs que lanzan *"unexpected call to function that shouldn't be called in
+React server component environment"* — el editor es solo de navegador.
 
-**Cómo probarlo sin riesgo:** rama aparte, cambiar el campo, `npm run dev`, abrir media docena
-de entradas representativas (una con galería, una con imágenes individuales, una migrada de
-WordPress, una con notas al pie), guardar una y **mirar el diff**. Si el diff es vacío o
-mínimo, es viable. Si reescribe los 324 archivos, es una migración de contenido y hay que
-planearla como tal.
+| | `fields.document` (hoy) | `fields.markdoc` |
+|---|---|---|
+| Imagen en línea en el cuerpo | **lanza** `Unknown inline node type: image`, entrada inabrible | **la conserva**, no rompe |
+| Imagen cuyo archivo falta | la sustituye por `Missing image x.jpg`, se pierde la referencia | **conserva la referencia** |
+| Escapes de Markdown (`\[`, `\_`) | los pierde al reserializar | **los pierde igual** |
+| Cuerpos reescritos al 1er guardado | 307 de 324 | 308 de 324 |
+| Entradas ilegibles | 0 | 0 |
+| Divisor al principio del cuerpo | destruye la entrada al 2º guardado | **igual de destructivo** |
+
+Y además: lector de Keystatic, `npm run build` y HTML renderizado **sin cambios** — el campo
+solo afecta al CMS, no al sitio. Las dos salidas serializadas son **byte a byte idénticas** en
+las entradas comparadas, así que migrar no añade rotación de contenido respecto de lo que ya
+pasaría hoy.
+
+**Conclusión:** la opción C **sí vale la pena, pero no es la cura que prometía**. Gana dos
+cosas concretas y valiosas:
+
+1. **Quita el fallo catastrófico.** La imagen en línea deja de dejar la entrada inabrible. El
+   escenario que nos rompió `las-trampas-de-virgilio` y puso rojo el CI se vuelve inofensivo.
+2. **Mitiga el fallo C.** Una imagen cuyo archivo falta ya no borra la referencia al guardar,
+   que es la razón de ser de `scripts/imagenes-pendientes.mjs`.
+
+Y **no** arregla: la pérdida de escapes (idéntica), ni el fallo D de abajo (idéntico). Es
+decir, no evita que un guardado reescriba el cuerpo entero; solo evita que el resultado sea
+irrecuperable.
+
+**Lo que queda sin probar:** la UI del editor. El servidor de desarrollo no arranca desde el
+entorno de comandos del asistente (no puede abrir puertos) y falla igual con el árbol limpio,
+así que la pasada manual sigue pendiente: `npm run dev`, abrir media docena de entradas
+representativas (una con galería, una con imágenes individuales, una migrada de WordPress, una
+con notas al pie) y comprobar que los botones de formato siguen todos ahí. Para esa pasada
+conviene poner `storage: { kind: 'local' }` temporalmente, de modo que los guardados vayan al
+árbol de trabajo y se puedan leer con `git diff` sin commitear nada en la rama del cliente.
+
+La rama `prueba-markdoc` tiene el cambio aplicado y verificado hasta donde llega lo anterior.
 
 **Veredicto:** es la que más problemas resuelve por unidad de riesgo, y la única que ataca el
 fallo B de raíz. Debería probarse antes que A y B.
@@ -521,13 +624,22 @@ Lo que **sí** tiene sentido, y es un término medio honesto:
 
 ## 8. Recomendación
 
-1. **Reportar ya** el fallo A (§5.1) y comentar en #1626 — es el de mayor alcance y el arreglo
-   cabe en una línea.
-2. **Probar la opción C** en una rama. Si `fields.markdoc` abre el contenido actual sin
-   reescribirlo, es el mejor movimiento del lote y cierra el fallo B.
-3. **Validar la opción 0** con dos guardados reales. Si se confirma, actualizar las
-   instrucciones del cliente y gran parte de la molestia desaparece sin código.
-4. **Dejar A y B en reserva.** A si el cliente sigue tropezando con la recarga; B solo si el
+Revisada el 10-oct-2026, después de medir la opción C.
+
+1. **Desactivar la bomba del fallo D, primero que todo.** Quitar el divisor inicial de las 20
+   entradas por la rama `keystatic` y aterrizar en el mismo ciclo el paso 4 del verificador.
+   Hasta que eso esté, cualquiera de esas 20 entradas se destruye con dos guardados, y nadie
+   se enteraría hasta que un lector echara en falta el poema. Es lo único de esta lista que
+   está destruyendo contenido.
+2. **Mientras tanto, decirle al cliente que no abra esas 20 entradas.** La lista la imprime
+   `node scripts/verificar-keystatic.mjs` (paso 4).
+3. **Migrar a `fields.markdoc` (opción C).** Medido y verde en lector, build y render; quita
+   el fallo catastrófico de la imagen en línea y mitiga el fallo C. Falta la pasada manual por
+   la UI del editor antes de mergear `prueba-markdoc`.
+4. **Reportar** el fallo D y el fallo A (§4 bis y §5.1), y comentar en #1626.
+5. **Validar la opción 0** con dos guardados reales de entradas *distintas*. Si se confirma,
+   la regla de recargar se relaja y gran parte de la molestia desaparece sin código.
+6. **Dejar A y B en reserva.** A si el cliente sigue tropezando con la recarga; B solo si el
    fallo A llega a bloquear trabajo de verdad y upstream no responde.
-5. **No forkear.** Reevaluar solo si el repositorio se archiva o deja de publicar durante
+7. **No forkear.** Reevaluar solo si el repositorio se archiva o deja de publicar durante
    varios meses.

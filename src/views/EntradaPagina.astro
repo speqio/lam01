@@ -207,6 +207,7 @@ const { orientacion, maxAncho } = datosPortada(portada);
   import { Observer } from 'gsap/Observer';
   import gsap from 'gsap';
   import { write, presets } from 'glitched-writer';
+  import { repartirEnPliegos, objetivoPorPliego } from '../lib/pliegos';
 
   gsap.registerPlugin(Observer);
 
@@ -270,6 +271,62 @@ const { orientacion, maxAncho } = datosPortada(portada);
     especiales.forEach((el) => {
       if (stage.contains(el)) stage.removeChild(el);
     });
+  };
+
+  /* ---------- Pliegos: dos columnas de una pantalla de alto ----------
+   *
+   * Dos columnas equilibradas no sirven para texto largo: en la entrada mediana (10.100
+   * caracteres) cada columna mide 2,6 pantallas, así que habría que bajar 2,6 pantallas por la
+   * izquierda y volver a subirlas para empezar la derecha. Acá el cuerpo se parte en pliegos de
+   * dos columnas que entran en una pantalla, apilados: se lee izquierda, derecha, se baja.
+   *
+   * CUÁNDO SE LLAMA, que es lo delicado. Tiene que ser DESPUÉS de que el modo lectura capture
+   * originalBlocks y el mapa especialSitio, por dos razones:
+   *   - si agrupara antes, originalBlocks serían los pliegos y el modo lectura revelaría grupos
+   *     enteros en vez de párrafo por párrafo;
+   *   - especialSitio quedaría apuntando a un pliego que luego desaparece, y al salir del modo
+   *     lectura la imagen se insertaría en un nodo desconectado: contenido que se esfuma de la
+   *     página sin ningún error.
+   * Por eso la llamada inicial va al final del módulo. Y como la salida del modo lectura
+   * reinserta todo plano, basta con volver a agrupar ahí.
+   */
+  const anchoPliegos = window.matchMedia('(min-width: 1024px)');
+
+  const desagruparPliegos = () => {
+    if (!blocksRoot) return;
+    const pliegos = Array.from(blocksRoot.querySelectorAll<HTMLElement>(':scope > [data-pliego]'));
+    pliegos.forEach((pliego) => {
+      while (pliego.firstChild) blocksRoot.insertBefore(pliego.firstChild, pliego);
+      pliego.remove();
+    });
+    blocksRoot.classList.remove('con-pliegos');
+  };
+
+  const agruparEnPliegos = () => {
+    if (!blocksRoot) return;
+    desagruparPliegos();
+    if (!anchoPliegos.matches) return;
+
+    const bloques = Array.from(blocksRoot.children) as HTMLElement[];
+    if (!bloques.length) return;
+
+    // Se miden TODOS los altos primero y se reparte después: medir y mover en el mismo bucle
+    // haría que cada lectura dependiera del movimiento anterior. Los altos se miden con el
+    // <article> ya en dos columnas (la regla CSS de arriba), así que son altos de columna.
+    const medidos = bloques.map((el) => ({ alto: el.offsetHeight, especial: esEspecial(el) }));
+    const reparto = repartirEnPliegos(medidos, objetivoPorPliego(window.innerHeight));
+
+    reparto.forEach((grupo) => {
+      const pliego = document.createElement('div');
+      pliego.dataset.pliego = '';
+      pliego.className = grupo.ancho ? 'entrada-pliego entrada-pliego--ancho' : 'entrada-pliego';
+      grupo.indices.forEach((i) => pliego.appendChild(bloques[i]));
+      blocksRoot.appendChild(pliego);
+    });
+    blocksRoot.classList.add('con-pliegos');
+    // La barra de progreso de PostLayout.astro mide #post-article: después de agrupar, el
+    // documento cambia de alto y hay que recalcularla.
+    window.dispatchEvent(new Event('scroll'));
   };
   // Misma barra de progreso de PostLayout.astro (fija arriba de toda la página): en
   // modo normal la sigue actualizando su propio listener de scroll; en modo lectura
@@ -371,6 +428,10 @@ const { orientacion, maxAncho } = datosPortada(portada);
             blocksRoot!.appendChild(el);
           }
         });
+        // La reinserción de arriba deja los bloques planos, así que hay que volver a armar
+        // los pliegos de dos columnas (ver agruparEnPliegos). Esta es la única línea que el
+        // mecanismo de lectura necesita para convivir con ellos.
+        agruparEnPliegos();
         // Le devuelve el control de la barra a su propio listener de scroll
         // (PostLayout.astro), que la recalcula según la posición real ya restaurada.
         window.dispatchEvent(new Event('scroll'));
@@ -507,6 +568,20 @@ const { orientacion, maxAncho } = datosPortada(portada);
       });
     }
   }
+
+  // Recién acá, con originalBlocks y especialSitio ya capturados arriba (ver el comentario
+  // largo de agruparEnPliegos: agrupar antes rompería el modo lectura y podría hacer
+  // desaparecer una imagen intercalada al salir de él).
+  agruparEnPliegos();
+
+  // El alto de la pantalla manda el corte de cada pliego, así que hay que rearmarlos al
+  // cambiar de tamaño. Con debounce: `resize` dispara decenas de veces al arrastrar el borde
+  // de la ventana y cada pliegue vuelve a medir todos los bloques.
+  let reagrupar: number | undefined;
+  window.addEventListener('resize', () => {
+    window.clearTimeout(reagrupar);
+    reagrupar = window.setTimeout(agruparEnPliegos, 200);
+  });
 </script>
 
 <style is:global>
@@ -521,6 +596,65 @@ const { orientacion, maxAncho } = datosPortada(portada);
      retoma rueda/touch bloqueados + `position: fixed`, pero acotado a
      #entrada-content (no a toda la página, que fue lo que rompió la diagramación en
      un intento anterior). */
+
+  /* ---------- Dos columnas en desktop ----------
+     La columna de lectura usaba el max-width de 65ch de Tailwind Typography, unos 650px de
+     los 1504px disponibles: sobraba ancho. Ahora el cuerpo va en dos columnas a partir de
+     1024px, donde cada una da 47 caracteres por línea (54-60 de 1440px en adelante). Por
+     debajo de eso las columnas quedarían demasiado angostas y el cuerpo sigue en una sola,
+     igual que antes.
+
+     Esta regla es el SUELO: es lo que se ve sin JS y también en el primer pintado. Encima,
+     el script agrupa los bloques en "pliegos" de una pantalla de alto (ver agruparEnPliegos),
+     porque dos columnas equilibradas de una entrada mediana miden 2,6 pantallas cada una y
+     obligarían a bajar y volver a subir para leer la segunda. Con pliegos se lee
+     izquierda-derecha y se baja. */
+  @media (min-width: 1024px) {
+    #entrada-content > article {
+      columns: 2;
+      column-gap: 3.5rem;
+    }
+
+    /* Ya agrupado en pliegos, las columnas las pone cada pliego: si el <article> siguiera
+       con las suyas, repartiría los PLIEGOS en dos columnas. */
+    #entrada-content > article.con-pliegos {
+      columns: 1;
+    }
+
+    .entrada-pliego {
+      columns: 2;
+      column-gap: 3.5rem;
+    }
+
+    /* Un bloque especial (galería o imagen individual) va solo, a ancho completo: dentro de
+       una columna de 450px su max-height de 80vh desborda la caja, el scroll horizontal de la
+       galería se fragmenta entre columnas y sus degradados de borde de 3,5rem se comen un
+       cuarto de la imagen. */
+    .entrada-pliego--ancho {
+      columns: 1;
+    }
+
+    /* Que no se parta lo que se lee como una pieza, ni queden líneas huérfanas. */
+    #entrada-content h2,
+    #entrada-content h3,
+    #entrada-content blockquote,
+    #entrada-content figure,
+    #entrada-content [data-bloque-especial] {
+      break-inside: avoid;
+    }
+
+    #entrada-content p {
+      orphans: 2;
+      widows: 2;
+    }
+  }
+
+  /* En modo lectura el <article> queda con el stage como único hijo: si conservara sus
+     columnas, el stage se encajaría en la primera y mediría la mitad del ancho. */
+  #entrada-content.is-reading-mode > article {
+    columns: 1;
+    width: 100%;
+  }
 
   /* El modo lectura (rueda/touch bloqueados, un bloque a la vez) solo aplica una vez
      que JS lo activó — sin JS, el texto se lee completo y nítido en flujo normal. */

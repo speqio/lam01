@@ -2,21 +2,9 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PageHeader from '../components/ui/PageHeader.astro';
-import {
-  ticketNotchedEdges,
-  ticketImageWrap,
-  ticketImage,
-  ticketBody,
-  ticketCta,
-} from '../lib/ticketCardStyles';
-import { splitNumeroTitle } from '../lib/text';
-
-// Texto más grande que el boleto de entradas (ticketBadgeText/ticketTitle en
-// ticketCardStyles.ts) — pedido explícito, solo para esta página. No se tocan los
-// tamaños compartidos: eso afectaría también a EntradaTicket.astro (últimas
-// entradas, categoría, archivo, mobile de un número), que no se pidió agrandar.
-const numeroBadge = 'inline-block self-start font-mono text-sm lowercase tracking-widest text-ink';
-const numeroTitle = 'font-headline text-xl leading-[1.15] text-ink md:text-2xl';
+import CarpetaNumero from '../components/ui/CarpetaNumero.astro';
+import type { EstampillaItem } from '../components/ui/ColeccionEstampillas.astro';
+import { splitNumeroTitle, normalizeTitleText } from '../lib/text';
 
 // "octubre de 2026" -> "oct·26": abreviatura de mes (3 letras) + separador de viñeta +
 // dos últimos dígitos del año. getUTCMonth/getUTCFullYear, no local, por la misma razón
@@ -34,6 +22,35 @@ const numeros = await getCollection('numeros');
 const numerosOrdenados = numeros.sort(
   (a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf()
 );
+
+/**
+ * Las entradas de cada número, agrupadas una sola vez. A diferencia del resto de las
+ * páginas (que resuelven autor/categoría con getEntry por entrada, ver "No joins" en
+ * CLAUDE.md), acá se arman mapas con las tres colecciones completas: esta página las
+ * necesita TODAS, y un getEntry por relación serían cientos de lecturas para el mismo
+ * puñado de autores y categorías.
+ */
+const autores = new Map((await getCollection('autores')).map((a) => [a.id, a.data.nombre]));
+const categorias = new Map(
+  (await getCollection('categorias')).map((c) => [c.id, c.data.nombre])
+);
+
+const entradasPorNumero = new Map<string, EstampillaItem[]>();
+
+for (const entrada of (await getCollection('entradas')).sort(
+  (a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf()
+)) {
+  const grupo = entradasPorNumero.get(entrada.data.numero) ?? [];
+  grupo.push({
+    title: normalizeTitleText(entrada.data.titulo),
+    authorName: autores.get(entrada.data.autor),
+    translatorName: entrada.data.traducidoPor ? autores.get(entrada.data.traducidoPor) : undefined,
+    categoryName: categorias.get(entrada.data.categoria),
+    slug: entrada.id,
+    coverImage: entrada.data.portada,
+  });
+  entradasPorNumero.set(entrada.data.numero, grupo);
+}
 
 /**
  * Chips para filtrar por rango ("1–5", "6–10", ...) en vez de listar los números todos
@@ -90,30 +107,25 @@ const chipClass =
     )
   }
 
-  <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+  {/* Grilla de carpetas verticales. El número abierto no vive acá: es una ventana fija
+      centrada en la pantalla (ver CarpetaNumero.astro), así que la grilla no se
+      recompone al abrir ninguna. */}
+  <div class="grid grid-cols-2 gap-x-8 gap-y-14 md:grid-cols-3 md:gap-x-12 md:gap-y-20 xl:grid-cols-4">
     {
       numerosOrdenados.map((numero) => {
         const { titulo, subtitulo } = splitNumeroTitle(numero.data.titulo);
-        const rangoId = Math.floor((numeroIndice(numero) - 1) / RANGO_SIZE);
+        const indice = numeroIndice(numero);
         return (
-        <a
-          href={`/${numero.id}`}
-          class:list={['group flex h-64 overflow-hidden bg-surface lg:h-72', ticketNotchedEdges]}
-          data-numero-rango={rangoId}
-        >
-          <div class={ticketImageWrap}>
-            {numero.data.portada && <img src={numero.data.portada} alt={titulo} class={ticketImage} />}
-          </div>
-
-          <div class={ticketBody}>
-            <span class={numeroBadge}>{formatoBadgeFecha(numero.data.fecha)}</span>
-            <h2 class={numeroTitle}>{titulo}</h2>
-            {subtitulo && (
-              <p class="font-serif text-sm italic text-ink/70">{subtitulo}</p>
-            )}
-            <span class={ticketCta}>Ver número</span>
-          </div>
-        </a>
+          <CarpetaNumero
+            numero={indice}
+            titulo={titulo}
+            subtitulo={subtitulo}
+            portada={numero.data.portada}
+            href={`/${numero.id}`}
+            fecha={formatoBadgeFecha(numero.data.fecha)}
+            items={entradasPorNumero.get(numero.id) ?? []}
+            rangoId={Math.floor((indice - 1) / RANGO_SIZE)}
+          />
         );
       })
     }
@@ -127,11 +139,13 @@ const chipClass =
 </BaseLayout>
 
 <script>
-  // Filtro por chips: solo esconde/muestra cards ya renderizadas (sin fetch ni
+  // Filtro por chips: solo esconde/muestra carpetas ya renderizadas (sin fetch ni
   // reordenar el DOM), comparando el rango del chip activo contra data-numero-rango de
-  // cada card. Nada de GSAP acá — es un toggle de visibilidad, no una animación.
+  // cada una. Nada de GSAP acá — es un toggle de visibilidad, no una animación.
+  // `hidden` (display:none) le gana al `display: contents` de la carpeta, así que
+  // esconde la tapa y su panel juntos.
   const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('.numeros-chip'));
-  const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-numero-rango]'));
+  const carpetas = Array.from(document.querySelectorAll<HTMLElement>('[data-numero-rango]'));
 
   chips.forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -141,9 +155,9 @@ const chipClass =
         c.dataset.active = String(c === chip);
       });
 
-      cards.forEach((card) => {
-        const coincide = filtro === 'all' || card.dataset.numeroRango === filtro;
-        card.classList.toggle('hidden', !coincide);
+      carpetas.forEach((carpeta) => {
+        const coincide = filtro === 'all' || carpeta.dataset.numeroRango === filtro;
+        carpeta.classList.toggle('hidden', !coincide);
       });
     });
   });

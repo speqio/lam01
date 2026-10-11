@@ -110,16 +110,36 @@ function rutasDePortada(raiz) {
   return [...rutas];
 }
 
+// Proporción de la caja de la estampilla según orientación (ancho / alto).
+const CAJA = { vertical: 3 / 4, horizontal: 4 / 3 };
+
+/**
+ * Ancho máximo al que se puede mostrar la portada sin agrandarla.
+ *
+ * La imagen rellena la caja con `object-cover`, así que manda el lado que se queda corto: si
+ * la foto es relativamente más ancha que la caja, el límite lo pone su alto; si es más
+ * estrecha, su ancho. Sin esto las portadas chicas —hay una de 399x467— se verían borrosas al
+ * estirarse hasta el tope del diseño, que es justo lo que CLAUDE.md pide evitar con las
+ * imágenes pequeñas que sube el editor.
+ */
+function anchoMaximo({ ancho, alto }, orientacion) {
+  const caja = CAJA[orientacion];
+  return Math.floor(ancho / alto > caja ? alto * caja : ancho);
+}
+
 function construirMapa(raiz, log) {
   const mapa = {};
   let horizontales = 0;
   let sinMedir = 0;
   for (const ruta of rutasDePortada(raiz)) {
     let orientacion = 'vertical';
+    // Sin medida fiable no se limita el ancho: manda el tope del diseño.
+    let maxAncho = null;
     try {
       const medida = medirArchivo(path.join(raiz, 'public', ruta));
       if (medida && medida.ancho > 0 && medida.alto > 0) {
         orientacion = medida.ancho > medida.alto ? 'horizontal' : 'vertical';
+        maxAncho = anchoMaximo(medida, orientacion);
       } else {
         sinMedir++;
         log?.warn(`portada sin dimensiones legibles, se asume vertical: ${ruta}`);
@@ -130,7 +150,7 @@ function construirMapa(raiz, log) {
       log?.warn(`no se pudo medir la portada, se asume vertical: ${ruta} (${error.message})`);
     }
     if (orientacion === 'horizontal') horizontales++;
-    mapa[ruta] = orientacion;
+    mapa[ruta] = { orientacion, maxAncho };
   }
   const total = Object.keys(mapa).length;
   log?.info(

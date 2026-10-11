@@ -27,6 +27,8 @@ interface Props {
   portadaAlt?: string;
   portadaLeyenda?: string;
   orientacion: 'vertical' | 'horizontal';
+  /** Ancho máximo al que se puede mostrar sin agrandarla, en px. `null` si no se pudo medir. */
+  maxAncho: number | null;
   titulo: string;
   categoria?: Referencia;
   autor?: Referencia;
@@ -39,6 +41,7 @@ const {
   portadaAlt,
   portadaLeyenda,
   orientacion,
+  maxAncho,
   titulo,
   categoria,
   autor,
@@ -50,9 +53,11 @@ const esHorizontal = orientacion === 'horizontal';
 ---
 
 <section
-  {/* El margen inferior lo pone el `my-12` del artículo en PostLayout.astro; acá solo el
-      superior, para separarlo del header fijo. */}
-  class="not-prose mt-6 flex flex-col items-center gap-8 md:mt-8 md:grid md:grid-cols-[auto_1fr] md:items-center md:gap-10 lg:gap-14"
+  {/* `md:mt-header-clear` (ver tailwind.config.mjs) es el despeje estándar del masthead
+      absoluto, el mismo que usan PageHeader.astro y category/[slug].astro; en móvil no hace
+      falta porque ahí no hay header flotante. El margen inferior lo pone el `my-12` del
+      artículo en PostLayout.astro. */}
+  class="not-prose mt-8 flex flex-col items-center gap-8 md:mt-header-clear md:grid md:grid-cols-[auto_1fr] md:items-center md:gap-10 lg:gap-16"
   data-entrada-banner
   data-orientacion={orientacion}
 >
@@ -60,11 +65,20 @@ const esHorizontal = orientacion === 'horizontal';
       deja columna de texto ancha y una horizontal se la come: el reparto se ajusta solo. */}
   <figure
     class:list={[
-      'entrada-estampilla estampilla-perforada relative m-0 shrink-0 bg-surface p-3 md:p-4',
+      'entrada-estampilla relative m-0 shrink-0',
       esHorizontal ? 'entrada-estampilla--horizontal' : 'entrada-estampilla--vertical',
     ]}
+    style={maxAncho ? `--portada-max: ${maxAncho}px` : undefined}
   >
-    <div class:list={['relative overflow-hidden', esHorizontal ? 'aspect-[4/3]' : 'aspect-[3/4]']}>
+    {/* El perforado va sobre la imagen, no sobre un marco de papel: así el mockup actúa como
+        máscara de recorte y la foto ocupa todo el espacio de la estampilla. Los dientes dejan
+        ver el fondo de la página, como los agujeros de una estampilla de verdad. */}
+    <div
+      class:list={[
+        'estampilla-perforada relative overflow-hidden bg-surface',
+        esHorizontal ? 'aspect-[4/3]' : 'aspect-[3/4]',
+      ]}
+    >
       <img
         src={portada}
         alt={portadaAlt || titulo}
@@ -72,12 +86,12 @@ const esHorizontal = orientacion === 'horizontal';
         decoding="async"
         class="h-full w-full object-cover"
       />
-      {/* Misma viñeta interior que EstampillaFace.astro, para que la foto no quede plana
-          contra el papel. */}
+      {/* Misma viñeta interior que EstampillaFace.astro, para que la foto no quede plana. */}
       <span class="entrada-estampilla-vineta pointer-events-none absolute inset-0"></span>
     </div>
     {
       portadaLeyenda && (
+        // Fuera del elemento enmascarado: dentro, el perforado también agujerearía el texto.
         <figcaption class="entrada-estampilla-leyenda mt-3 font-mono text-[11px] leading-snug text-ink-muted">
           {portadaLeyenda}
         </figcaption>
@@ -122,33 +136,35 @@ const esHorizontal = orientacion === 'horizontal';
 </section>
 
 <style>
-  /* Topes de ancho: nunca agrandar la portada (la más pequeña del sitio mide 464px de ancho).
-     La horizontal admite más ancho porque su alto es menor con la misma superficie. */
+  /* Dos topes a la vez: el del diseño por punto de quiebre y el de la propia imagen
+     (`--portada-max`, que calcula integrations/portadas.mjs). Gana el menor, así que una
+     portada grande llena el banner y una chica —hay una de 399x467— se queda a su tamaño en
+     vez de salir borrosa. Sin medida, `--portada-max` no se emite y manda el del diseño. */
   .entrada-estampilla--vertical {
-    width: min(72vw, 300px);
+    width: min(78vw, 420px, var(--portada-max, 100vw));
   }
 
   .entrada-estampilla--horizontal {
-    width: min(88vw, 420px);
+    width: min(92vw, 520px, var(--portada-max, 100vw));
   }
 
   @media (min-width: 768px) {
     .entrada-estampilla--vertical {
-      width: 340px;
+      width: min(460px, var(--portada-max, 100vw));
     }
 
     .entrada-estampilla--horizontal {
-      width: 460px;
+      width: min(600px, var(--portada-max, 100vw));
     }
   }
 
   @media (min-width: 1024px) {
     .entrada-estampilla--vertical {
-      width: 400px;
+      width: min(520px, var(--portada-max, 100vw));
     }
 
     .entrada-estampilla--horizontal {
-      width: 520px;
+      width: min(680px, var(--portada-max, 100vw));
     }
   }
 

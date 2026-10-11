@@ -5,7 +5,7 @@ import EntradaGaleria from '../components/EntradaGaleria.astro';
 import EntradaImagen from '../components/EntradaImagen.astro';
 import EntradaBanner from '../components/EntradaBanner.astro';
 import { normalizeTitleText } from '../lib/text';
-import { orientacionPortada } from '../lib/portada';
+import { datosPortada } from '../lib/portada';
 
 const { entrada } = Astro.props;
 const { Content } = await render(entrada);
@@ -37,7 +37,7 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
 // información (categoría, título, autor, fecha, traducción), así que mantener las dos la
 // duplicaría. Sin portada —hoy 309 de 324 entradas— la cabecera queda intacta.
 const portada = entrada.data.portada;
-const orientacion = orientacionPortada(portada);
+const { orientacion, maxAncho } = datosPortada(portada);
 ---
 
 <PostLayout
@@ -52,6 +52,7 @@ const orientacion = orientacionPortada(portada);
         portadaAlt={entrada.data.portadaAlt}
         portadaLeyenda={entrada.data.portadaLeyenda}
         orientacion={orientacion}
+        maxAncho={maxAncho}
         titulo={tituloEntrada}
         categoria={categoria ? { id: categoria.id, nombre: categoria.data.nombre } : undefined}
         autor={autor ? { id: autor.id, nombre: autor.data.nombre } : undefined}

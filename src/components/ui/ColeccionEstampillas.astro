@@ -67,30 +67,13 @@ interface Props {
   items: EstampillaItem[];
   /** Columnas de la pila en desktop. 4 llena el ancho con 16 estampillas (4×4). */
   columnas?: number;
-  /**
-   * Rellena con portadas de números las entradas que todavía no tienen `portada`.
-   * Andamio temporal, opt-in: en un listado real mostrar la tapa de otro número como si
-   * fuera la de la entrada sería mentir, así que por defecto está apagado.
-   */
-  portadasDePrueba?: boolean;
 }
 
-const { items, columnas = 4, portadasDePrueba = false } = Astro.props;
+const { items, columnas = 4 } = Astro.props;
 
-/* ANDAMIO TEMPORAL — SACAR CUANDO LAS ENTRADAS TENGAN PORTADA. Hoy casi ninguna la
-   tiene, y una estampilla sin imagen no es nada: el frente es solo la foto. */
-const IMAGENES_PRUEBA = [
-  '/images/numeros/numero-26/numero-26-portada.JPG',
-  '/images/numeros/numero-19/numero-19-portada.jpg',
-  '/images/numeros/numero-22/numero-22-portada.jpg',
-  '/images/numeros/numero-14/numero-14-portada.jpg',
-  '/images/numeros/numero-11/numero-11-portada.jpg',
-  '/images/numeros/numero-17/numero-17-portada.jpg',
-];
-
-const portadaDe = (item: EstampillaItem, i: number) =>
-  item.coverImage ?? (portadasDePrueba ? IMAGENES_PRUEBA[i % IMAGENES_PRUEBA.length] : undefined);
-
+/* Una entrada sin `portada` muestra la estampilla vacía, con su título como única
+   marca. Es a propósito: rellenar con la tapa de un número sería mostrar una imagen que
+   no es de esa entrada. Se va arreglando sola a medida que se cargan las portadas. */
 ---
 
 <div class="coleccion" data-coleccion style={`--columnas: ${columnas};`}>
@@ -108,13 +91,15 @@ const portadaDe = (item: EstampillaItem, i: number) =>
           <div class="estampilla" data-estampilla data-indice={i}>
             <div class="estampilla-flip" data-flip>
               <div class="estampilla-cara estampilla-frente estampilla-perforada">
-                {portadaDe(item, i) && (
+                {item.coverImage ? (
                   <img
-                    src={portadaDe(item, i)}
+                    src={item.coverImage}
                     alt={item.coverAlt ?? ''}
                     draggable="false"
                     loading="lazy"
                   />
+                ) : (
+                  <span class="estampilla-sin-portada">{item.title}</span>
                 )}
                 {/* Viñeta interior, igual que en el mockup del hero y en el banner de la
                     entrada; en los dos la pone una regla propia de su archivo (Astro
@@ -148,9 +133,9 @@ const portadaDe = (item: EstampillaItem, i: number) =>
                       )}
                       <h3 class="reverso-titulo">{item.title}</h3>
                     </div>
-                    {portadaDe(item, i) && (
+                    {item.coverImage && (
                       <div class="reverso-miniatura estampilla-perforada" aria-hidden="true">
-                        <img src={portadaDe(item, i)} alt="" loading="lazy" />
+                        <img src={item.coverImage} alt="" loading="lazy" />
                       </div>
                     )}
                   </div>
@@ -306,6 +291,20 @@ const portadaDe = (item: EstampillaItem, i: number) =>
     object-fit: cover;
     pointer-events: none;
     user-select: none;
+  }
+  /* Estampilla sin portada: el título, chico y centrado, para que no quede un
+     rectángulo mudo mientras se cargan las imágenes. */
+  .estampilla-sin-portada {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.78rem;
+    line-height: 1.3;
+    color: rgb(var(--color-ink-muted));
   }
   .estampilla-vineta {
     position: absolute;

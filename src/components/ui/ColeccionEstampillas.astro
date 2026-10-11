@@ -218,32 +218,20 @@ const { items, columnas = 4 } = Astro.props;
   }
 
   .estampilla-hueco {
-    /* `position` + `z-index` para que la levantada pase por delante de sus vecinas. */
+    /* El hueco queda SIEMPRE en el layout, también mientras su estampilla está en el
+       foco: es el que reserva el lugar al que vuelve, y sin él la hoja se recompaginaría
+       al sacar una y el regreso aterrizaría en cualquier parte. */
     position: relative;
-    z-index: 0;
     width: var(--est-w);
     height: var(--est-h);
     flex: 0 0 auto;
     scroll-snap-align: center;
-    transition: transform 0.35s ease;
   }
 
-  /* Levantarse del conjunto: el paso previo a retirarse. La estampilla se endereza, sube
-     y pasa por encima de todas. Va en CSS y no en GSAP a propósito — es un hover, no un
-     gesto, y así funciona también antes de que hidrate nada. */
-  .estampilla-hueco:hover,
-  .estampilla-hueco:focus-within {
-    /* Apenas un despegue: con las estampillas pegadas, un gesto grande tapaba a las
-       vecinas y rompía la hoja. Por encima de ellas igual, porque se sale de su casilla. */
-    z-index: 50;
-    transform: translateY(-4px) scale(1.02);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .estampilla-hueco {
-      transition: none;
-    }
-  }
+  /* Sin efecto de hover a propósito: las estampillas de la hoja no se mueven ni crecen
+     al pasar por encima. Lo único que sale del conjunto es la que se elige, y sale del
+     todo (ver el foco más abajo); un hover que además las levantaba competía con eso y
+     deshacía la lectura de hoja continua. */
 
   .estampilla {
     position: relative;
@@ -486,11 +474,8 @@ const { items, columnas = 4 } = Astro.props;
     let origen: {
       padre: HTMLElement;
       siguiente: Node | null;
-      dx: number;
-      dy: number;
       w: number;
       h: number;
-      scroll: number;
     } | null = null;
 
     function abrir(est: HTMLElement) {
@@ -498,8 +483,8 @@ const { items, columnas = 4 } = Astro.props;
       abierta = est;
 
       const antes = est.getBoundingClientRect();
-      // offsetWidth/Height y no el rect: el rect puede venir escalado por el hover o
-      // girado por el conjunto, y no sirve para volver al tamaño de reposo.
+      // offsetWidth/Height y no el rect: son las medidas de layout, las únicas que
+      // sirven para volver al tamaño de reposo si algo la estuviera transformando.
       const w = est.offsetWidth;
       const h = est.offsetHeight;
       const padre = est.parentElement as HTMLElement;
@@ -508,20 +493,19 @@ const { items, columnas = 4 } = Astro.props;
       est.dataset.abierta = 'true';
       est.querySelector('.estampilla-reverso')?.removeAttribute('aria-hidden');
       escenario.appendChild(est);
-      gsap.set(est, { clearProps: 'transform,width,height' });
+      origen = { padre, siguiente, w, h };
 
+      /* El orden importa: primero se le fija el TAMAÑO DE REPOSO y recién después se
+         mide dónde cayó. Dentro del hueco la estampilla mide 100%×100% de su padre, y
+         el padre nuevo es el escenario, que ocupa la ventana entera: midiéndola antes de
+         fijarle el tamaño, el rect era el de toda la pantalla y el FLIP la hacía salir
+         de una esquina en vez de su sitio en la hoja. */
+      gsap.set(est, { clearProps: 'transform' });
+      gsap.set(est, { width: w, height: h, x: 0, y: 0 });
+
+      // FLIP de ida: arranca dibujada donde estaba en la hoja y se anima hasta el centro.
       const despues = est.getBoundingClientRect();
-      origen = {
-        padre,
-        siguiente,
-        dx: antes.left - despues.left,
-        dy: antes.top - despues.top,
-        w,
-        h,
-        scroll: window.scrollY,
-      };
-
-      gsap.set(est, { x: origen.dx, y: origen.dy, width: w, height: h });
+      gsap.set(est, { x: antes.left - despues.left, y: antes.top - despues.top });
       gsap.to(est, {
         x: 0,
         y: 0,
@@ -543,13 +527,21 @@ const { items, columnas = 4 } = Astro.props;
       if (!est || !origen || !telon || !escenario) return;
       abierta = null;
 
-      // El hueco se movió con el scroll mientras el escenario estaba fijo.
-      const dy = origen.dy - (window.scrollY - origen.scroll);
       const volver = origen;
       origen = null;
 
+      /* A dónde vuelve se MIDE AHORA, no se reusa la diferencia que se guardó al abrir:
+         entre una cosa y la otra la página pudo scrollear, cambiar de ancho o recompaginar,
+         y con el dato viejo la estampilla aterrizaba al lado de su hueco. El destino es el
+         hueco mismo, que sigue en la hoja; el punto de partida es dónde queda una caja de
+         w×h centrada en el escenario, que es exactamente donde el tween la deja al final. */
+      const hueco = volver.padre.getBoundingClientRect();
+      const centro = escenario.getBoundingClientRect();
+      const dx = hueco.left - (centro.left + (centro.width - volver.w) / 2);
+      const dy = hueco.top - (centro.top + (centro.height - volver.h) / 2);
+
       gsap.to(est, {
-        x: volver.dx,
+        x: dx,
         y: dy,
         width: volver.w,
         height: volver.h,

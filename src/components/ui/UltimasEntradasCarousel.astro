@@ -3,6 +3,12 @@ import EntradaTicket, { type EntradaTicketItem } from './EntradaTicket.astro';
 import { dialWrap, dialCount, dialTrack, dialThumb } from '../../lib/dialNav';
 
 /**
+ * FUERA DE USO desde la colección de estampillas (ColeccionEstampillas.astro), que
+ * reemplazó a esta sección en los dos breakpoints. El archivo se conserva a propósito,
+ * sin importarse desde ninguna página: volver atrás es volver a importarlo en
+ * index.astro. Nada de lo de abajo cambió al guardarlo.
+ */
+/**
  * "Últimas entradas" en mobile: carrusel horizontal con scroll-snap NATIVO del
  * navegador, mismo criterio que ya se probó y quedó en NumeroSequence.astro (ver ese
  * archivo) tras descartar tres carruseles drag/arco custom por bugs de física de

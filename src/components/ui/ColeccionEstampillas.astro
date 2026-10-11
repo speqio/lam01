@@ -1,0 +1,620 @@
+---
+/**
+ * COLECCIÓN DE ESTAMPILLAS — conjunto agrupado e interactivo, pensado para reutilizarse
+ * en cualquier listado de entradas (home, archivo, categoría, autor, número). Recibe
+ * items y nada más: no sabe de dónde salen ni qué página lo muestra. Los items usan la
+ * misma forma que EntradaTicket.astro (`EntradaTicketItem`), que es la que ya arman
+ * index.astro, archivo.astro y category/[slug].astro.
+ *
+ * Adaptado de philately-gallery.framer.website. Lo que se toma de ahí es el CONJUNTO:
+ * las estampillas van pegadas unas a otras, como una plancha de sellos sin cortar, y de
+ * ese conjunto **se retira una** al elegirla. Reemplaza al anillo 3D que esta sección tuvo antes (queda en el historial de
+ * git, en UltimasEntradasEstampillas.astro): un cilindro giratorio no es un conjunto, y
+ * en mobile obligaba a capturar un gesto.
+ *
+ * DOS DISPOSICIONES DEL MISMO CONJUNTO, LAS DOS EN CSS PURO:
+ * - Pantallas chicas: tira horizontal con scroll-snap NATIVO. Cero captura de gestos:
+ *   estructuralmente no puede atrapar el scroll de la página — la regla de "Mobile vs.
+ *   desktop" de CLAUDE.md, y el mismo criterio de la tira de NumeroSequence.astro y
+ *   EntradaGaleria.astro.
+ * - Desktop: bloque en grilla de N columnas.
+ *
+ * LAS ESTAMPILLAS NO SE SUPERPONEN NI SE INCLINAN NI SE SEPARAN: van pegadas borde con
+ * borde, como una hoja única pre-picada de la que cada una se puede arrancar. El dentado
+ * de dos vecinas que se tocan forma una sola línea de agujeros entre ambas, que es
+ * justamente la costura por la que se separarían. Antes se probó montarlas unas sobre
+ * otras con un giro leve (se leía como un montón desordenado) y después con un canal de
+ * aire entre ellas (volvían a parecer cards sueltas).
+ * Sin JS el conjunto se ve igual y cada estampilla es un link a su entrada; el JS solo
+ * agrega el retiro al foco. Es el mismo criterio que .entry-card-reveal: el suelo es lo
+ * que se sirve.
+ *
+ * RETIRARSE DEL CONJUNTO (`crearFoco`): al elegirla, la estampilla se MUDA a un
+ * escenario fijo centrado en la ventana, crece a las medidas de la ficha y se da vuelta,
+ * mientras el resto queda detrás de un telón borroso. Mudarla de verdad en el DOM no es
+ * capricho: dentro de un ancestro con transform, `fixed` se resuelve contra ese ancestro
+ * y no contra la ventana. El salto se disimula con un FLIP (se mide dónde estaba, se la
+ * sienta en el escenario con esa diferencia y se anima hasta cero).
+ *
+ * EL DENTADO VA EN LOS CUATRO LADOS Y NO HAY AGUJEROS ADENTRO: la máscara es
+ * `.estampilla-perforada` (global.css, la misma del banner de la entrada), cuatro capas
+ * de círculos repetidos —una por borde— combinadas con `mask-composite: intersect`. No
+ * es la de EstampillaFace.astro (el mockup del hero), que tesela agujeros por toda la
+ * superficie. Y va en la CARA, no en una lámina interior: puesta adentro, el papel de la
+ * cara quedaba sin recortar y asomaba alrededor de la foto como un marco mal cortado.
+ *
+ * PROPORCIÓN ACOSTADA (300/460, el mockup del hero al revés), y la ficha abierta con la
+ * misma relación para que abrirse solo agrande y nunca deforme. El reverso crece
+ * animando width/height y no `scale`: con `scale` el texto se rasteriza agrandado y
+ * llega blando.
+ *
+ * VARIAS COLECCIONES EN UNA MISMA PÁGINA funcionan: el script recorre todas las raíces y
+ * cada una tiene su propio telón, su escenario y su foco.
+ */
+export interface EstampillaItem {
+  title: string;
+  authorName?: string;
+  /** Nombre de quien tradujo la entrada, si corresponde. */
+  translatorName?: string;
+  categoryName?: string;
+  /** Slug de la entrada; el link es `/{slug}`. */
+  slug: string;
+  coverImage?: string;
+  coverAlt?: string;
+}
+
+interface Props {
+  items: EstampillaItem[];
+  /** Columnas de la pila en desktop. 4 llena el ancho con 16 estampillas (4×4). */
+  columnas?: number;
+  /**
+   * Rellena con portadas de números las entradas que todavía no tienen `portada`.
+   * Andamio temporal, opt-in: en un listado real mostrar la tapa de otro número como si
+   * fuera la de la entrada sería mentir, así que por defecto está apagado.
+   */
+  portadasDePrueba?: boolean;
+}
+
+const { items, columnas = 4, portadasDePrueba = false } = Astro.props;
+
+/* ANDAMIO TEMPORAL — SACAR CUANDO LAS ENTRADAS TENGAN PORTADA. Hoy casi ninguna la
+   tiene, y una estampilla sin imagen no es nada: el frente es solo la foto. */
+const IMAGENES_PRUEBA = [
+  '/images/numeros/numero-26/numero-26-portada.JPG',
+  '/images/numeros/numero-19/numero-19-portada.jpg',
+  '/images/numeros/numero-22/numero-22-portada.jpg',
+  '/images/numeros/numero-14/numero-14-portada.jpg',
+  '/images/numeros/numero-11/numero-11-portada.jpg',
+  '/images/numeros/numero-17/numero-17-portada.jpg',
+];
+
+const portadaDe = (item: EstampillaItem, i: number) =>
+  item.coverImage ?? (portadasDePrueba ? IMAGENES_PRUEBA[i % IMAGENES_PRUEBA.length] : undefined);
+
+---
+
+<div class="coleccion" data-coleccion style={`--columnas: ${columnas};`}>
+  {/* Sonda de medida: lleva las dimensiones de la ficha abierta en CSS para que el
+      script las lea ya resueltas en píxeles. getComputedStyle devuelve una custom
+      property tal como se escribió ("calc(var(--card-w) * 300 / 460)"), sin resolver, y
+      GSAP no puede animar hacia eso; además así siguen valiendo las unidades relativas
+      (vw) y el breakpoint vigente, sin repetir ninguna medida en el JS. */}
+  <span class="coleccion-medida" data-medida aria-hidden="true"></span>
+
+  <div class="coleccion-pliego" data-pliego>
+    {
+      items.map((item, i) => (
+        <div class="estampilla-hueco">
+          <div class="estampilla" data-estampilla data-indice={i}>
+            <div class="estampilla-flip" data-flip>
+              <div class="estampilla-cara estampilla-frente estampilla-perforada">
+                {portadaDe(item, i) && (
+                  <img
+                    src={portadaDe(item, i)}
+                    alt={item.coverAlt ?? ''}
+                    draggable="false"
+                    loading="lazy"
+                  />
+                )}
+                {/* Viñeta interior, igual que en el mockup del hero y en el banner de la
+                    entrada; en los dos la pone una regla propia de su archivo (Astro
+                    scopea el <style>), así que acá se repite el mismo valor. */}
+                <span class="estampilla-vineta"></span>
+                {/* El link real: es lo que hace útil el conjunto sin JS, y con JS el
+                    script le hace preventDefault para retirarla en vez de navegar. */}
+                <a class="estampilla-enlace" href={`/${item.slug}`} data-abrir>
+                  <span class="sr-only">{item.title}</span>
+                </a>
+              </div>
+
+              <div class="estampilla-cara estampilla-reverso" aria-hidden="true">
+                {/* El perforado del reverso va en esta lámina de papel y no en la cara
+                    entera: aplicado sobre el texto, la máscara le abre agujeros. */}
+                <span class="estampilla-papel estampilla-perforada"></span>
+                <div class="reverso-contenido">
+                  {/* El ✕ vive en el margen superior que deja el contenido, fuera de las
+                      dos filas, para no desalinear ni el título ni la miniatura. */}
+                  <button class="reverso-volver" type="button" data-volver>
+                    <span class="sr-only">Volver a la colección</span>
+                    <span aria-hidden="true">✕</span>
+                  </button>
+
+                  {/* Arriba, a la misma línea: categoría + título a la izquierda, la
+                      miniatura a la derecha. */}
+                  <div class="reverso-encabezado">
+                    <div class="reverso-texto">
+                      {item.categoryName && (
+                        <span class="reverso-categoria">{item.categoryName}</span>
+                      )}
+                      <h3 class="reverso-titulo">{item.title}</h3>
+                    </div>
+                    {portadaDe(item, i) && (
+                      <div class="reverso-miniatura estampilla-perforada" aria-hidden="true">
+                        <img src={portadaDe(item, i)} alt="" loading="lazy" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Abajo, a la misma línea: la autoría a la izquierda, el botón a la
+                      derecha. */}
+                  <div class="reverso-pie">
+                    <div class="reverso-meta">
+                      {item.authorName && <p class="reverso-autor">Por {item.authorName}</p>}
+                      {item.translatorName && (
+                        <p class="reverso-autor">Traducción de {item.translatorName}</p>
+                      )}
+                    </div>
+                    <a class="card-badge reverso-comenzar" href={`/${item.slug}`}>
+                      Entrar al texto
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))
+    }
+  </div>
+
+  {/* Telón y escenario del foco: cuelgan de la raíz, que no tiene transform propio —
+      dentro del pliego, un `fixed` se resolvería contra el ancestro transformado. */}
+  <div class="coleccion-telon" data-telon aria-hidden="true"></div>
+  <div class="coleccion-escenario" data-escenario></div>
+</div>
+
+<style>
+  .coleccion {
+    --est-w: 240px;
+    /* Las proporciones del mockup del hero, ACOSTADAS. */
+    --est-h: calc(var(--est-w) * 300 / 460);
+    --card-w: min(88vw, 380px);
+    /* MISMA PROPORCIÓN QUE LA ESTAMPILLA: la apertura solo agranda, no deforma. */
+    --card-h: calc(var(--card-w) * 300 / 460);
+    /* Cero: las estampillas se tocan. Queda acá como variable porque es la medida que
+       habría que mover si alguna vez se quiere separar la hoja. */
+    --aire: 0px;
+  }
+
+  @media (min-width: 768px) {
+    .coleccion {
+      --est-w: 230px;
+      --card-w: 460px;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .coleccion {
+      --est-w: 290px;
+      --card-w: 540px;
+    }
+  }
+
+  .coleccion-medida {
+    position: absolute;
+    width: var(--card-w);
+    height: var(--card-h);
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* TIRA (pantallas chicas): scroll-snap nativo, la misma hoja en una sola fila
+     continua. */
+  .coleccion-pliego {
+    display: flex;
+    gap: var(--aire);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 1.5rem 1rem 2rem;
+    scrollbar-width: none;
+  }
+  .coleccion-pliego::-webkit-scrollbar {
+    display: none;
+  }
+
+  .estampilla-hueco {
+    /* `position` + `z-index` para que la levantada pase por delante de sus vecinas. */
+    position: relative;
+    z-index: 0;
+    width: var(--est-w);
+    height: var(--est-h);
+    flex: 0 0 auto;
+    scroll-snap-align: center;
+    transition: transform 0.35s ease;
+  }
+
+  /* Levantarse del conjunto: el paso previo a retirarse. La estampilla se endereza, sube
+     y pasa por encima de todas. Va en CSS y no en GSAP a propósito — es un hover, no un
+     gesto, y así funciona también antes de que hidrate nada. */
+  .estampilla-hueco:hover,
+  .estampilla-hueco:focus-within {
+    /* Apenas un despegue: con las estampillas pegadas, un gesto grande tapaba a las
+       vecinas y rompía la hoja. Por encima de ellas igual, porque se sale de su casilla. */
+    z-index: 50;
+    transform: translateY(-4px) scale(1.02);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .estampilla-hueco {
+      transition: none;
+    }
+  }
+
+  .estampilla {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+  }
+
+  /* HOJA (desktop): la misma colección en grilla, borde con borde igual que en la
+     tira. */
+  @media (min-width: 768px) {
+    .coleccion-pliego {
+      display: grid;
+      grid-template-columns: repeat(var(--columnas), var(--est-w));
+      gap: var(--aire);
+      justify-content: center;
+      overflow: visible;
+      /* Solo el aire que necesita una estampilla al levantarse en el borde. */
+      padding: 1.5rem 0 2rem;
+    }
+  }
+
+  .estampilla-flip {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+  }
+
+  .estampilla-cara {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+  }
+
+  /* Sin fondo propio: el dentado recorta la cara entera, así que no hay papel que pueda
+     asomar por fuera de la foto. */
+  .estampilla-frente {
+    overflow: hidden;
+    background-color: rgb(var(--color-surface));
+  }
+  .estampilla-frente img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+  }
+  .estampilla-vineta {
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+  .estampilla-enlace {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* El reverso queda inerte y oculto salvo cuando esta estampilla está en el foco: en el
+     conjunto nadie debería poder clickear su botón a través de la cara de adelante. */
+  .estampilla-reverso {
+    transform: rotateY(180deg);
+    pointer-events: none;
+    opacity: 0;
+  }
+  .estampilla[data-abierta] .estampilla-reverso {
+    pointer-events: auto;
+    opacity: 1;
+  }
+  .estampilla[data-abierta] .estampilla-enlace {
+    pointer-events: none;
+  }
+
+  .estampilla-papel {
+    position: absolute;
+    inset: 0;
+    background-color: rgb(var(--color-surface));
+  }
+
+  .reverso-contenido {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    /* Dos filas pegadas a los extremos: lo de arriba alineado entre sí, lo de abajo
+       también, y el aire sobrante en el medio. */
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 2.6rem 1.4rem 1.4rem;
+  }
+
+  .reverso-encabezado {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .reverso-volver {
+    position: absolute;
+    top: 0.7rem;
+    left: 0.9rem;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.8rem;
+    line-height: 1;
+    color: rgb(var(--color-ink-muted));
+    transition: color 0.2s;
+  }
+  .reverso-volver:hover {
+    color: rgb(var(--color-ink));
+  }
+
+  .reverso-texto {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .reverso-meta {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .reverso-categoria {
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--color-accent));
+  }
+  .reverso-titulo {
+    font-size: 1.6rem;
+    line-height: 1.15;
+    color: rgb(var(--color-ink));
+  }
+  .reverso-autor {
+    font-size: 0.95rem;
+    line-height: 1.3;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .reverso-pie {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .reverso-miniatura {
+    width: 6.8rem;
+    /* Igual que la estampilla grande, también en chico. */
+    height: calc(6.8rem * 300 / 460);
+    overflow: hidden;
+    flex: 0 0 auto;
+    background-color: rgb(var(--color-canvas));
+    /* Dientes más chicos: a esta escala los de la cara grande se comerían la foto. */
+    --diente-r: 3px;
+    --diente-paso: 9px;
+  }
+  .reverso-miniatura img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .reverso-comenzar {
+    /* Redondeado solo acá: `card-badge` es compartida con las cards del sitio (ver
+       cardStyles.ts) y ahí el badge va con esquinas rectas. */
+    border-radius: 999px;
+    padding: 0.6rem 1.3rem;
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  /* FOCO: la estampilla retirada del conjunto, centrada en la ventana, con el resto de
+     la página detrás de un telón borroso. */
+  .coleccion-telon,
+  .coleccion-escenario {
+    position: fixed;
+    inset: 0;
+    visibility: hidden;
+    opacity: 0;
+  }
+  .coleccion-telon {
+    z-index: 60;
+    background-color: rgb(var(--color-canvas) / 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .coleccion-escenario {
+    z-index: 61;
+    display: grid;
+    place-items: center;
+    /* El escenario no intercepta clicks: el telón de abajo es el que cierra. */
+    pointer-events: none;
+    perspective: 1600px;
+  }
+  /* Mientras está en el escenario, la estampilla deja de ser una pieza del conjunto: ni
+     rotada ni montada sobre sus vecinas. */
+  .coleccion-escenario .estampilla {
+    pointer-events: auto;
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap';
+
+  /* RETIRO AL FOCO. La estampilla se MUDA al escenario (contenedor fijo, centrado en la
+     ventana) y vuelve a su hueco al cerrar. Mudarla es necesario, no un capricho: dentro
+     del pliego su ancestro puede tener transform, y ahí `position: fixed` se resuelve
+     contra ese ancestro en vez de contra la ventana. El salto se disimula con un FLIP:
+     se mide dónde estaba, se la sienta en el escenario con esa diferencia aplicada y se
+     anima hasta cero. */
+  function crearFoco(raiz: HTMLElement) {
+    const telon = raiz.querySelector<HTMLElement>('[data-telon]');
+    const escenario = raiz.querySelector<HTMLElement>('[data-escenario]');
+    const medida = raiz.querySelector<HTMLElement>('[data-medida]');
+    const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const dur = reducido ? 0 : 0.6;
+
+    let abierta: HTMLElement | null = null;
+    let origen: {
+      padre: HTMLElement;
+      siguiente: Node | null;
+      dx: number;
+      dy: number;
+      w: number;
+      h: number;
+      scroll: number;
+    } | null = null;
+
+    function abrir(est: HTMLElement) {
+      if (abierta || !telon || !escenario) return;
+      abierta = est;
+
+      const antes = est.getBoundingClientRect();
+      // offsetWidth/Height y no el rect: el rect puede venir escalado por el hover o
+      // girado por el conjunto, y no sirve para volver al tamaño de reposo.
+      const w = est.offsetWidth;
+      const h = est.offsetHeight;
+      const padre = est.parentElement as HTMLElement;
+      const siguiente = est.nextSibling;
+
+      est.dataset.abierta = 'true';
+      est.querySelector('.estampilla-reverso')?.removeAttribute('aria-hidden');
+      escenario.appendChild(est);
+      gsap.set(est, { clearProps: 'transform,width,height' });
+
+      const despues = est.getBoundingClientRect();
+      origen = {
+        padre,
+        siguiente,
+        dx: antes.left - despues.left,
+        dy: antes.top - despues.top,
+        w,
+        h,
+        scroll: window.scrollY,
+      };
+
+      gsap.set(est, { x: origen.dx, y: origen.dy, width: w, height: h });
+      gsap.to(est, {
+        x: 0,
+        y: 0,
+        width: medida?.offsetWidth ?? w,
+        height: medida?.offsetHeight ?? h,
+        duration: dur,
+        ease: 'power2.inOut',
+      });
+      gsap.to(est.querySelector('[data-flip]'), {
+        rotationY: 180,
+        duration: dur,
+        ease: 'power2.inOut',
+      });
+      gsap.to([telon, escenario], { autoAlpha: 1, duration: dur * 0.6, ease: 'power2.out' });
+    }
+
+    function cerrar() {
+      const est = abierta;
+      if (!est || !origen || !telon || !escenario) return;
+      abierta = null;
+
+      // El hueco se movió con el scroll mientras el escenario estaba fijo.
+      const dy = origen.dy - (window.scrollY - origen.scroll);
+      const volver = origen;
+      origen = null;
+
+      gsap.to(est, {
+        x: volver.dx,
+        y: dy,
+        width: volver.w,
+        height: volver.h,
+        duration: dur,
+        ease: 'power2.inOut',
+        onComplete: () => {
+          volver.padre.insertBefore(est, volver.siguiente);
+          // Sin esto la estampilla queda con medidas y transform en píxeles y deja de
+          // seguir a --est-w y al giro del conjunto.
+          gsap.set(est, { clearProps: 'transform,width,height,x,y' });
+          delete est.dataset.abierta;
+          est.querySelector('.estampilla-reverso')?.setAttribute('aria-hidden', 'true');
+        },
+      });
+      gsap.to(est.querySelector('[data-flip]'), {
+        rotationY: 0,
+        duration: dur,
+        ease: 'power2.inOut',
+      });
+      gsap.to([telon, escenario], {
+        autoAlpha: 0,
+        duration: dur * 0.6,
+        delay: dur * 0.4,
+        ease: 'power2.in',
+      });
+    }
+
+    // Salidas: el telón, el ✕ de cada reverso y Escape.
+    telon?.addEventListener('click', cerrar);
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') cerrar();
+    });
+
+    return { abrir, cerrar };
+  }
+
+  function initColeccion(raiz: HTMLElement) {
+    const foco = crearFoco(raiz);
+    for (const est of Array.from(raiz.querySelectorAll<HTMLElement>('[data-estampilla]'))) {
+      est.querySelector<HTMLAnchorElement>('[data-abrir]')?.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        foco.abrir(est);
+      });
+      est.querySelector<HTMLButtonElement>('[data-volver]')?.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        foco.cerrar();
+      });
+    }
+  }
+
+  if (document.documentElement.classList.contains('js')) {
+    // Una por raíz: puede haber varias colecciones en la misma página.
+    for (const raiz of Array.from(document.querySelectorAll<HTMLElement>('[data-coleccion]'))) {
+      // Nada de trabajo de arranque hasta que el conjunto esté por entrar en pantalla,
+      // como el resto de los componentes pesados del sitio.
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (!entries[0].isIntersecting) return;
+          io.disconnect();
+          initColeccion(raiz);
+        },
+        { rootMargin: '200px' }
+      );
+      io.observe(raiz);
+    }
+  }
+</script>

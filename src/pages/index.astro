@@ -2,8 +2,7 @@
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { normalizeTitleText } from '../lib/text';
-import UltimasEntradasCarousel from '../components/ui/UltimasEntradasCarousel.astro';
-import UltimasEntradasGaleria from '../components/ui/UltimasEntradasGaleria.astro';
+import ColeccionEstampillas from '../components/ui/ColeccionEstampillas.astro';
 import HeroAnagram from '../components/HeroAnagram.astro';
 import ArchivoExplorer from '../components/ArchivoExplorer.astro';
 import HoverRevealHero from '../components/HoverRevealHero.astro';
@@ -32,7 +31,9 @@ todasConRelaciones.sort(
   (a, b) => b.entrada.data.fecha.valueOf() - a.entrada.data.fecha.valueOf()
 );
 
-const ultimasEntradas = todasConRelaciones.slice(0, 6);
+// 16: las que llenan la grilla de 4×4 del componente en desktop. En pantallas chicas
+// son las mismas 16, dadas vuelta en el anillo.
+const ultimasEntradas = todasConRelaciones.slice(0, 16);
 
 const ultimasEntradasItems = ultimasEntradas.map(({ entrada, autor, categoria, traductor }) => ({
   title: normalizeTitleText(entrada.data.titulo),
@@ -78,38 +79,28 @@ const CATEGORIA_IMAGENES: Record<string, string> = {
   {
     ultimasEntradasItems.length > 0 && (
       <section class="mb-16 md:mb-32 md:mt-24 md:flex md:min-h-[85vh] md:flex-col md:justify-center lg:mb-40 lg:mt-32">
-        <div class="flex items-center justify-between gap-4 md:hidden">
-          <h2 class="font-headline text-2xl lg:text-3xl">Últimas entradas</h2>
+        <div class="mb-6 flex items-end justify-between gap-4 md:mb-10">
+          <div>
+            <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+              Recién publicado
+            </span>
+            <h2 class="font-headline text-2xl leading-none tracking-tight text-ink md:text-4xl lg:text-6xl">
+              Últimas entradas
+            </h2>
+          </div>
           <a
             href="/archivo"
-            class="shrink-0 rounded-full border border-ink/30 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-ink hover:text-canvas"
+            class="shrink-0 rounded-full border border-ink/30 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-ink hover:text-canvas md:px-5 md:py-2.5 md:text-xs"
           >
             Todas las entradas
           </a>
         </div>
 
-        {/* Mobile: carrusel tipo boleto con scroll-snap nativo. Desktop: galería en
-            grid, mismas entradas, sin mecanismo de scroll/drag propio. */}
-        <UltimasEntradasCarousel items={ultimasEntradasItems} />
-        <div class="hidden md:block">
-          <div class="mb-6 flex items-end justify-between gap-6">
-            <div>
-              <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
-                Recién publicado
-              </span>
-              <h2 class="font-headline text-4xl leading-none tracking-tight text-ink lg:text-6xl">
-                Últimas entradas
-              </h2>
-            </div>
-            <a
-              href="/archivo"
-              class="shrink-0 rounded-full border border-ink/30 px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-ink hover:text-canvas"
-            >
-              Todas las entradas
-            </a>
-          </div>
-          <UltimasEntradasGaleria items={ultimasEntradasItems} />
-        </div>
+        {/* Conjunto agrupado de estampillas: pila de 4×4 en desktop, tira horizontal
+            con scroll-snap en pantallas chicas, y al elegir una se retira del conjunto
+            al centro de la ventana. El componente es genérico (ver su docblock) — acá
+            solo se le pasan las entradas y se le pide el andamio de portadas. */}
+        <ColeccionEstampillas items={ultimasEntradasItems} columnas={4} portadasDePrueba />
       </section>
     )
   }

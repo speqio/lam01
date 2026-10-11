@@ -27,14 +27,9 @@ const { title, description } = Astro.props;
       lo pone el propio EntradaBanner.astro. */}
   <slot name="banner" />
 
-  {/* `md:max-w-none` levanta el `max-width: 65ch` de Tailwind Typography, que es su único
-      tope de ancho y no cambia entre breakpoints. Con Lekton (monoespaciada, 1ch ≈ 0,5em) esos
-      65ch son ~650px de los 1504px disponibles, y el cuerpo de la entrada va en dos columnas a
-      partir de 1024px (ver EntradaPagina.astro). En móvil se mantiene la medida de 65ch, que
-      ahí es la correcta. */}
   <article
     id="post-article"
-    class="prose prose-lg md:prose-xl prose-invert mx-auto my-12 md:max-w-none prose-headings:font-headline prose-headings:uppercase prose-headings:tracking-tight prose-headings:text-ink prose-p:font-serif prose-p:text-bone prose-a:text-accent prose-blockquote:border-accent prose-blockquote:font-serif prose-blockquote:italic prose-strong:text-ink prose-li:text-bone"
+    class="prose prose-lg md:prose-xl prose-invert mx-auto my-12 prose-headings:font-headline prose-headings:uppercase prose-headings:tracking-tight prose-headings:text-ink prose-p:font-serif prose-p:text-bone prose-a:text-accent prose-blockquote:border-accent prose-blockquote:font-serif prose-blockquote:italic prose-strong:text-ink prose-li:text-bone"
   >
     <slot />
   </article>

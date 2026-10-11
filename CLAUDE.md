@@ -23,8 +23,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 All routes live in `src/pages/`, one `.astro` file per route (no nested layouts beyond `BaseLayout`/`PostLayout`, no route groups):
 
-- `/` (`index.astro`) — the home page; composes `HeroAnagram`, `HoverRevealHero` (latest número), the "últimas entradas" section, `CategoriasCards`, and `ArchivoExplorer`, pulling from all four content collections in one frontmatter block.
-- `/numeros` — grid of all números with range-filter chips (`FilterChip.astro`, pure CSS/link-based, no JS filtering logic beyond a small inline toggle script).
+- `/` (`index.astro`) — the home page; composes `HeroAnagram`, `HoverRevealHero` (latest número), the "últimas entradas" section (`ColeccionEstampillas.astro`, see below — the 16 latest entradas), `CategoriasCards`, and `ArchivoExplorer`, pulling from all four content collections in one frontmatter block.
+- `/numeros` — grid of all números as **folders** (`CarpetaNumero.astro`, see below), with range-filter chips (inline `<button>`s, not `FilterChip.astro`; no JS filtering logic beyond a small inline toggle script that hides non-matching folders). This page is the only one that loads *every* entrada: it groups them by número with lookup maps built from the three collections, rather than the usual per-item `getEntry` (see "No joins" below) — hundreds of reads for the same handful of autores/categorías is the one case where that pattern doesn't apply.
 - `/[slug]` — **entradas and números share one root route** (`src/pages/[slug].astro`, same URL scheme as the old WordPress site laantorchamagacin.com so links and SEO survive the DNS switch: `/nombre-de-la-entrada`, `/numero-01`; **no** `/entrada/…` or `/numero/…` aliases, one URL per content item). It only picks the view: `src/views/NumeroPagina.astro` / `src/views/EntradaPagina.astro` hold the markup. The build **fails on purpose** if a slug collides with a fixed page (`/archivo`, `/contacto`…), with another slug, or is the internal `sin-numero` (excluded from public routes). Never link to `/entrada/…`; link to `/<slug>`. A número page (`/numero-NN`): one número's detail page: uses `NumeroSequence.astro` for the entry listing (mobile carousel + desktop sequence, see below).
 - `/categorias` — flat list of all categorías as filter pills, each linking to `/category/[slug]`.
 - `/category/[slug]` (English `category`, to match the old site's URLs) — entries filtered by one categoría.
@@ -70,6 +70,50 @@ Run `node scripts/verificar-keystatic.mjs` before every deploy: it reads every i
 
 **No joins**: relationship fields are just slug strings. Every page that needs an entrada's related autor/categoria/número does the lookup itself with `getEntry('autores', entrada.data.autor)` etc., almost always via `await Promise.all(items.map(async (item) => ({...})))` since there's no batched/join query available in `astro:content`. This pattern repeats across `index.astro`, `archivo.astro`, `numero/[slug].astro`, `categoria/[slug].astro`, `autor/[slug].astro` — if you're adding a new listing page, this is the pattern to copy, not something to "optimize away" into a single query.
 
+### Estampillas: the stamp collection and the número folders
+
+Two components carry most of the site's current browsing UI. Both are newer than the card
+language described further down, and new listings should reach for them first.
+
+**`src/components/ui/ColeccionEstampillas.astro`** — a group of postage stamps, written
+generic (it takes `items` shaped like `EntradaTicketItem` and nothing else) so it can be
+dropped into any listing. Adapted from philately-gallery.framer.website. Things to know
+before touching it:
+- **The stamps are glued edge to edge** (`--aire: 0`), like an uncut sheet: the teeth of
+  two neighbours form the single line of holes between them. They were tried overlapping
+  with a tilt (read as a messy pile) and separated with a gap (read as loose cards).
+- The teeth are `.estampilla-perforada` (`global.css`, four edge layers + `mask-composite:
+  intersect`), applied to the **face**, not to an inner layer — applied inside, the card's
+  own background stayed uncut and showed around the photo as a badly cropped frame. Not
+  `EstampillaFace.astro`'s mask, which tiles holes across the whole surface.
+- `disposicion`: `hoja` (grid on desktop, scroll-snap strip on small screens), `tira`
+  (one horizontal row at every width) or `columna` (one vertical row). The last two render
+  the pagination dial (`lib/dialNav.ts` classes; the dial's own script lives in the
+  component and works on both axes).
+- **Choosing a stamp pulls it out of the sheet**: it is *moved in the DOM* into a fixed,
+  centred stage while the page goes behind a blurred backdrop, with its ficha read beside
+  it (below it on small screens) as plain text, no panel. Moving it is required, not
+  decorative: a `fixed` element inside a transformed ancestor resolves against that
+  ancestor instead of the viewport. **Never animate `transform` on an ancestor of a
+  `.coleccion` root** for the same reason. The jump is hidden with a FLIP, and the size
+  must be set *before* measuring (inside the stage the stamp would otherwise measure the
+  whole viewport and fly in from a corner). The return is measured live, not replayed from
+  the opening delta.
+- No `IntersectionObserver` here, unlike the site's other heavy components: a collection
+  can be born inside a closed folder, which never intersects, and would never initialise.
+  Clicks are delegated per root and Escape is a single page-level listener — `/numeros`
+  mounts about thirty of these.
+- No hover effects, by request: everything happens on click/tap.
+
+**`src/components/ui/CarpetaNumero.astro`** — the `/numeros` folder. A flat dark file
+folder drawn entirely in CSS (no assets), with the número's portada full-bleed behind a
+dark bottom gradient. The gradient and its text are **literal black/white, not tokens**:
+in light theme the tokens invert and the scrim turned white, leaving the title unreadable
+over the photo. Three states, not two: closed → open (the stored stamps fan out of the
+top; CSS `:hover` where there is hover, first tap where there isn't) → the blurred stage
+with that número's sheet of stamps. The state is cleared when the stage opens *and* when
+it closes, or the folder stays fanned out behind the backdrop and reappears that way.
+
 ### Design system
 
 `tailwind.config.mjs` defines **semantic** color tokens rather than literal palette names — component code should reference the role, not a hardcoded color, since the token values are what get swapped on a re-theme:
@@ -85,7 +129,7 @@ Run `node scripts/verificar-keystatic.mjs` before every deploy: it reads every i
 
 `fontFamily.{sans,serif,mono,headline}` all currently map to the single Lekton font — the four role names are kept so a future typography change only touches this one file, not every component's class list.
 
-`src/lib/cardStyles.ts` centralizes the Tailwind classes for the "entry card" anatomy (image on the left with an overlaid category badge, text on the right) that recurs across `EntryCard.tsx`, `NumeroSequence.astro`, `UltimasEntradasCarousel.astro`, and the `/numeros` grid — reuse these rather than re-deriving the layout in a new component. `cardBadge` alone (solid accent background, canvas text) is reused well beyond that specific anatomy too — `EntradasCarousel3D.astro`, `ArchivoCascade.astro`, `CategoriasCards.astro` — since the badge itself is independent of where the image ends up mounted. `cardShell` is deliberately *not* where the reveal-on-scroll hook (`entry-card-reveal`, see below) lives — `numeros.astro` reuses `cardShell` as static markup with no reveal script, so that class only goes on `EntryCard.tsx`'s own `<a>`, not into the shared constant (putting it there once hid `/numeros`' cards forever, since nothing there ever un-hides them).
+`src/lib/cardStyles.ts` (older language, kept for the pages that still use it) centralizes the Tailwind classes for the "entry card" anatomy (image on the left with an overlaid category badge, text on the right) that recurs across `EntryCard.tsx`, `NumeroSequence.astro` and `UltimasEntradasCarousel.astro` — reuse these rather than re-deriving the layout in a new component. `cardBadge` alone (solid accent background, canvas text) is reused well beyond that specific anatomy too — `EntradasCarousel3D.astro`, `ArchivoCascade.astro`, `CategoriasCards.astro` — since the badge itself is independent of where the image ends up mounted. `cardShell` is deliberately *not* where the reveal-on-scroll hook (`entry-card-reveal`, see below) lives — `numeros.astro` reuses `cardShell` as static markup with no reveal script, so that class only goes on `EntryCard.tsx`'s own `<a>`, not into the shared constant (putting it there once hid `/numeros`' cards forever, since nothing there ever un-hides them; that page now renders folders, but the trap is the same anywhere `cardShell` is reused as static markup).
 
 `src/lib/dialNav.ts` centralizes the Tailwind classes for the "01 / N" pagination dial (thin track + proportional thumb + counter) used by `NumeroSequence.astro`'s mobile carousel and `CategoriasCards.astro`'s fan — only the classes live here, the scroll/drag-driven JS that moves the thumb stays in each component since it depends on that component's own scroll/position source.
 
@@ -113,7 +157,7 @@ GSAP is the sole animation/interaction library across the codebase (no Framer Mo
 
 ### Mobile vs. desktop are often genuinely different components
 
-Several sections of the site (e.g. the "últimas entradas" home carousel, the entry listing on `/numero/[slug]`, `/archivo`) do **not** share one responsive implementation between breakpoints — mobile and desktop are separate components/code paths, toggled via Tailwind `md:hidden` / `hidden md:block` wrappers, with each script also self-gating on `window.matchMedia('(min-width: 768px)')` before doing any setup work. This is deliberate: a gesture-capturing mechanism (wheel/touch capture, `preventDefault`) that's safe on desktop (the user can always move the mouse off the element to get scroll back) can permanently trap a mobile user who has no equivalent escape gesture. When touching one of these sections, check which breakpoint's code path you're actually meant to be editing.
+Several sections of the site (e.g. the entry listing on `/numero/[slug]`, `/archivo`) do **not** share one responsive implementation between breakpoints — mobile and desktop are separate components/code paths, toggled via Tailwind `md:hidden` / `hidden md:block` wrappers, with each script also self-gating on `window.matchMedia('(min-width: 768px)')` before doing any setup work. This is deliberate: a gesture-capturing mechanism (wheel/touch capture, `preventDefault`) that's safe on desktop (the user can always move the mouse off the element to get scroll back) can permanently trap a mobile user who has no equivalent escape gesture. When touching one of these sections, check which breakpoint's code path you're actually meant to be editing.
 
 Not every interactive component needs this split, though — `CategoriasCards.astro`'s fan carousel runs identically on both breakpoints, because its gesture capture is `Observer`-based and axis-constrained (horizontal drag/wheel only, `touch-action: pan-y` lets vertical page scroll pass through untouched). `EntradasCarousel3D.astro`'s `Draggable`-rotation carousel was tried unified across breakpoints once and reverted back to desktop-only after it interfered with scrolling on real mobile devices — the axis-unconstrained nature of rotation dragging is the difference-maker, not just "is it 3D" or "is it draggable." When building a new gesture-driven component, that's the question to ask before assuming it can be a single cross-breakpoint component.
 

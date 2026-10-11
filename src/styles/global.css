@@ -202,4 +202,42 @@
       100% var(--seam-gap);
     -webkit-mask-composite: source-in;
   }
+
+  /* Dentado de estampilla para el banner de la entrada (EntradaBanner.astro): la misma
+     técnica que .ticket-notched-edges —capas de radial-gradient acotadas a una tira por
+     borde, combinadas con mask-composite: intersect— pero con cuatro capas en vez de cinco
+     (sin la costura interior del boleto) y con dientes más chicos y juntos.
+
+     No usa la máscara de EstampillaFace.astro a propósito: esa tesela agujeros por TODA la
+     superficie, lo cual funciona en una estampilla pequeña como la del hero de la home pero
+     sobre una portada grande se lee como lunares encima de la foto. Acá el dentado va en el
+     marco de papel, no en la imagen. */
+  .estampilla-perforada {
+    --diente-r: 5px;
+    --diente-paso: 15px;
+    mask-image:
+      radial-gradient(circle var(--diente-r) at 0 var(--diente-r), transparent calc(var(--diente-r) - 0.5px), black var(--diente-r)),
+      radial-gradient(circle var(--diente-r) at 100% var(--diente-r), transparent calc(var(--diente-r) - 0.5px), black var(--diente-r)),
+      radial-gradient(circle var(--diente-r) at var(--diente-r) 0, transparent calc(var(--diente-r) - 0.5px), black var(--diente-r)),
+      radial-gradient(circle var(--diente-r) at var(--diente-r) 100%, transparent calc(var(--diente-r) - 0.5px), black var(--diente-r));
+    mask-repeat: repeat-y, repeat-y, repeat-x, repeat-x;
+    mask-size:
+      100% var(--diente-paso),
+      100% var(--diente-paso),
+      var(--diente-paso) 100%,
+      var(--diente-paso) 100%;
+    mask-composite: intersect;
+    -webkit-mask-image:
+      radial-gradient(circle var(--diente-r) at 0 var(--diente-r), transparent calc(var(--diente-r) - 0.5px), black var(--diente-r)),
+      radial-gradient(circle var(--diente-r) at 100% var(--diente-r), transparent calc(var(--diente-r) - 0.5px), black var(--diente-r)),
+      radial-gradient(circle var(--diente-r) at var(--diente-r) 0, transparent calc(var(--diente-r) - 0.5px), black var(--diente-r)),
+      radial-gradient(circle var(--diente-r) at var(--diente-r) 100%, transparent calc(var(--diente-r) - 0.5px), black var(--diente-r));
+    -webkit-mask-repeat: repeat-y, repeat-y, repeat-x, repeat-x;
+    -webkit-mask-size:
+      100% var(--diente-paso),
+      100% var(--diente-paso),
+      var(--diente-paso) 100%,
+      var(--diente-paso) 100%;
+    -webkit-mask-composite: source-in;
+  }
 }

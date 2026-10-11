@@ -3,11 +3,12 @@ import react from '@astrojs/react';
 import keystatic from '@keystatic/astro';
 import markdoc from '@astrojs/markdoc';
 import cloudflare from '@astrojs/cloudflare';
+import portadas from './integrations/portadas.mjs';
 
 // https://astro.build/config
 export default defineConfig({
   adapter: cloudflare(),
-  integrations: [react(), keystatic(), markdoc()],
+  integrations: [react(), keystatic(), markdoc(), portadas()],
   vite: {
     optimizeDeps: {
       // El panel de Keystatic importa react-dom/client de forma dinámica; Vite no lo

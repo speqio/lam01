@@ -3,7 +3,9 @@ import { getCollection, getEntry, render } from 'astro:content';
 import PostLayout from '../layouts/PostLayout.astro';
 import EntradaGaleria from '../components/EntradaGaleria.astro';
 import EntradaImagen from '../components/EntradaImagen.astro';
+import EntradaBanner from '../components/EntradaBanner.astro';
 import { normalizeTitleText } from '../lib/text';
+import { orientacionPortada } from '../lib/portada';
 
 const { entrada } = Astro.props;
 const { Content } = await render(entrada);
@@ -30,12 +32,38 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
   day: 'numeric',
   timeZone: 'UTC',
 });
+
+// Con portada, el banner de estampilla reemplaza a la cabecera centrada: lleva la misma
+// información (categoría, título, autor, fecha, traducción), así que mantener las dos la
+// duplicaría. Sin portada —hoy 309 de 324 entradas— la cabecera queda intacta.
+const portada = entrada.data.portada;
+const orientacion = orientacionPortada(portada);
 ---
 
 <PostLayout
   title={entrada.data.metaTitulo || tituloEntrada}
   description={entrada.data.metaDescripcion || entrada.data.extracto}
 >
+  {
+    portada && (
+      <EntradaBanner
+        slot="banner"
+        portada={portada}
+        portadaAlt={entrada.data.portadaAlt}
+        portadaLeyenda={entrada.data.portadaLeyenda}
+        orientacion={orientacion}
+        titulo={tituloEntrada}
+        categoria={categoria ? { id: categoria.id, nombre: categoria.data.nombre } : undefined}
+        autor={autor ? { id: autor.id, nombre: autor.data.nombre } : undefined}
+        fechaFormateada={formattedDate}
+        traductor={traductor ? { id: traductor.id, nombre: traductor.data.nombre } : undefined}
+      />
+    )
+  }
+
+  {/* Cabecera centrada de siempre, solo cuando NO hay portada: con banner estaría repetida,
+      y además dejaría un segundo <h1> en el documento. */}
+  {!portada && (
   <header class="not-prose mb-8 text-center">
     {
       categoria && (
@@ -76,14 +104,11 @@ const formattedDate = entrada.data.fecha.toLocaleDateString('es-ES', {
       )
     }
   </header>
+  )}
 
-  {/* La portada no se muestra en la entrada: solo sirve como imagen de las cards. Queda
-      como <img> oculta para conservar su texto alternativo (SEO). */}
-  {
-    entrada.data.portada && (
-      <img src={entrada.data.portada} alt={entrada.data.portadaAlt || tituloEntrada} hidden loading="lazy" />
-    )
-  }
+  {/* Ya no hace falta la <img hidden> que antes conservaba el texto alternativo de la portada:
+      ahora la portada se ve de verdad, con su alt, dentro de EntradaBanner.astro. Mantenerla
+      descargaría la imagen dos veces. */}
 
   <div class="not-prose mb-8 text-center">
     <button

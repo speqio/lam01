@@ -131,6 +131,11 @@ export default config({
           description:
             'Describe la portada para buscadores y lectores de pantalla (qué se ve, no el título). Si se deja vacío se usa el título de la entrada.',
         }),
+        portadaLeyenda: fields.text({
+          label: 'Portada: leyenda',
+          description:
+            'Opcional — se muestra debajo de la portada, dentro del banner de la entrada. Para créditos de la imagen, pie de foto o referencia de la obra.',
+        }),
         imagenesIndividuales: fields.array(
           fields.object({
             imagen: fields.image({

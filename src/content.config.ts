@@ -47,6 +47,9 @@ const entradas = defineCollection({
     categoria: z.string(),
     portada: z.string().optional(),
     portadaAlt: z.string().optional(),
+    // Leyenda de la portada: se muestra debajo de la imagen dentro del banner de estampilla
+    // (EntradaBanner.astro). Opcional acá y en Keystatic, igual que las leyendas de galería.
+    portadaLeyenda: z.string().optional(),
     // Todas las entradas ya migradas a esta forma (script de migración, ver commit) —
     // coincide con el campo de Keystatic (fields.array(fields.object({imagen, leyenda}))).
     // `imagen` es opcional acá a propósito: un espacio vacío (`- {}`) no debe tumbar todo el

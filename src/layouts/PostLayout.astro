@@ -17,6 +17,16 @@ const { title, description } = Astro.props;
     <div id="post-reading-progress" class="h-full w-0 bg-accent"></div>
   </div>
 
+  {/* Banner fuera del <article>: la columna de lectura está limitada por `prose` (~65-72ch) y
+      el banner de portada necesita todo el ancho del contenedor principal. Al ir por fuera
+      tampoco entra en la barra de progreso, que mide #post-article.
+
+      Sin envoltorio y sin tocar el `my-12` del artículo a propósito: un <div> con margen
+      alrededor del slot empujaría el artículo también en las 309 entradas que no tienen
+      portada. Así, sin banner el layout queda byte a byte como antes, y el margen del banner
+      lo pone el propio EntradaBanner.astro. */}
+  <slot name="banner" />
+
   <article
     id="post-article"
     class="prose prose-lg md:prose-xl prose-invert mx-auto my-12 prose-headings:font-headline prose-headings:uppercase prose-headings:tracking-tight prose-headings:text-ink prose-p:font-serif prose-p:text-bone prose-a:text-accent prose-blockquote:border-accent prose-blockquote:font-serif prose-blockquote:italic prose-strong:text-ink prose-li:text-bone"

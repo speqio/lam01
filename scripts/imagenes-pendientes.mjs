@@ -81,6 +81,58 @@ const rutaDeItem = (lineas) => {
 const RE_IMG = /^!\[([^\]]*)\]\(([^)\s]+)\)\s*$/;
 const ancla = (linea) => linea.trim().slice(0, ANCLA_LARGO);
 
+/* ANCLA TOLERANTE, como segundo intento cuando la exacta no aparece. Entre el `quitar` y
+   el `restaurar` el cuerpo puede haberse vuelto a serializar, y entonces el ancla guardada
+   ya no coincide letra por letra con ninguna línea. Dos casos reales, los dos vistos en la
+   carga masiva de las imágenes de WordPress:
+     - los divisores `* * *` quedaron escritos `---` (Keystatic los normaliza), así que un
+       ancla "* * *" con ocurrencia 23 no encontraba ninguna de las 23 líneas;
+     - el énfasis `_Le Livre de Monelle_` quedó escrito `*Le Livre de Monelle*`;
+     - y las barras de escape desaparecieron (`\- «Vapor…` quedó `- «Vapor…`,
+       `[\[5\]](#_ftnref5)` quedó `[[5]](#_ftnref5)`).
+   La normalización unifica cualquier divisor en un mismo token, quita los marcadores de
+   énfasis y las barras de escape, y colapsa los espacios. */
+const normalizar = (s) =>
+  s
+    .trim()
+    .replace(/^(?:\*\s*\*\s*\*|-{3,}|_{3,}|\*{3,})$/, '\u0001divisor')
+    .replace(/[*_`\\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const esDivisor = (anclaGuardada) => normalizar(anclaGuardada) === '\u0001divisor';
+
+/* El ancla guardada son los primeros 80 caracteres de la línea original, así que una vez
+   normalizada es un PREFIJO de la línea completa normalizada, no su igual. Para un divisor
+   se exige igualdad (el token es fijo y ningún párrafo lo va a igualar), y para el resto se
+   pide un prefijo de al menos 8 caracteres, para no casar con cualquier cosa. */
+const anclaCoincide = (linea, anclaGuardada) => {
+  const a = normalizar(anclaGuardada);
+  const l = normalizar(linea);
+  if (a === '\u0001divisor') return l === a;
+  return a.length >= 8 && l.startsWith(a);
+};
+
+/* TERCER INTENTO, solo letras. Hay reserializaciones que cambian la puntuación de los
+   bordes y no solo la quitan: un guion escapado al principio de la línea (`\- «Vapor…`)
+   quedó convertido en raya (`– «Vapor…`), así que ni la comparación tolerante encuentra el
+   prefijo. Comparar únicamente letras, dígitos y espacios ignora toda la puntuación de una
+   vez. Se pide un prefijo más largo (12) porque la señal es más débil. */
+const soloLetras = (s) =>
+  s
+    .normalize('NFC')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+const anclaCoincideLaxa = (linea, anclaGuardada) => {
+  if (esDivisor(anclaGuardada)) return false;
+  const a = soloLetras(anclaGuardada);
+  const l = soloLetras(linea);
+  return a.length >= 12 && l.startsWith(a);
+};
+
 function quitarEnEntrada(slug, texto, registro) {
   const partes = partirEntrada(texto);
   if (!partes) return { texto, cambios: 0 };
@@ -221,13 +273,21 @@ function restaurarEnEntrada(slug, texto, rec) {
       let pos = -1;
       if (a === null) pos = -1; // estaba al inicio del cuerpo
       else {
-        let n = 0;
-        for (let i = 0; i < lineas.length; i++) {
-          if (lineas[i].trim() !== '' && ancla(lineas[i]) === a && ++n === ocurrencia) {
-            pos = i;
-            break;
-          }
-        }
+        // Primero la coincidencia exacta; si no aparece, la tolerante (ver `normalizar`).
+        const posiciones = (coincide) =>
+          lineas.reduce((acc, l, i) => (l.trim() !== '' && coincide(l) ? [...acc, i] : acc), []);
+        const elegir = (encontradas) => {
+          if (encontradas[ocurrencia - 1] !== undefined) return encontradas[ocurrencia - 1];
+          /* UN DIVISOR DE MENOS. En varias semblanzas de autor la foto iba después del
+             último divisor y el cuerpo quedó con un divisor menos que cuando se anotó el
+             ancla, así que la ocurrencia guardada ya no existe. "Después del último
+             divisor" conserva la intención; para un ancla de texto no se adivina nada. */
+          if (esDivisor(a) && encontradas.length) return encontradas[encontradas.length - 1];
+          return -1;
+        };
+        pos = elegir(posiciones((l) => ancla(l) === a));
+        if (pos < 0) pos = elegir(posiciones((l) => anclaCoincide(l, a)));
+        if (pos < 0) pos = elegir(posiciones((l) => anclaCoincideLaxa(l, a)));
         if (pos < 0) {
           pend.cuerpo.push(...grupo);
           continue;

@@ -1,7 +1,7 @@
 # Pendientes (al cierre de la sesión del 2026-09-21)
 
 ## Antes de entregar / cambiar el DNS
-- **Imágenes originales:** ~1400 referencias siguen sin archivo (`node scripts/imagenes-pendientes.mjs estado`). Falta el script de migración masiva (copiar originales por nombre a `public/images/…` y correr `restaurar`); necesita los archivos originales.
+- ~~**Imágenes originales**~~ **HECHO (2026-10-12).** Las 2.243 referencias (1.261 archivos) se cargaron con `node scripts/migrar-imagenes.mjs descargar | optimizar | instalar`, que baja los originales del WordPress viejo a un staging fuera del repositorio, los optimiza ahí y recién entonces los copia a `public/` y llama a `restaurar`. Quedó en **0 pendientes** (`node scripts/imagenes-pendientes.mjs estado`): 411 MB de originales → 109 MB en el repositorio. Dos bajas conscientes: un hotlink a `cdnx.jumpseller.com` que da 404 (tienda ajena), y la segunda aparición en el cuerpo de una imagen de `donde-empieza-el-camino` que ya se ve en su galería.
 - **Portadas de números:** 24 son provisionales (`scripts/portadas-provisionales.json`); reemplazar por las reales.
 - **Números vacíos:** 12, 24, 27, 28, 29 y 30 no tienen entradas (se conservan para completarlos).
 - **4 entradas de WordPress en `sin-numero`** (autor "redaccion"): asignarles número y autor reales.

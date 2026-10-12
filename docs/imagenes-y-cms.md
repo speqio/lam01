@@ -97,11 +97,41 @@ paso 6 que falla si hay una imagen de más de 250 KB o de más de 1600 px de lad
 la mejora se degrada sola — basta que alguien suba una foto de 3 MB desde el panel. El
 Action `verificar` ya corre ese script, así que el control vive en el PR
 `keystatic` → `main`. Las excepciones conscientes van en
-`scripts/imagenes-grandes-aceptadas.json`, con el motivo escrito (hoy: una sola, un
-escaneo con mucho grano que ya está en el suelo de calidad).
+`scripts/imagenes-grandes-aceptadas.json`, con el motivo escrito. **Hoy está vacía, y
+conviene que siga así**: después de la carga masiva quedaron cinco imágenes por encima del
+tope a 1600 px, y ninguna necesitó recorte a mano. Cuatro entraron bajando el lado largo a
+1400 px y el escaneo con grano a 1100 px, con `--escribir --lado=1400 --solo=<ruta>`. El
+contenido se lee en una columna de ~700 px, así que a 1400 px sigue habiendo el doble de
+densidad. **El lado largo es la palanca; bajar la calidad es el último recurso, y anotar
+una excepción es el recurso después de ese.**
 
 El script es **idempotente**: no reescribe un archivo si la mejora es menor al 10%, así
-que volver a correrlo sobre imágenes ya optimizadas no genera commits de ruido.
+que volver a correrlo sobre imágenes ya optimizadas no genera commits de ruido. Ese mínimo
+del 10% **no** se aplica a un archivo que ya está fuera de alguno de los dos topes, pero
+solo si el resultado queda DENTRO del tope. Las dos mitades de esa regla se aprendieron
+una por culpa de la otra:
+
+- Sin la excepción, una foto de 1728 px de lado no se podía arreglar nunca: redimensionarla
+  a 1600 gana menos del 10%, así que el optimizador se negaba a tocarla mientras el paso 6
+  la seguía rechazando. Un callejón sin salida.
+- Sin el "solo si queda dentro", las cinco imágenes que están en el suelo de calidad se
+  reescribían en cada corrida ganando un 0%, que es exactamente el ruido que el mínimo del
+  10% existe para evitar.
+
+Dos detalles más del mismo paso, los dos medidos en la carga masiva:
+
+- **Cuando el archivo pasa el tope de LADO, la escalera de calidad recibe además el peso
+  del original como presupuesto.** Hay que redimensionarlo igual, pero recodificar a
+  calidad 80 un original guardado con calidad baja puede salir más pesado, y el script
+  nunca escribe un archivo más grande: sin presupuesto se negaba a escribirlo y la imagen
+  quedaba fuera de tope para siempre.
+- **Tener canal alfa no es lo mismo que usarlo.** `--webp-png-sin-alfa` miraba
+  `meta.hasAlpha`, y 29 PNG traían un canal alfa con todos los píxeles opacos: peso puro,
+  sin transparencia que preservar. Ahora, si el PNG declara alfa, se comprueba con
+  `stats().isOpaque` antes de descartarlo.
+- **`--solo=<texto>[,<texto>…]`** limita el recorrido a las rutas que contienen esos
+  textos. Es lo que hace posible un arreglo puntual: bajarle el lado a una imagen deja un
+  diff de un archivo en vez de recodificar las 1.300 y llenar el historial de blobs.
 
 ## Las opciones que no se tomaron
 
@@ -116,10 +146,19 @@ un **segundo lugar** donde subir cosas, con su propio juego de permisos;
 peticiones de red; y **un `git revert` deja de restaurar las imágenes**, porque contenido
 e imágenes quedan en dos sistemas con historiales distintos.
 
-Con las imágenes optimizadas, lo que esto ganaría es sacar ~0,2 GB del repositorio: poco,
-por bastante complejidad. **Queda como salida si el repositorio vuelve a molestar, y
-conviene decidirla ANTES de la carga masiva**: migrar 88 imágenes es trivial, migrar 2.300
-no.
+Con las imágenes optimizadas, lo que esto ganaría es sacar ~0,1 GB del repositorio: poco,
+por bastante complejidad.
+
+**DECIDIDO: las imágenes se quedan en el repositorio.** La decisión se tomó con el número
+delante, que era justamente el motivo de medir antes de commitear: la carga masiva del
+WordPress viejo bajó de 411 MB de originales a **109 MB** en `public/images`, un 73% menos,
+y a ese tamaño sacar las imágenes del repositorio no paga las cuatro cosas que se pierden
+arriba — sobre todo que el editor conserve arrastrar-y-soltar, y que un `git revert`
+siga restaurando las imágenes junto con el contenido. Siguen siendo parte de Keystatic.
+
+Queda como salida si el repositorio vuelve a molestar. Si ese día llega, el orden importa:
+decidirlo **antes** de una carga masiva, porque migrar 88 imágenes es trivial y migrar
+1.300 no, y porque el historial de git no libera nunca un blob que ya entró.
 
 > Nota: el adaptador ya detecta un binding `IMAGES` en el build, pero las imágenes de
 > `public/` se sirven crudas sin pasar por ningún servicio de imagen, así que eso hoy no
@@ -155,11 +194,38 @@ Hoy el historial son 65 MB: no vale el riesgo (reescribe todos los shas, rompe l
 
 ## Lo que sigue pendiente
 
-**El script de carga masiva** (ya anotado en `CLAUDE.md`). Sin él, cargar las 2.239
-imágenes desde el panel son ~321 guardados → ~321 commits → ~321 builds, con **1 build
-concurrente** en el plan gratuito. Con un script son unos pocos commits, y la optimización
-se aplica en el mismo paso. Falta saber dónde están los archivos originales (el WordPress
-viejo, o un backup).
+**El script de carga masiva ya está escrito**: `scripts/migrar-imagenes.mjs`. Cargar las
+imágenes desde el panel hubiera sido ~321 guardados → ~321 commits → ~321 builds, con
+**1 build concurrente** en el plan gratuito; con el script son unos pocos commits y la
+optimización se aplica en el mismo paso.
+
+No hizo falta conseguir nada nuevo: la información ya estaba toda en el repositorio y se
+cruza sin heurística.
+
+- **La posición** de cada imagen está en `scripts/imagenes-pendientes.json`: la portada con
+  su línea YAML verbatim, cada ítem de `galeria`/`imagenesIndividuales` con su índice, y
+  cada imagen del cuerpo con un ancla de 80 caracteres del párrafo anterior más su número
+  de ocurrencia. Por eso `instalar` no reimplementa la colocación: copia los archivos y
+  llama a `imagenes-pendientes.mjs restaurar`.
+- **La URL** de cada archivo está en `scripts/migration-report/images-manifest.csv`
+  (`entrada_slug,tipo,url_original,ruta_local`), que generó `migrate-wordpress.mjs` al leer
+  el WXR. Su `ruta_local` tiene la misma forma que el campo `ruta` del manifiesto, así que
+  el cruce es exacto. Medido: las 2.243 referencias pendientes (1.261 archivos distintos)
+  resuelven a una URL, 0 huecos.
+- **Los archivos** los sigue sirviendo el WordPress viejo: el DNS todavía no cambió.
+
+**El paso del medio es un punto de decisión, a propósito.** `descargar` deja todo en una
+carpeta de staging **fuera** del repositorio (~255 MB de originales) y `optimizar` informa
+el peso real después de optimizar. Como el historial de git no libera nunca un blob, ese
+número se mira antes de commitear nada, y es el que decide si las imágenes entran al
+repositorio o si conviene mover todo a R2 primero (ver la sección de R2 más arriba).
+`instalar` es el único paso que escribe dentro del repositorio.
+
+Dos cosas que el script resuelve y conviene no redescubrir: el CSV guarda las URLs con las
+entidades HTML sin resolver (`&amp;`), y sin desescaparlas la de gstatic devuelve 404; y
+dos `ruta_local` no tienen extensión porque vienen de URLs de CDN que no terminan en un
+nombre de archivo (`…/resize/540/540?…` → `540`), así que la extensión se toma del
+`Content-Type` real de la respuesta y `instalar` corrige esa ruta en el manifiesto.
 
 ## Fuentes
 

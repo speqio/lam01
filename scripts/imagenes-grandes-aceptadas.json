@@ -4,9 +4,15 @@
     "porque scripts/optimizar-imagenes.mjs ya no puede mejorarlas sin estropearlas a la vista.",
     "Cualquier imagen por encima del tope que NO esté acá hace fallar la verificación: eso es",
     "lo que evita que una foto recién subida de 3 MB entre al repositorio sin que nadie se entere.",
-    "Antes de añadir una entrada acá, correr el optimizador; esto es la salida, no el atajo."
+    "Antes de añadir una entrada acá, correr el optimizador; esto es la salida, no el atajo.",
+    "",
+    "Hoy está VACÍA, y conviene que siga así. Después de la carga masiva del WordPress viejo",
+    "quedaron cinco imágenes por encima del tope a 1600 px de lado, todas en el suelo de calidad",
+    "del optimizador. Ninguna necesitó recorte a mano: cuatro entraron bajando el lado largo a",
+    "1400 px y el escaneo con grano de cronopatía a 1100 px, con",
+    "`--escribir --lado=1400 --solo=<ruta>`. El contenido se lee en una columna de ~700 px, así",
+    "que a 1400 px sigue habiendo el doble de densidad y no se ve la diferencia. Probar eso",
+    "ANTES de anotar una excepción: el lado largo es la palanca, la calidad es el último recurso."
   ],
-  "archivos": {
-    "/images/entradas/cronopatia-del-aburrimiento-el-caso-de-ernest-lang/portada.webp": "1259×1600 y 539 KB con calidad 55, el suelo del optimizador. Es un escaneo con mucho grano: bajar más la calidad se ve. Reemplazar por un original mejor si aparece."
-  }
+  "archivos": {}
 }

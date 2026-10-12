@@ -92,11 +92,38 @@ const provisionales = new Set(
   ).map((p) => path.join(root, 'public', p))
 );
 
-const archivos = caminar(path.join(root, 'public', 'images')).filter((f) => EXT.test(f));
+/* --raiz permite optimizar un árbol de imágenes que NO está en public/: lo usa
+   scripts/migrar-imagenes.mjs para medir y optimizar la carga masiva en una carpeta de
+   staging fuera del repositorio, antes de decidir si eso entra al historial de git. Sin
+   la bandera el comportamiento es el de siempre, sobre public/images. */
+const RAIZ_IMG = path.resolve(
+  (args.find((a) => a.startsWith('--raiz=')) ?? '').split('=').slice(1).join('=') ||
+    path.join(root, 'public', 'images')
+);
+/* Las rutas se muestran relativas a la raíz que se esté recorriendo; con un staging fuera
+   del repositorio, relativizar contra root daría una ristra de ../.. ilegible. */
+const baseRel = RAIZ_IMG === path.join(root, 'public', 'images') ? root : RAIZ_IMG;
+
+/* --solo=<texto>[,<texto>…] limita el recorrido a las rutas que contienen alguno de esos
+   textos. Es lo que permite un arreglo puntual sin tocar el resto: una imagen que no entra
+   en el tope a 1600 px suele entrar a 1400, y bajarle el lado solo a ella
+   (`--escribir --lado=1400 --solo=catalejo`) deja un diff de un archivo en vez de
+   recodificar las 1.300 y llenar el historial de blobs nuevos. */
+const SOLO = (args.find((a) => a.startsWith('--solo=')) ?? '')
+  .split('=')
+  .slice(1)
+  .join('=')
+  .split(',')
+  .map((s) => s.trim().replace(/\\/g, '/'))
+  .filter(Boolean);
+
+const archivos = caminar(RAIZ_IMG)
+  .filter((f) => EXT.test(f))
+  .filter((f) => !SOLO.length || SOLO.some((s) => f.replace(/\\/g, '/').includes(s)));
 
 const kb = (b) => (b / 1024).toFixed(0) + ' KB';
 const mb = (b) => (b / 1048576).toFixed(1) + ' MB';
-const rel = (f) => path.relative(root, f).replace(/\\/g, '/');
+const rel = (f) => path.relative(baseRel, f).replace(/\\/g, '/');
 
 /* El mismo pipeline para las dos variantes: orientación EXIF, luego redimensionado.
    Se le pasa un Buffer y NO la ruta: con la ruta, sharp deja el archivo de origen
@@ -118,13 +145,20 @@ const base = (buf) =>
    paso y conserva la calidad alta. */
 const PASOS_CALIDAD = [80, 72, 64, 55];
 
-async function recodificarAjustando(buf, formato) {
+/* `topeBytes` es el presupuesto por el que se baja la calidad. Por defecto es el tope de
+   peso, pero quien llama puede pedir uno más chico: una imagen que pasa el tope de LADO y
+   está por debajo del de peso hay que redimensionarla igual, y recodificar a calidad 80 el
+   resultado puede pesar MÁS que el original (si el original venía guardado con calidad
+   baja). Sin presupuesto, el script se negaba a escribirla —nunca escribe un archivo más
+   grande— y la imagen se quedaba fuera de tope para siempre, haciendo fallar el paso 6 de
+   verificar-keystatic.mjs sin que el optimizador pudiera arreglarla. */
+async function recodificarAjustando(buf, formato, topeBytes = PESO_MAX_KB * 1024) {
   // PNG es sin pérdida: no tiene calidad que bajar, un solo intento.
   if (formato === 'png') return { buf: await recodificar(buf, formato), calidad: null };
   let ultimo = null;
   for (const calidad of PASOS_CALIDAD) {
     ultimo = { buf: await recodificar(buf, formato, calidad), calidad };
-    if (ultimo.buf.length / 1024 <= PESO_MAX_KB) return ultimo;
+    if (ultimo.buf.length <= topeBytes) return ultimo;
   }
   return ultimo;
 }
@@ -196,16 +230,39 @@ for (const archivo of archivos) {
      la misma pinta. Convertirla sí reescribe la referencia dentro del contenido, pero el
      archivo se queda en su carpeta con su mismo nombre base, así que la ruta sigue
      cumpliendo la convención /images/<colección>/<slug>/ que exige Keystatic, y el paso 2
-     de verificar-keystatic.mjs lo comprueba después. Un PNG CON alfa no se toca: podría
-     ser un recorte cuya transparencia importa. */
-  const pngPlano = webpPngPlano && meta.format === 'png' && meta.hasAlpha === false;
-  const convertir = (webpCodigo && soloCodigo && meta.format !== 'webp') || pngPlano;
+     de verificar-keystatic.mjs lo comprueba después. Un PNG con transparencia REAL no se
+     toca: podría ser un recorte cuya transparencia importa.
+
+     Y "tiene canal alfa" no es lo mismo que "tiene transparencia": hay fotos exportadas
+     con un canal alfa en el que todos los píxeles son opacos, que no aporta nada y solo
+     pesa (medido: felipe-moncada.png, 1200×800, 537 KB con el canal inútil). Por eso, si
+     el PNG declara alfa, se mira el alfa de verdad con `stats().isOpaque` antes de
+     descartarlo. */
+  let pngPlano = webpPngPlano && meta.format === 'png' && meta.hasAlpha === false;
+  if (webpPngPlano && meta.format === 'png' && meta.hasAlpha === true) {
+    try {
+      pngPlano = (await sharp(buf).stats()).isOpaque === true;
+    } catch {
+      pngPlano = false;
+    }
+  }
+  /* Nunca se cambia de extensión con --raiz fuera de public/: ahí las referencias del
+     contenido y del código no se pueden reescribir (apuntan a public/), así que renombrar
+     el archivo en el staging dejaría la referencia huérfana al instalarlo. */
+  const convertir =
+    baseRel === root && ((webpCodigo && soloCodigo && meta.format !== 'webp') || pngPlano);
 
   let nuevo;
   let comoWebp;
   let calidadUsada = null;
+  /* Si la imagen pasa el tope de lado, el presupuesto incluye además no superar el peso
+     original: hay que redimensionarla sí o sí, y escribir un archivo más grande que el que
+     había sería cambiar un problema por otro. */
+  const pasaLado = Math.max(meta.width ?? 0, meta.height ?? 0) > LADO_MAX;
+  const topeBytes = Math.min(PESO_MAX_KB * 1024, pasaLado ? original : Infinity);
+
   try {
-    const r = await recodificarAjustando(buf, convertir ? 'webp' : meta.format);
+    const r = await recodificarAjustando(buf, convertir ? 'webp' : meta.format, topeBytes);
     nuevo = r.buf;
     calidadUsada = r.calidad;
     comoWebp =
@@ -220,10 +277,30 @@ for (const archivo of archivos) {
   pesoSiWebp += Math.min(comoWebp.length, original);
 
   const mejora = 1 - nuevo.length / original;
-  if (mejora <= MEJORA_MINIMA) {
+  /* El mínimo del 10% NO se aplica a un archivo que está por encima de alguno de los dos
+     topes: ahí el objetivo no es ahorrar bytes sino cumplir el límite que el paso 6 de
+     verificar-keystatic.mjs exige, y saltarlo dejaba archivos que la verificación rechaza
+     y que el optimizador se negaba a arreglar (una foto de 1728 px de lado baja a 1600
+     ganando menos del 10%, y así quedaba fuera de tope para siempre). Pero la excepción
+     solo vale si el archivo QUEDA DENTRO del tope: si ya está en el suelo de calidad y va
+     a seguir por encima pase lo que pase, aceptar un -1% lo reescribiría en cada corrida,
+     que es exactamente el ruido de historial que el mínimo del 10% evita. Esas son las que
+     salen listadas abajo para anotarlas en scripts/imagenes-grandes-aceptadas.json. */
+  const fueraDeTope = original / 1024 > PESO_MAX_KB || pasaLado;
+  const entraAhora = nuevo.length / 1024 <= PESO_MAX_KB; // el lado ya lo corrige el resize
+  const vale = fueraDeTope
+    ? nuevo.length < original && (entraAhora || mejora > MEJORA_MINIMA)
+    : mejora > MEJORA_MINIMA;
+  if (!vale) {
     pesoDespues += original;
     if (original / 1024 > PESO_MAX_KB) {
       grandesQueQuedan.push(`${rel(archivo)}: ${kb(original)}, ya está al mínimo con este formato`);
+    } else if (fueraDeTope) {
+      // Pasa el tope de lado y recodificarla no la hace más chica: el paso 6 la va a
+      // rechazar igual, así que hay que verla acá y no recién en la verificación.
+      grandesQueQuedan.push(
+        `${rel(archivo)}: ${meta.width}×${meta.height}, redimensionarla no reduce el peso`
+      );
     }
     continue;
   }
@@ -283,7 +360,7 @@ if (renombrados.length) {
   if (huerfanas.length) fallos.push(...huerfanas.map((h) => `referencia huérfana: ${h}`));
 }
 
-console.log(`\nImágenes en public/images: ${archivos.length}`);
+console.log(`\nImágenes en ${path.relative(root, RAIZ_IMG).replace(/\\/g, '/')}: ${archivos.length}`);
 console.log(`Lado largo máximo: ${LADO_MAX} px · tope de peso: ${PESO_MAX_KB} KB`);
 if (saltadas) console.log(`Saltadas (portadas provisionales o animadas): ${saltadas}`);
 

@@ -221,6 +221,88 @@ if (!usaMarkdoc && !usaDocument) {
   mostrar('Entradas que perderían la mayor parte del cuerpo al guardarse (guardado simulado)', seVacian);
 }
 
+// 6. Imágenes sin optimizar en public/images.
+//
+// El sitio sirve las imágenes tal como se suben: viven en public/, fuera del pipeline de
+// assets de Astro, y no hay ningún paso de optimización (ver integrations/portadas.mjs).
+// Sin este control la cosa se degrada sola: alcanza con que alguien suba una foto de
+// 3 MB desde el panel para que vuelva al repositorio —y al historial de git, que no la
+// libera nunca— y a la página. Ya pasó: había una portada de 3436×4970 px y 3,1 MB para
+// mostrarse en una columna de ~700 px, y 39 MB de imágenes que se quedaron en 7 con
+// scripts/optimizar-imagenes.mjs. Con ~2.239 imágenes todavía por migrar del WordPress
+// (scripts/imagenes-pendientes.json), la diferencia entre controlarlo y no es ~0,2 GB
+// contra ~2 GB en el repositorio.
+//
+// Los topes son los mismos que usa scripts/optimizar-imagenes.mjs por defecto, y el
+// arreglo de cualquier aviso de aquí es correr ese script.
+//
+// Las portadas provisionales (scripts/portadas-provisionales.json) no cuentan: son los
+// placeholders generados que se reemplazan en cuanto llega la tapa real.
+const PESO_MAX_KB = 250;
+const LADO_MAX = 1600;
+
+const provisionalesPath = path.join(root, 'scripts', 'portadas-provisionales.json');
+const provisionales = new Set(
+  (fs.existsSync(provisionalesPath)
+    ? (JSON.parse(fs.readFileSync(provisionalesPath, 'utf8')).archivos ?? [])
+    : []
+  ).map((p) => path.join(root, 'public', p))
+);
+
+const caminar = (dir) =>
+  fs.existsSync(dir)
+    ? fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? caminar(path.join(dir, e.name)) : [path.join(dir, e.name)]
+      )
+    : [];
+
+// sharp llega como dependencia transitiva de Astro, no como dependencia declarada: si
+// algún día no está, el control de peso (que es el que importa) tiene que seguir
+// funcionando igual, así que el de dimensiones se salta y se avisa.
+let sharp = null;
+try {
+  sharp = (await import('sharp')).default;
+} catch {
+  console.log('\n(aviso: sharp no disponible; no se comprueban las dimensiones de las imágenes)');
+}
+
+/* Las que ya están en su piso y se aceptan a propósito (una sola hoy). Sin esta lista el
+   control solo podría ser o decorativo o imposible de dejar en verde. */
+const aceptadasPath = path.join(root, 'scripts', 'imagenes-grandes-aceptadas.json');
+const aceptadas = new Set(
+  Object.keys(
+    fs.existsSync(aceptadasPath)
+      ? (JSON.parse(fs.readFileSync(aceptadasPath, 'utf8')).archivos ?? {})
+      : {}
+  )
+);
+
+const pesadas = [];
+const enormes = [];
+for (const archivo of caminar(path.join(root, 'public', 'images'))) {
+  if (!/\.(jpe?g|png|webp|avif)$/i.test(archivo) || provisionales.has(archivo)) continue;
+  const ref = path.relative(path.join(root, 'public'), archivo).replace(/\\/g, '/');
+  const peso = fs.statSync(archivo).size;
+  if (peso / 1024 > PESO_MAX_KB && !aceptadas.has(`/${ref}`)) {
+    pesadas.push(`/${ref}: ${(peso / 1024).toFixed(0)} KB`);
+  }
+  if (!sharp) continue;
+  try {
+    const { width = 0, height = 0 } = await sharp(fs.readFileSync(archivo)).metadata();
+    if (Math.max(width, height) > LADO_MAX) enormes.push(`/${ref}: ${width}×${height}`);
+  } catch {
+    // Un archivo que sharp no puede leer ya lo reporta el paso 2 si está referenciado.
+  }
+}
+mostrar(
+  `Imágenes de más de ${PESO_MAX_KB} KB (correr: node scripts/optimizar-imagenes.mjs --escribir)`,
+  pesadas
+);
+mostrar(
+  `Imágenes de más de ${LADO_MAX} px de lado (correr: node scripts/optimizar-imagenes.mjs --escribir)`,
+  enormes
+);
+
 console.log(
   '\nLeídos: ' + Object.entries(totales).map(([c, n]) => `${c} ${n}`).join(', ') + '.'
 );

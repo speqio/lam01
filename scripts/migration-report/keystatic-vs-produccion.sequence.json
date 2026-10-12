@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "¿Por qué Keystatic en producción no tiene el contenido y aun así lo veo?",
+    "subtitle": "El contenido nunca vivió en Keystatic — vive en Git, y el build lo convierte en HTML antes de que exista ninguna visita",
+    "output": "keystatic-vs-produccion.html",
+    "column_fit": "spread",
+    "quality_profile": "showcase",
+    "viewBox": [1080, 640],
+    "views": [
+      { "id": "autoria", "label": "1. Autoría (solo en tu máquina)", "focus": ["editor", "keystatic", "repo"], "note": "Keystatic escribe archivos en disco. No hay servidor, no hay base de datos." },
+      { "id": "build", "label": "2. Build (dispara en cada push)", "focus": ["repo", "vercel", "astro"], "note": "El build lee el repo tal cual está en ese momento y genera HTML fijo." },
+      { "id": "visita", "label": "3. Visita (mucho después, sin Keystatic)", "focus": ["visitante", "vercel"], "note": "El visitante recibe el HTML ya generado — Keystatic ni siquiera se consulta." }
+    ]
+  },
+  "participants": [
+    { "id": "editor", "type": "external", "label": "Vos", "sublabel": "npm run dev" },
+    { "id": "keystatic", "type": "frontend", "label": "Keystatic", "sublabel": "/keystatic local" },
+    { "id": "repo", "type": "database", "label": "Repo Git", "sublabel": "src/content/*" },
+    { "id": "vercel", "type": "cloud", "label": "Vercel", "sublabel": "build + hosting" },
+    { "id": "astro", "type": "backend", "label": "astro build", "sublabel": "getStaticPaths()" },
+    { "id": "visitante", "type": "external", "label": "Visitante", "sublabel": "días/semanas después" }
+  ],
+  "segments": [
+    { "from": 180, "to": 300, "label": "Autoría — hoy, en tu máquina" },
+    { "from": 320, "to": 460, "label": "Build — al hacer push" },
+    { "from": 480, "to": 560, "label": "Visita — cuando sea, sin Keystatic" }
+  ],
+  "messages": [
+    { "id": "edita", "from": "editor", "to": "keystatic", "y": 190, "label": "edita una entrada", "variant": "default" },
+    { "id": "escribe", "from": "keystatic", "to": "repo", "y": 220, "label": "escribe el .mdoc en disco", "variant": "emphasis" },
+    { "id": "push", "from": "editor", "to": "repo", "y": 255, "label": "git push", "variant": "default", "note": "Acá termina el trabajo de Keystatic para siempre" },
+    { "id": "detecta", "from": "repo", "to": "vercel", "y": 290, "label": "GitHub notifica el push", "variant": "emphasis" },
+    { "id": "corre-build", "from": "vercel", "to": "astro", "y": 335, "label": "corre astro build", "variant": "default" },
+    { "id": "lee-repo", "from": "astro", "to": "repo", "y": 365, "label": "lee TODO src/content/*", "variant": "default" },
+    { "id": "genera", "from": "astro", "to": "vercel", "y": 400, "label": "entrega y publica el HTML ya horneado", "variant": "return", "note": "A partir de acá el contenido es HTML fijo, no datos vivos" },
+    { "id": "visita", "from": "visitante", "to": "vercel", "y": 500, "label": "abre /entrada/slug", "variant": "default" },
+    { "id": "sirve", "from": "vercel", "to": "visitante", "y": 535, "label": "responde con el HTML ya generado", "variant": "return", "note": "Ni Keystatic ni el repo se consultan en este paso" }
+  ],
+  "activations": [
+    { "participant": "keystatic", "from": 185, "to": 230, "type": "frontend" },
+    { "participant": "repo", "from": 215, "to": 375, "type": "database" },
+    { "participant": "vercel", "from": 285, "to": 445, "type": "cloud" },
+    { "participant": "astro", "from": 330, "to": 405, "type": "backend" },
+    { "participant": "vercel", "from": 495, "to": 540, "type": "cloud" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Lo que Keystatic realmente hace", "items": ["Solo escribe archivos JSON/.mdoc en tu disco — nunca los almacena ni los sirve él mismo", "En modo local-storage no tiene backend propio: sin vos y tu git push, no llega a ningún lado"] },
+    { "dot": "emerald", "title": "El build es el único puente", "items": ["astro build lee el repo completo en ese instante y genera HTML fijo para cada ruta", "Si el contenido cambia y no corre un build nuevo, la producción sigue mostrando la versión vieja — a propósito"] },
+    { "dot": "amber", "title": "La visita no toca Keystatic", "items": ["El visitante recibe HTML ya horneado desde hace rato — no hay ninguna consulta en vivo", "Por eso /keystatic existe como ruta en producción pero no sirve para editar nada: no tiene con qué persistir un cambio"] }
+  ]
+}

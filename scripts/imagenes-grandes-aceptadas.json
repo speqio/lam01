@@ -1,0 +1,12 @@
+{
+  "_comentario": [
+    "Imágenes que superan el tope de peso de verificar-keystatic.mjs y se aceptan a propósito,",
+    "porque scripts/optimizar-imagenes.mjs ya no puede mejorarlas sin estropearlas a la vista.",
+    "Cualquier imagen por encima del tope que NO esté acá hace fallar la verificación: eso es",
+    "lo que evita que una foto recién subida de 3 MB entre al repositorio sin que nadie se entere.",
+    "Antes de añadir una entrada acá, correr el optimizador; esto es la salida, no el atajo."
+  ],
+  "archivos": {
+    "/images/entradas/cronopatia-del-aburrimiento-el-caso-de-ernest-lang/portada.webp": "1259×1600 y 539 KB con calidad 55, el suelo del optimizador. Es un escaneo con mucho grano: bajar más la calidad se ve. Reemplazar por un original mejor si aparece."
+  }
+}

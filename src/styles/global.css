@@ -142,12 +142,14 @@
      selector de atributo va directo en vez de depender de una variante de Tailwind
      (que no puede generar variantes de una clase de @layer components como esta). */
   .filter-chip-active,
+  .archivo-catalogo-chip[data-active='true'],
   .numeros-chip[data-active='true'] {
     background: #ffffff;
     color: #000000;
   }
 
   :root[data-theme='light'] .filter-chip-active,
+  :root[data-theme='light'] .archivo-catalogo-chip[data-active='true'],
   :root[data-theme='light'] .numeros-chip[data-active='true'] {
     background: rgb(var(--color-accent));
     color: rgb(var(--color-canvas));

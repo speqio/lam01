@@ -1,10 +1,10 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { normalizeTitleText } from '../lib/text';
+import { normalizeTitleText, splitNumeroTitle } from '../lib/text';
 import ColeccionEstampillas from '../components/ui/ColeccionEstampillas.astro';
 import HeroAnagram from '../components/HeroAnagram.astro';
-import ArchivoExplorer from '../components/ArchivoExplorer.astro';
+import ArchivoCatalogo from '../components/ArchivoCatalogo.astro';
 import HoverRevealHero from '../components/HoverRevealHero.astro';
 import CategoriasCards from '../components/CategoriasCards.astro';
 
@@ -44,7 +44,59 @@ const ultimasEntradasItems = ultimasEntradas.map(({ entrada, autor, categoria, t
   coverImage: entrada.data.portada,
 }));
 
+/* El archivo, filtrable desde el home con los mismos filtros de /archivo
+   (ArchivoCatalogo.astro, vista de estampillas). Antes esta sección era ArchivoExplorer:
+   cinco paneles que solo llevaban a /archivo, /autores, /categorias y /numeros. Ahora se
+   filtra acá mismo y los resultados son la hoja de estampillas verticales.
+
+   TOPE DE 100 ENTRADAS, las más recientes: el home no es el archivo. Con las 323 la
+   página se volvía interminable y su HTML pesaba como /archivo entero. Debajo de la hoja
+   queda el botón que lleva al catálogo completo, que no tiene tope. */
+const LIMITE_HOME = 100;
+
+const catalogoCompleto = todasConRelaciones.map(({ entrada, autor, categoria, traductor }) => ({
+  slug: entrada.id,
+  title: entrada.data.titulo,
+  authorName: autor?.data.nombre ?? '',
+  translatorName: traductor?.data.nombre,
+  categoryName: categoria?.data.nombre ?? '',
+  coverImage: entrada.data.portada,
+  coverAlt: entrada.data.portadaAlt,
+  anio: entrada.data.fecha.getUTCFullYear(),
+  categoriaSlug: categoria?.id ?? '',
+  numeroSlug: entrada.data.numero,
+}));
+
+const catalogoItems = catalogoCompleto.slice(0, LIMITE_HOME);
+const hayMasQueElTope = catalogoCompleto.length > catalogoItems.length;
+
+/* Las opciones de los filtros salen de las 100 que se muestran, no del catálogo
+   completo: un chip o una opción que deje la grilla vacía porque esa categoría/año/número
+   quedó fuera del tope no sirve de nada. El catálogo sin recortar está en /archivo. */
+const slugsCategoriaEnHome = new Set(catalogoItems.map((item) => item.categoriaSlug));
+const slugsNumeroEnHome = new Set(catalogoItems.map((item) => item.numeroSlug));
+const nombresAutorEnHome = new Set(catalogoItems.map((item) => item.authorName));
+
+const catalogoAnios = Array.from(new Set(catalogoItems.map((item) => item.anio))).sort(
+  (a, b) => b - a
+);
+
 const categorias = await getCollection('categorias');
+
+const catalogoCategorias = categorias
+  .filter((categoria) => slugsCategoriaEnHome.has(categoria.id))
+  .map((categoria) => ({ slug: categoria.id, label: categoria.data.nombre }))
+  .sort((a, b) => a.label.localeCompare(b.label, 'es'));
+
+const catalogoAutores = (await getCollection('autores'))
+  .map((autor) => autor.data.nombre)
+  .filter((nombre) => nombresAutorEnHome.has(nombre))
+  .sort((a, b) => a.localeCompare(b, 'es'));
+
+const catalogoNumeros = numeros
+  .filter((numero) => slugsNumeroEnHome.has(numero.id))
+  .map((numero) => ({ slug: numero.id, label: splitNumeroTitle(numero.data.titulo).titulo }))
+  .sort((a, b) => b.slug.localeCompare(a.slug));
 
 // Ilustración fija por categoría para el carrusel del home (public/images/categorias/)
 // — no la portada de la última entrada, que cambiaba cada vez que se publicaba algo
@@ -134,5 +186,57 @@ const CATEGORIA_IMAGENES: Record<string, string> = {
     )
   }
 
-  <ArchivoExplorer entradas={todasLasEntradas} />
+  <section id="archivo-explorer" class="mb-16 md:mb-32 md:mt-24 lg:mb-40 lg:mt-32">
+    <div class="mb-6 flex items-end justify-between gap-4 md:mb-10">
+      <div>
+        <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-accent">
+          Todo lo publicado
+        </span>
+        <h2 class="font-headline text-2xl leading-none tracking-tight text-ink md:text-4xl lg:text-6xl">
+          Archivo
+        </h2>
+      </div>
+      {/* "Al azar": no tiene destino fijo. Lleva los slugs de todas las entradas en un
+          data-* y al apretarlo elige uno y navega ahí mismo, así cada visita ofrece algo
+          distinto. Es lo único que se rescató del ArchivoExplorer que había antes acá. */}
+      <button
+        type="button"
+        data-azar={JSON.stringify(catalogoCompleto.map((item) => item.slug))}
+        class="shrink-0 rounded-full border border-ink/30 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-ink transition-colors hover:border-ink hover:bg-ink hover:text-canvas md:px-5 md:py-2.5 md:text-xs"
+      >
+        Al azar
+      </button>
+    </div>
+
+    <ArchivoCatalogo
+      vista="estampillas"
+      items={catalogoItems}
+      anios={catalogoAnios}
+      categorias={catalogoCategorias}
+      autorNombres={catalogoAutores}
+      numeros={catalogoNumeros}
+    />
+
+    {
+      hayMasQueElTope && (
+        <div class="mt-10 flex justify-center md:mt-14">
+          <a
+            href="/archivo"
+            class="rounded-full border border-accent px-5 py-2.5 font-mono text-[11px] uppercase tracking-widest text-accent transition-colors hover:bg-accent hover:text-canvas md:px-7 md:py-3 md:text-xs"
+          >
+            Accede al archivo completo
+          </a>
+        </div>
+      )
+    }
+  </section>
+
+  <script>
+    const azar = document.querySelector<HTMLButtonElement>('[data-azar]');
+    azar?.addEventListener('click', () => {
+      const slugs: string[] = JSON.parse(azar.dataset.azar ?? '[]');
+      if (slugs.length === 0) return;
+      window.location.href = `/${slugs[Math.floor(Math.random() * slugs.length)]}`;
+    });
+  </script>
 </BaseLayout>

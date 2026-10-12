@@ -1,5 +1,7 @@
 ---
 import EntradaTicket from './ui/EntradaTicket.astro';
+import ColeccionEstampillas from './ui/ColeccionEstampillas.astro';
+import { normalizeTitleText } from '../lib/text';
 
 /**
  * Catálogo completo del archivo, con filtros — único componente de /archivo.astro
@@ -56,9 +58,47 @@ interface Props {
   categorias: FiltroOpcion[];
   autorNombres: string[];
   numeros: FiltroOpcion[];
+  /**
+   * Cómo se muestran los resultados. `tickets` es la grilla de boletos de /archivo;
+   * `estampillas` es la hoja de estampillas verticales que usa el home. El mecanismo de
+   * filtrado es el mismo en las dos: los `data-*` por item y classList.toggle('hidden').
+   * ColeccionEstampillas los cuelga de cada hueco con su prop `filtrable`.
+   */
+  vista?: 'tickets' | 'estampillas';
+  /**
+   * Qué controles de filtro se ofrecen. `dropdowns` es el juego completo
+   * (año/categoría/número + buscador de autor) de /archivo y del home.
+   * `chips-categoria` deja SOLO las categorías, como chips, para /categorias: esa
+   * página existe para entrar por género, y los otros tres filtros ahí sobran.
+   */
+  controles?: 'dropdowns' | 'chips-categoria';
 }
 
-const { items, anios, categorias, autorNombres, numeros } = Astro.props;
+const {
+  items,
+  anios,
+  categorias,
+  autorNombres,
+  numeros,
+  vista = 'tickets',
+  controles = 'dropdowns',
+} = Astro.props;
+
+/* Cuántas entradas tiene cada categoría, para el contador del chip. Solo se calcula
+   cuando hay chips. */
+const conteoPorCategoria = new Map<string, number>();
+if (controles === 'chips-categoria') {
+  for (const item of items) {
+    conteoPorCategoria.set(item.categoriaSlug, (conteoPorCategoria.get(item.categoriaSlug) ?? 0) + 1);
+  }
+}
+
+/* Mismas clases que FilterChip.astro, que es un <a> a la página ya filtrada: acá el
+   chip es un <button> porque filtra en cliente, sin navegar. El estado activo lo pinta
+   .archivo-catalogo-chip[data-active='true'] en global.css, junto a los otros chips del
+   sitio, para que los tres se vean igual en tema oscuro y claro. */
+const chipClass =
+  'archivo-catalogo-chip inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-widest text-ink transition-colors border-ink/20 hover:border-ink/40 data-[active=true]:border-transparent';
 
 const triggerClass =
   'archivo-catalogo-trigger inline-flex items-center gap-2 rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:border-ink/40 aria-expanded:border-accent aria-expanded:text-ink focus:outline-none md:text-sm';
@@ -76,6 +116,42 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
 {
   items.length > 0 && (
     <div class="archivo-catalogo mt-12 md:mt-16">
+      {controles === 'chips-categoria' ? (
+        /* El contenedor lleva data-dropdown="categoria" y data-value para que
+           aplicarFiltros() —compartido con la variante de dropdowns— lo lea igual, sin
+           un segundo mecanismo de filtrado. */
+        <div
+          class="archivo-catalogo-filtros mb-10 flex flex-wrap justify-center gap-3"
+          data-dropdown="categoria"
+          data-value="all"
+          role="group"
+          aria-label="Filtrar por categoría"
+        >
+          <button
+            type="button"
+            class={chipClass}
+            data-chip
+            data-value="all"
+            data-active="true"
+            aria-pressed="true"
+          >
+            Todas
+            <span class="opacity-60">({items.length})</span>
+          </button>
+          {categorias.map((categoria) => (
+            <button
+              type="button"
+              class={chipClass}
+              data-chip
+              data-value={categoria.slug}
+              aria-pressed="false"
+            >
+              {categoria.label}
+              <span class="opacity-60">({conteoPorCategoria.get(categoria.slug) ?? 0})</span>
+            </button>
+          ))}
+        </div>
+      ) : (
       <div
         class="archivo-catalogo-filtros mb-10 flex flex-wrap justify-center gap-3 md:justify-start"
         role="group"
@@ -159,7 +235,26 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
           />
         </div>
       </div>
+      )}
 
+      {vista === 'estampillas' ? (
+        <ColeccionEstampillas
+          disposicion="grilla"
+          filtrable
+          items={items.map((item) => ({
+            title: normalizeTitleText(item.title),
+            authorName: item.authorName,
+            translatorName: item.translatorName,
+            categoryName: item.categoryName,
+            slug: item.slug,
+            coverImage: item.coverImage,
+            coverAlt: item.coverAlt,
+            anio: item.anio,
+            categoriaSlug: item.categoriaSlug,
+            numeroSlug: item.numeroSlug,
+          }))}
+        />
+      ) : (
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" data-catalogo-grid>
         {items.map((item) => (
           <div
@@ -183,6 +278,7 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
           </div>
         ))}
       </div>
+      )}
 
       <p class="hidden py-12 text-center font-sans text-ink-muted" data-catalogo-vacio>
         Ningún resultado coincide con estos filtros.
@@ -254,7 +350,11 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
 </style>
 
 <script>
-  const dropdowns = Array.from(document.querySelectorAll<HTMLElement>('.archivo-catalogo-dropdown'));
+  /* Por [data-dropdown] y no por la clase: así el mismo aplicarFiltros() lee tanto los
+     dropdowns como el grupo de chips de categoría, que declara el filtro de la misma
+     forma (data-dropdown + data-value) sin ser un dropdown. El bucle que engancha
+     trigger/menú más abajo sale solo cuando esas partes no están. */
+  const dropdowns = Array.from(document.querySelectorAll<HTMLElement>('[data-dropdown]'));
   const autorInput = document.querySelector<HTMLInputElement>('[data-filtro-autor]');
   const items = Array.from(document.querySelectorAll<HTMLElement>('[data-catalogo-item]'));
   const vacioMsg = document.querySelector<HTMLElement>('[data-catalogo-vacio]');
@@ -318,6 +418,24 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
       });
     });
   });
+
+  /* Chips de categoría (/categorias): escriben el mismo data-value que elegiría el
+     dropdown de categoría. Un solo listener delegado en el grupo. */
+  const grupoChips = document.querySelector<HTMLElement>('.archivo-catalogo-filtros[data-dropdown]');
+  if (grupoChips) {
+    const chips = Array.from(grupoChips.querySelectorAll<HTMLButtonElement>('[data-chip]'));
+    grupoChips.addEventListener('click', (event) => {
+      const chip = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-chip]');
+      if (!chip) return;
+      grupoChips.dataset.value = chip.dataset.value ?? 'all';
+      chips.forEach((c) => {
+        if (c === chip) c.dataset.active = 'true';
+        else delete c.dataset.active;
+        c.setAttribute('aria-pressed', String(c === chip));
+      });
+      aplicarFiltros();
+    });
+  }
 
   document.addEventListener('click', (event) => {
     if (!(event.target instanceof Node)) return;

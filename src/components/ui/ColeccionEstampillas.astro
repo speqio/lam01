@@ -63,6 +63,12 @@ export interface EstampillaItem {
   slug: string;
   coverImage?: string;
   coverAlt?: string;
+  /* Claves de filtrado, opcionales: solo las usa `filtrable` (ver abajo). Van en el
+     hueco y no en la estampilla porque el hueco es el que se esconde — la estampilla
+     puede estar mudada al escenario del foco en ese momento. */
+  anio?: number;
+  categoriaSlug?: string;
+  numeroSlug?: string;
 }
 
 interface Props {
@@ -75,11 +81,22 @@ interface Props {
    * `columna`: una sola fila VERTICAL, con el dial al costado. Es lo que usa la carpeta
    * abierta de /numeros: una columna se adapta a cualquier ancho sin saber cuánto lugar
    * hay, y deja el gesto en el eje en el que la gente ya está leyendo.
+   *
+   * `grilla`: estampillas VERTICALES (el mockup del hero, de pie) en una grilla que
+   * ocupa todo el ancho disponible en cualquier tamaño de pantalla — 2 columnas en
+   * mobile y hasta 5 en pantallas grandes. Sin carril ni gesto: nunca hay scroll
+   * horizontal que capturar. Es lo que usa el buscador del archivo en el home.
    */
-  disposicion?: 'hoja' | 'tira' | 'columna';
+  disposicion?: 'hoja' | 'tira' | 'columna' | 'grilla';
+  /**
+   * Cuelga de cada hueco los `data-*` que espera el script de filtrado de
+   * ArchivoCatalogo.astro (`data-catalogo-item`, año/categoría/número/autor), para que
+   * esa misma colección se pueda filtrar sin que este componente sepa nada de filtros.
+   */
+  filtrable?: boolean;
 }
 
-const { items, columnas = 4, disposicion = 'hoja' } = Astro.props;
+const { items, columnas = 4, disposicion = 'hoja', filtrable = false } = Astro.props;
 
 /* Una entrada sin `portada` muestra la estampilla vacía, con su título como única
    marca. Es a propósito: rellenar con la tapa de un número sería mostrar una imagen que
@@ -89,8 +106,9 @@ const { items, columnas = 4, disposicion = 'hoja' } = Astro.props;
 <div
   class:list={[
     'coleccion',
-    disposicion !== 'hoja' && 'coleccion--lineal',
+    (disposicion === 'tira' || disposicion === 'columna') && 'coleccion--lineal',
     disposicion === 'columna' && 'coleccion--columna',
+    disposicion === 'grilla' && 'coleccion--grilla',
   ]}
   data-coleccion
   data-disposicion={disposicion}
@@ -106,7 +124,16 @@ const { items, columnas = 4, disposicion = 'hoja' } = Astro.props;
   <div class="coleccion-pliego" data-pliego>
     {
       items.map((item, i) => (
-        <div class="estampilla-hueco">
+        <div
+          class="estampilla-hueco"
+          data-catalogo-item={filtrable ? '' : undefined}
+          data-anio={filtrable ? item.anio : undefined}
+          data-categoria={filtrable ? item.categoriaSlug : undefined}
+          data-numero={filtrable ? item.numeroSlug : undefined}
+          data-autor-nombre={
+            filtrable ? (item.authorName ?? '').toLocaleLowerCase('es') : undefined
+          }
+        >
           <div class="estampilla" data-estampilla data-indice={i}>
             <div class="estampilla-cara estampilla-perforada">
               {item.coverImage ? (
@@ -146,7 +173,7 @@ const { items, columnas = 4, disposicion = 'hoja' } = Astro.props;
   </div>
 
   {
-    disposicion !== 'hoja' && items.length > 1 && (
+    (disposicion === 'tira' || disposicion === 'columna') && items.length > 1 && (
       /* Dial de paginación: la misma pieza de NumeroSequence y de la galería de la
          entrada (clases en lib/dialNav.ts). El gesto sigue siendo el scroll nativo del
          carril; el dial solo lo refleja y dice en qué entrada va. En columna las clases
@@ -169,6 +196,21 @@ const { items, columnas = 4, disposicion = 'hoja' } = Astro.props;
     )
   }
 
+  {
+    disposicion !== 'grilla' && items.length > 1 && (
+      /* Difuminado en los dos extremos del carril, mismo criterio (y mismo degradado al
+         canvas) que las máscaras de la rueda de categorías: sin esto, la estampilla que
+         entra o sale del carril se corta contra un borde recto y duro. En la columna va
+         arriba y abajo; en la hoja y la tira, a izquierda y derecha, y en la hoja además
+         solo mientras el carril existe (en desktop pasa a ser grilla y no hay nada que
+         difuminar). */
+      <>
+        <div class="coleccion-difuminado coleccion-difuminado--inicio" aria-hidden="true" />
+        <div class="coleccion-difuminado coleccion-difuminado--fin" aria-hidden="true" />
+      </>
+    )
+  }
+
   {/* Telón y escenario del foco: cuelgan de la raíz, que no tiene transform propio —
       dentro del pliego, un `fixed` se resolvería contra el ancestro transformado. */}
   <div class="coleccion-telon" data-telon aria-hidden="true"></div>
@@ -188,6 +230,17 @@ const { items, columnas = 4, disposicion = 'hoja' } = Astro.props;
 
 <style>
   .coleccion {
+    /* ANCHO EXPLÍCITO, NO SHRINK-TO-FIT. Era el motivo de que la tira no se pudiera
+       desplazar en pantallas chicas dentro de la carpeta de /numeros: la caja de esa
+       ventana es un flex column con `align-items: center`, así que la colección medía
+       su contenido (las dieciséis estampillas en fila, miles de píxeles) en vez del
+       ancho disponible. Con el carril más ancho que su contenido no hay desborde, y sin
+       desborde `overflow-x: auto` no desplaza nada: el gesto no hacía nada y la hoja
+       quedaba recortada por el `overflow: hidden` de la ventana. */
+    width: 100%;
+    /* El difuminado de los extremos del carril se ancla acá. No rompe el `fixed` del
+       telón ni del escenario: eso solo lo hace un transform/filter en un ancestro. */
+    position: relative;
     --est-w: 240px;
     /* Las proporciones del mockup del hero, ACOSTADAS. */
     --est-h: calc(var(--est-w) * 300 / 460);
@@ -226,8 +279,16 @@ const { items, columnas = 4, disposicion = 'hoja' } = Astro.props;
   .coleccion-pliego {
     display: flex;
     gap: var(--aire);
+    /* min-width: 0 por lo mismo que el width de la raíz: dentro de un flex/grid padre,
+       la base de un contenedor con overflow es su contenido si no se la acota, y el
+       carril volvía a medir toda la fila. */
+    min-width: 0;
     overflow-x: auto;
-    scroll-snap-type: x mandatory;
+    /* `proximity` y no `mandatory`: con mandatory el navegador se niega a quedar en una
+       posición intermedia y, en pantallas donde entra más de una estampilla, pelea con
+       el gesto en vez de acompañarlo. */
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
     padding: 1.5rem 1rem 2rem;
     scrollbar-width: none;
   }
@@ -237,6 +298,7 @@ const { items, columnas = 4, disposicion = 'hoja' } = Astro.props;
 
   /* COLUMNA: el mismo carril, de arriba abajo, con el dial al costado. */
   .coleccion--columna {
+    position: relative;
     display: flex;
     align-items: stretch;
     gap: 1rem;
@@ -246,8 +308,54 @@ const { items, columnas = 4, disposicion = 'hoja' } = Astro.props;
     max-height: min(68vh, 620px);
     overflow-x: hidden;
     overflow-y: auto;
-    scroll-snap-type: y mandatory;
+    scroll-snap-type: y proximity;
     padding: 0.5rem 0;
+  }
+
+  /* El difuminado de los extremos del carril, con el mismo degradado al canvas que usa
+     la rueda de categorías en sus bordes. No intercepta el gesto.
+     Por defecto (hoja y tira) el carril es horizontal, así que va a los costados. */
+  .coleccion-difuminado {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2.5rem;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .coleccion-difuminado--inicio {
+    left: 0;
+    background: linear-gradient(to right, rgb(var(--color-canvas)), transparent);
+  }
+  .coleccion-difuminado--fin {
+    right: 0;
+    background: linear-gradient(to left, rgb(var(--color-canvas)), transparent);
+  }
+
+  /* En la columna el carril corre de arriba abajo: el mismo degradado, girado. */
+  .coleccion--columna .coleccion-difuminado {
+    top: auto;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 3.5rem;
+  }
+  .coleccion--columna .coleccion-difuminado--inicio {
+    top: 0;
+    background: linear-gradient(to bottom, rgb(var(--color-canvas)), transparent);
+  }
+  .coleccion--columna .coleccion-difuminado--fin {
+    bottom: 0;
+    background: linear-gradient(to top, rgb(var(--color-canvas)), transparent);
+  }
+
+  /* La hoja solo tiene carril en pantallas chicas: en desktop es grilla a todo el ancho
+     y un degradado sobre sus bordes taparía las estampillas de las puntas. */
+  @media (min-width: 768px) {
+    .coleccion:not(.coleccion--lineal) .coleccion-difuminado {
+      display: none;
+    }
   }
   .coleccion--columna .estampilla-hueco {
     margin: 0 auto;
@@ -321,15 +429,65 @@ const { items, columnas = 4, disposicion = 'hoja' } = Astro.props;
   @media (min-width: 768px) {
     /* En tira y en columna esta grilla no corre: el carril se mantiene en todos los
        anchos. */
-    .coleccion:not(.coleccion--lineal) .coleccion-pliego {
+    .coleccion:not(.coleccion--lineal):not(.coleccion--grilla) .coleccion-pliego {
       display: grid;
-      grid-template-columns: repeat(var(--columnas), var(--est-w));
+      /* 1fr y no var(--est-w): la hoja ocupa EXACTAMENTE el ancho de la sección, así sus
+         bordes caen a plomo con el título ("Últimas entradas") y con el botón de la
+         derecha. Con un ancho fijo centrado la hoja quedaba más angosta que el
+         encabezado y las dos cosas no se alineaban con nada. Las estampillas crecen
+         hasta llenarla. */
+      grid-template-columns: repeat(var(--columnas), minmax(0, 1fr));
       gap: var(--aire);
-      justify-content: center;
       overflow: visible;
-      /* Solo el aire que necesita una estampilla al levantarse en el borde. */
+      /* Sin aire a los costados: el borde de la hoja ES el borde de la sección. */
       padding: 1.5rem 0 2rem;
     }
+    /* La estampilla ya no mide --est-w: la mide la columna, y la proporción acostada la
+       sostiene aspect-ratio. */
+    .coleccion:not(.coleccion--lineal):not(.coleccion--grilla) .estampilla-hueco {
+      width: auto;
+      height: auto;
+      aspect-ratio: 460 / 300;
+    }
+  }
+
+  /* GRILLA: estampillas DE PIE (la proporción del mockup, sin acostar) repartidas en
+     todo el ancho. Dos columnas en mobile y hasta cinco en pantallas grandes, siempre
+     pegadas borde con borde como la hoja. No hay carril ni gesto que capturar en ningún
+     ancho: es la disposición segura para una lista larga en mobile. */
+  .coleccion--grilla .coleccion-pliego {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--aire);
+    overflow: visible;
+    padding: 0;
+  }
+  .coleccion--grilla .estampilla-hueco {
+    width: auto;
+    height: auto;
+    aspect-ratio: 300 / 460;
+  }
+  @media (min-width: 640px) {
+    .coleccion--grilla .coleccion-pliego {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1024px) {
+    .coleccion--grilla .coleccion-pliego {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1280px) {
+    .coleccion--grilla .coleccion-pliego {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+  /* La ficha abierta también se pone de pie, y se mide desde el ALTO para que nunca pase
+     de la ventana (la estampilla vertical es más alta que ancha: partir del ancho, como
+     hace la hoja, daba una ficha de más de 700px de alto). */
+  .coleccion--grilla {
+    --card-h: min(68vh, 620px);
+    --card-w: calc(var(--card-h) * 300 / 460);
   }
 
   /* Sin giro ni hover: la estampilla solo muestra su cara, y lo único que pasa al

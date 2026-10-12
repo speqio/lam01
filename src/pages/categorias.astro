@@ -1,37 +1,83 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import FilterChip from '../components/ui/FilterChip.astro';
 import PageHeader from '../components/ui/PageHeader.astro';
+import ArchivoCatalogo from '../components/ArchivoCatalogo.astro';
 
-const categorias = await getCollection('categorias');
-const entradas = await getCollection('entradas');
+/*
+ * La página no es una lista de links a /category/[slug]: muestra TODAS las entradas de
+ * entrada y los chips de categoría filtran los resultados ahí mismo. Reusa
+ * ArchivoCatalogo.astro con `controles="chips-categoria"` —solo las categorías, sin los
+ * filtros de año/número/autor, que en esta página sobran— y la vista de estampillas.
+ * Las páginas /category/[slug] siguen existiendo y son las que linkea el resto del
+ * sitio; esto es el acceso por género, no un reemplazo de aquellas.
+ */
+const todasLasEntradas = await getCollection('entradas');
 
-const categoriasConConteo = categorias
-  .map((categoria) => ({
-    categoria,
-    cantidad: entradas.filter((entrada) => entrada.data.categoria === categoria.id).length,
-  }))
-  .sort((a, b) => b.cantidad - a.cantidad);
+const entradasConRelaciones = await Promise.all(
+  todasLasEntradas.map(async (entrada) => {
+    const autor = await getEntry('autores', entrada.data.autor);
+    const categoria = await getEntry('categorias', entrada.data.categoria);
+    const traductor = entrada.data.traducidoPor
+      ? await getEntry('autores', entrada.data.traducidoPor)
+      : null;
+    return { entrada, autor, categoria, traductor };
+  })
+);
+
+entradasConRelaciones.sort(
+  (a, b) => b.entrada.data.fecha.valueOf() - a.entrada.data.fecha.valueOf()
+);
+
+const catalogoItems = entradasConRelaciones.map(({ entrada, autor, categoria, traductor }) => ({
+  slug: entrada.id,
+  title: entrada.data.titulo,
+  authorName: autor?.data.nombre ?? '',
+  translatorName: traductor?.data.nombre,
+  categoryName: categoria?.data.nombre ?? '',
+  coverImage: entrada.data.portada,
+  coverAlt: entrada.data.portadaAlt,
+  anio: entrada.data.fecha.getUTCFullYear(),
+  categoriaSlug: categoria?.id ?? '',
+  numeroSlug: entrada.data.numero,
+}));
+
+/* Las categorías van ordenadas por cantidad de entradas, igual que los chips de antes:
+   los géneros con más material primero. Las que no tienen ninguna entrada no se
+   muestran — un chip que deja la grilla vacía no sirve de nada. */
+const cantidadPorCategoria = new Map<string, number>();
+for (const item of catalogoItems) {
+  cantidadPorCategoria.set(item.categoriaSlug, (cantidadPorCategoria.get(item.categoriaSlug) ?? 0) + 1);
+}
+
+const categoriaOpciones = (await getCollection('categorias'))
+  .map((categoria) => ({ slug: categoria.id, label: categoria.data.nombre }))
+  .filter((categoria) => (cantidadPorCategoria.get(categoria.slug) ?? 0) > 0)
+  .sort(
+    (a, b) =>
+      (cantidadPorCategoria.get(b.slug) ?? 0) - (cantidadPorCategoria.get(a.slug) ?? 0)
+  );
 ---
 
 <BaseLayout
   title="Categorías — La Antorcha Magacín"
   description="Explora la revista por género: poesía, cuento, ensayo y crónica."
 >
-  <PageHeader eyebrow="Géneros" title="Categorías" />
-
-  <div class="flex flex-wrap justify-center gap-3">
-    {
-      categoriasConConteo.map(({ categoria, cantidad }) => (
-        <FilterChip href={`/category/${categoria.id}`} label={categoria.data.nombre} count={cantidad} />
-      ))
-    }
-  </div>
+  <PageHeader eyebrow="Nuestro catálogo" title="Categorías" />
 
   {
-    categoriasConConteo.length === 0 && (
+    catalogoItems.length === 0 ? (
       <p class="text-center font-sans text-ink-muted">Todavía no hay categorías cargadas.</p>
+    ) : (
+      <ArchivoCatalogo
+        vista="estampillas"
+        controles="chips-categoria"
+        items={catalogoItems}
+        anios={[]}
+        categorias={categoriaOpciones}
+        autorNombres={[]}
+        numeros={[]}
+      />
     )
   }
 </BaseLayout>

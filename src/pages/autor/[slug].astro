@@ -40,7 +40,13 @@ entradasConRelaciones.sort(
 
 <BaseLayout
   title={autor.data.metaTitulo || `${autor.data.nombre} — La Antorcha Magacín`}
-  description={autor.data.metaDescripcion || autor.data.biografia}
+  description={
+    autor.data.metaDescripcion ||
+    autor.data.biografia ||
+    /* Sin biografía (ahora es opcional) caía en la descripción genérica del sitio, igual
+       para todos los autores. Esta al menos nombra a la persona. */
+    `Todo lo que ${autor.data.nombre} ha publicado en La Antorcha Magacín.`
+  }
 >
   <NumeroSequence
     titulo={autor.data.nombre}

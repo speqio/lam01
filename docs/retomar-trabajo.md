@@ -58,6 +58,55 @@ Confirmá primero que `keystatic` no tiene guardados del cliente sin fusionar
 Si hay commits ahí que no estén en `main`, son guardados pendientes de un PR —
 no los pises.
 
+## 6. Si vas a tocar código (componentes, scripts, integrations/)
+
+El código va directo a `main` (push directo, no por PR de Keystatic — ver
+`flujo-keystatic.md`). Después de subirlo, traé `main` a `keystatic` para que
+no se desincronicen (si no, el siguiente `cerrar-ciclo` se va a quejar de un
+archivo "sin fusionar" que en realidad es solo código que `keystatic` todavía
+no tiene):
+
+```bash
+git checkout main
+git add <archivos>
+git commit -m "..."
+git push origin main
+
+node scripts/keystatic-sync.mjs traer-main
+```
+
+Para un cambio grande que el cliente quiera revisar antes de que quede en
+vivo, usar una rama aparte (`git checkout -b <nombre>`, push, y armar el PR
+`<nombre> → main` en GitHub) en vez de pushear directo.
+
+**Assets de código que viven en `public/`** (como
+`public/images/mockups/*.png`, usados por componentes, no por ninguna
+entrada de Keystatic): van en el mismo commit de código, a `main` — no son
+contenido aunque estén en `public/images/`. La regla "no tocar
+`public/images` en `main`" (sección de abajo) es solo para las imágenes de
+`public/images/entradas/`, que sí son contenido de Keystatic.
+
+## 7. Comandos de referencia rápida
+
+| Qué querés hacer | Comando |
+|---|---|
+| Poner la máquina al día | `git fetch origin && git checkout main && git pull --ff-only origin main` |
+| Sincronizar `keystatic` con `main` (después de subir código) | `node scripts/keystatic-sync.mjs traer-main` |
+| Cerrar el ciclo (después de un squash merge a `main`) | `node scripts/keystatic-sync.mjs cerrar-ciclo` |
+| Verificar contenido antes de un PR | `node scripts/verificar-keystatic.mjs` |
+| Build completo | `npm run build` |
+| Optimizar una imagen puntual | `node scripts/optimizar-imagenes.mjs --solo=<slug> --escribir` |
+| Migrar imágenes sueltas del cuerpo a campos editables | `node scripts/migrar-imagenes-inline.mjs --escribir` (ver su cabecera para la regla de cuándo hace carrusel vs individual) |
+| Arrancar el sitio en local | `npm run dev` (si no abre, `npx astro dev stop` primero y reintentar) |
+
+**Si `cerrar-ciclo` se niega** diciendo que `keystatic` tiene "cambios que
+`main` no tiene", antes de asumir que es un guardado real del cliente sin
+fusionar: revisá si lo que falta es un archivo de código (como un asset en
+`public/images/mockups/`) que llegó a `main` por una rama de código distinta
+a `keystatic`. Si es eso, corré `traer-main` primero y repetí `cerrar-ciclo`
+— no es un conflicto real, es que las dos ramas divergieron por caminos
+separados (código vs contenido) y nunca se habían vuelto a juntar.
+
 ---
 
 # Evitar errores de imágenes a futuro
@@ -113,8 +162,10 @@ con el motivo (hoy está vacío a propósito, ver imagenes-y-cms.md).
 Es la causa exacta del conflicto de merge que tuvimos: una portada se subió
 por un lado en `keystatic` y por otro en `main`, mismo nombre de archivo,
 contenido distinto → conflicto binario sin resolución automática. Todo el
-contenido (texto e imágenes) entra **solo** por `keystatic`, vía Keystatic o
-los scripts de migración. `main` es solo código.
+contenido (texto e imágenes de `public/images/entradas/`) entra **solo** por
+`keystatic`, vía Keystatic o los scripts de migración. `main` es solo
+código — lo que incluye los assets de componentes fuera de
+`public/images/entradas/` (ver sección 6 de arriba).
 
 ## No dejar `keystatic` crecer sin fusionar
 

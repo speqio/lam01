@@ -59,7 +59,7 @@ for (const col of Object.keys(config.collections)) {
       else {
         // Campos que Astro exige: si quedan vacíos, el build de todo el sitio falla.
         const vacio = (x) => x === null || x === undefined || String(x).trim() === '';
-        const exigidos = { entradas: ['fecha', 'extracto'], numeros: ['fecha', 'portada'], autores: ['biografia'] }[col] ?? [];
+        const exigidos = { entradas: ['fecha', 'extracto'], numeros: ['fecha', 'portada'], autores: [] }[col] ?? [];
         for (const campo of exigidos) if (vacio(v[campo])) camposVacios.push(`${col}/${slug}: falta "${campo}"`);
         for (const lista of ['galeria', 'imagenesIndividuales']) {
           (v[lista] ?? []).forEach((item, i) => {

@@ -6,7 +6,12 @@ const autores = defineCollection({
   schema: z.object({
     nombre: z.string(),
     foto: z.string().optional(),
-    biografia: z.string(),
+    /* Opcional a propósito: los índices de la revista traen decenas de autores de los
+       que todavía no hay biografía escrita, y exigirla obligaba a inventar texto o a
+       dejar la autoría real sin cargar. La página del autor simplemente no muestra el
+       párrafo cuando está vacío. Tiene que seguir siendo opcional TAMBIÉN en
+       keystatic.config.ts, o Keystatic permitiría guardar algo que el build rechaza. */
+    biografia: z.string().optional(),
     esTraductor: z.boolean().optional(),
     metaTitulo: z.string().optional(),
     metaDescripcion: z.string().optional(),

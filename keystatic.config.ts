@@ -20,8 +20,9 @@ export default config({
         }),
         biografia: fields.text({
           label: 'Biografía',
+          description:
+            'Opcional. Si se deja vacía, la página del autor muestra solo su nombre y sus entradas.',
           multiline: true,
-          validation: { isRequired: true },
         }),
         esTraductor: fields.checkbox({
           label: 'Es traductor',

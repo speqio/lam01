@@ -1,15 +1,26 @@
 ---
 /**
  * Caja de imagen compartida por EntradaImagen.astro y EntradaGaleria.astro: mockup de
- * "foto antigua" (filtro envejecido con viñeta, sombra suave) sobre una caja de proporción
- * fija (3:4 vertical, 4:3 horizontal) con `object-cover`.
+ * "foto antigua" (marco de papel desgastado real, filtro envejecido con viñeta) sobre una
+ * caja de proporción fija (3:4 vertical, 4:3 horizontal) con `object-cover`.
  *
- * Sin marco de papel (se probó con `border-image` sobre
- * public/images/mockups/papel-foto-marco.png, pero a este grosor de borde se veía como un
- * borde blanco recto, no como papel desgastado — se sacó). Si se retoma el marco, hay que
- * resolver antes por qué no se distingue la textura a este tamaño.
+ * El marco va de overlay COMPLETO encima de la foto (no recortado en tiras con
+ * `border-image`: a este grosor de borde la textura se perdía por completo y se veía como
+ * un borde blanco liso). `public/images/mockups/papel-foto-marco-vertical.png` es el PNG
+ * original recortado a su bounding box real (sin el margen transparente de sobra), con el
+ * centro transparente; `papel-foto-marco-horizontal.png` es el mismo archivo rotado 90°
+ * (generado con sharp, no a mano) para las cajas horizontales, porque el marco real es de
+ * proporción vertical y estirarlo directo a 4:3 lo deformaba. Los dos van con
+ * `object-fit: cover`, igual que la foto — la proporción del hueco del marco (~0.67) y la
+ * de nuestras cajas (3:4 = 0.75, o su inversa rotada ≈ 1.42 contra 4:3 = 1.33) son parecidas,
+ * así que el recorte de `cover` es mínimo y no se nota.
  *
- * El filtro de envejecido (grayscale + sepia + contraste) sigue aplicado a la foto.
+ * Ninguno de los dos PNG es contenido de Keystatic (no los referencia ningún frontmatter),
+ * son recursos de código — mismo criterio que public/images/categorias/ o
+ * public/images/home/ (ver cabecera de scripts/optimizar-imagenes.mjs).
+ *
+ * El filtro de envejecido (grayscale + sepia + contraste) sigue aplicado a la foto, no al
+ * marco — el marco ya trae su propio desgaste en la textura del PNG.
  *
  * La orientación/maxAncho vienen de `integrations/portadas.mjs` vía `datosImagen()`
  * (src/lib/portada.ts) — mismo mecanismo que la estampilla de portada (EntradaBanner.astro).
@@ -38,8 +49,16 @@ const esHorizontal = orientacion === 'horizontal';
   style={maxAncho ? `--imagen-max: ${maxAncho}px` : undefined}
 >
   <div class:list={['foto-antigua-marco', esHorizontal ? 'aspect-[4/3]' : 'aspect-[3/4]']}>
-    <img src={imagen} alt={alt} loading={loading} decoding="async" class="h-full w-full object-cover" />
+    <img src={imagen} alt={alt} loading={loading} decoding="async" class="foto-antigua-foto h-full w-full object-cover" />
     <span class="foto-antigua-vineta pointer-events-none absolute inset-0" aria-hidden="true"></span>
+    <img
+      src={esHorizontal ? '/images/mockups/papel-foto-marco-horizontal.png' : '/images/mockups/papel-foto-marco-vertical.png'}
+      alt=""
+      aria-hidden="true"
+      loading={loading}
+      decoding="async"
+      class="foto-antigua-marco-overlay pointer-events-none absolute inset-0 h-full w-full object-cover"
+    />
   </div>
 </div>
 
@@ -66,17 +85,29 @@ const esHorizontal = orientacion === 'horizontal';
 
   .foto-antigua {
     box-sizing: border-box;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
   }
 
   .foto-antigua-marco {
     position: relative;
-    overflow: hidden;
+    /* Sin overflow:hidden: recortaría el drop-shadow del marco (ver abajo), que se
+       proyecta hacia AFUERA de esta caja a propósito. */
   }
 
-  .foto-antigua-marco img {
-    /* Look envejecido: desatura, sube el contraste y tiñe levemente a sepia. */
+  .foto-antigua-marco-overlay {
+    /* `drop-shadow` (no `box-shadow`) a propósito: sigue el canal alfa real del marco —
+       sus bordes y esquinas gastados, irregulares — en vez de proyectar la sombra de un
+       rectángulo perfecto paralelo a la caja, que se vería como un borde recto de más. */
+    filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25));
+    border-radius: 16px;
+  }
+
+  .foto-antigua-foto {
+    /* Look envejecido: desatura, sube el contraste y tiñe levemente a sepia. Solo la foto,
+       no el overlay del marco (es otro <img> dentro del mismo contenedor). */
     filter: grayscale(0.85) sepia(0.2) contrast(1.08) brightness(0.98);
+    /* Mismo radio que .foto-antigua-marco-overlay: si no, asoma un filo recto de la foto
+       por debajo de la esquina redondeada del marco. */
+    border-radius: 16px;
   }
 
   /* Viñeta interior, mismo recurso que .entrada-estampilla-vineta en EntradaBanner.astro. */

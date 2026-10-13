@@ -3,9 +3,9 @@
 ## Antes de entregar / cambiar el DNS
 - ~~**Imágenes originales**~~ **HECHO (2026-10-12).** Las 2.243 referencias (1.261 archivos) se cargaron con `node scripts/migrar-imagenes.mjs descargar | optimizar | instalar`, que baja los originales del WordPress viejo a un staging fuera del repositorio, los optimiza ahí y recién entonces los copia a `public/` y llama a `restaurar`. Quedó en **0 pendientes** (`node scripts/imagenes-pendientes.mjs estado`): 411 MB de originales → 109 MB en el repositorio. Dos bajas conscientes: un hotlink a `cdnx.jumpseller.com` que da 404 (tienda ajena), y la segunda aparición en el cuerpo de una imagen de `donde-empieza-el-camino` que ya se ve en su galería.
 - **Portadas de números:** 24 son provisionales (`scripts/portadas-provisionales.json`); reemplazar por las reales.
-- **Números vacíos:** 12, 24, 27, 28, 29 y 30 no tienen entradas (se conservan para completarlos).
+- **Números vacíos:** 12 y 24 no tienen entradas (se conservan para completarlos). Los 27, 28, 29 y 30 ya las recuperaron: estaban en `sin-numero` y se asignaron por bloque de fecha (2026-10-12). **Falta `numero-05`**, que no existe como ítem.
 - **4 entradas de WordPress en `sin-numero`** (autor "redaccion"): asignarles número y autor reales.
-- **Autores:** solo quedan "Redacción" y "Riccardo Morello"; cargar los reales (las entradas migradas usan "redaccion").
+- **Autores:** se cargaron 63 fichas nuevas desde los índices de la revista (números 26 a 31) y 75 entradas tienen ya su autoría real. Las fichas van solo con el nombre: `biografia` pasó a ser opcional. Las entradas de los números 1 a 25 siguen con "redaccion" — necesitan sus índices para resolverse igual.
 - **`/proyecto-2`:** la página vieja está en `/proyecto-2`; en el sitio nuevo es `/proyecto` (decisión: dejar así, el enlace viejo dará 404).
 - **Tema claro y móvil:** no se verificó el badge compacto en el carrusel móvil, ni la etiqueta del buscador en tema claro, ni la galería de la entrada en un teléfono real.
 

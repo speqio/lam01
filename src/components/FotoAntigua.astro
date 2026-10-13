@@ -1,0 +1,95 @@
+---
+/**
+ * Caja de imagen compartida por EntradaImagen.astro y EntradaGaleria.astro: mockup de
+ * "foto antigua" (papel color crema, sombra, filtro envejecido con viñeta) sobre una caja
+ * de proporción fija (3:4 vertical, 4:3 horizontal) con `object-cover`.
+ *
+ * El borde es CSS puro (sin PNG/SVG de marco que mantener): esquinas levemente redondeadas
+ * + un `border` interior en dos tonos para dar grosor de papel + sombra. No intenta
+ * replicar un borde dentado/rasgado de verdad —eso exigiría una imagen de marco—, es una
+ * aproximación tipográfica del mismo espíritu.
+ *
+ * El papel es color crema fijo (no sigue --color-canvas): es parte del mockup, se ve igual
+ * en tema claro y oscuro. Lo que sí respeta el tema es el fondo de la página detrás de la
+ * figura.
+ *
+ * La orientación/maxAncho vienen de `integrations/portadas.mjs` vía `datosImagen()`
+ * (src/lib/portada.ts) — mismo mecanismo que la estampilla de portada (EntradaBanner.astro).
+ */
+interface Props {
+  imagen: string;
+  alt: string;
+  orientacion: 'vertical' | 'horizontal';
+  /** En px. `null` cuando no se pudo medir: entonces manda el tope del diseño. */
+  maxAncho: number | null;
+  class?: string;
+  /** 'eager' para la primera imagen visible de una tira (EntradaGaleria.astro); el resto, 'lazy'. */
+  loading?: 'eager' | 'lazy';
+}
+
+const { imagen, alt, orientacion, maxAncho, class: claseExtra, loading = 'lazy' } = Astro.props;
+const esHorizontal = orientacion === 'horizontal';
+---
+
+<div
+  class:list={[
+    'foto-antigua',
+    esHorizontal ? 'foto-antigua--horizontal' : 'foto-antigua--vertical',
+    claseExtra,
+  ]}
+  style={maxAncho ? `--imagen-max: ${maxAncho}px` : undefined}
+>
+  <div class:list={['foto-antigua-marco', esHorizontal ? 'aspect-[4/3]' : 'aspect-[3/4]']}>
+    <img src={imagen} alt={alt} loading={loading} decoding="async" class="h-full w-full object-cover" />
+    <span class="foto-antigua-vineta pointer-events-none absolute inset-0" aria-hidden="true"></span>
+  </div>
+</div>
+
+<style>
+  /* Mismo esquema de topes que EntradaBanner.astro: el menor entre el ancho de columna y el
+     tamaño real de la imagen (`--imagen-max`), para no agrandar una foto chica. */
+  .foto-antigua--vertical {
+    width: min(78vw, 360px, var(--imagen-max, 100vw));
+  }
+
+  .foto-antigua--horizontal {
+    width: min(92vw, 560px, var(--imagen-max, 100vw));
+  }
+
+  @media (min-width: 768px) {
+    .foto-antigua--vertical {
+      width: min(420px, var(--imagen-max, 100vw));
+    }
+
+    .foto-antigua--horizontal {
+      width: min(640px, var(--imagen-max, 100vw));
+    }
+  }
+
+  .foto-antigua {
+    /* Papel color crema, con un poco más de margen abajo que a los lados (resto de polaroid),
+       fijo en los dos temas: es el color del "papel", no del fondo de la página. */
+    background: #ece4d3;
+    padding: 0.55rem 0.55rem 0.85rem;
+    border-radius: 3px;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 6px 16px rgba(0, 0, 0, 0.25);
+  }
+
+  .foto-antigua-marco {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1px;
+  }
+
+  .foto-antigua-marco img {
+    /* Look envejecido: desatura, sube el contraste y tiñe levemente a sepia. */
+    filter: grayscale(0.85) sepia(0.2) contrast(1.08) brightness(0.98);
+  }
+
+  /* Viñeta interior, mismo recurso que .entrada-estampilla-vineta en EntradaBanner.astro. */
+  .foto-antigua-vineta {
+    box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.45);
+  }
+</style>

@@ -1,6 +1,7 @@
 ---
 import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
 import { datosImagen } from '../lib/portada';
+import FotoAntigua from './FotoAntigua.astro';
 
 /**
  * Galería de una entrada: una "cinta" horizontal con scroll-snap NATIVO (mismo patrón que
@@ -10,11 +11,10 @@ import { datosImagen } from '../lib/portada';
  * el fondo y avisa que hay más a ese lado; cada degradado solo aparece cuando hay contenido
  * por ver hacia ese lado.
  *
- * Cada imagen va en una caja de proporción fija (3:4 vertical, 4:3 horizontal) con
- * `object-cover` — mismo mecanismo que EntradaImagen.astro y la estampilla de portada
- * (EntradaBanner.astro), para que las imágenes de la cinta calcen entre sí en vez de alternar
+ * Cada imagen usa el mockup de "foto antigua" (FotoAntigua.astro) — mismo componente que
+ * EntradaImagen.astro, para que las imágenes de la cinta calcen entre sí en vez de alternar
  * anchos y altos sueltos. La cinta en sí sigue siendo una tira de scroll simple: no es el
- * carrusel 3D del home (CategoriasCards.astro), solo se reutiliza su tratamiento de encuadre.
+ * carrusel 3D del home (CategoriasCards.astro).
  *
  * Cada imagen lleva su leyenda debajo. El indicador "01 / N" (`src/lib/dialNav.ts`) sigue a
  * la imagen más cercana al centro.
@@ -48,15 +48,15 @@ const altDe = (item: GaleriaItem) => item.alt || item.leyenda || titulo;
     >
       {items.length === 1 && (() => {
         const { orientacion, maxAncho } = datosImagen(items[0].imagen);
-        const esHorizontal = orientacion === 'horizontal';
         return (
-          <figure
-            class:list={['entrada-galeria-caja mx-auto', esHorizontal ? 'entrada-galeria-caja--horizontal' : 'entrada-galeria-caja--vertical']}
-            style={maxAncho ? `--imagen-max: ${maxAncho}px` : undefined}
-          >
-            <div class:list={['overflow-hidden', esHorizontal ? 'aspect-[4/3]' : 'aspect-[3/4]']}>
-              <img src={items[0].imagen} alt={altDe(items[0])} decoding="async" class="h-full w-full object-cover" />
-            </div>
+          <figure class="mx-auto w-fit max-w-full">
+            <FotoAntigua
+              imagen={items[0].imagen}
+              alt={altDe(items[0])}
+              orientacion={orientacion}
+              maxAncho={maxAncho}
+              class="mx-auto"
+            />
             {items[0].leyenda && (
               <figcaption class="entrada-galeria-leyenda mt-2 font-mono text-xs text-ink-muted">
                 {items[0].leyenda}
@@ -77,25 +77,15 @@ const altDe = (item: GaleriaItem) => item.alt || item.leyenda || titulo;
             >
               {items.map((item, i) => {
                 const { orientacion, maxAncho } = datosImagen(item.imagen);
-                const esHorizontal = orientacion === 'horizontal';
                 return (
-                  <figure
-                    class:list={[
-                      'entrada-galeria-caja shrink-0 snap-center',
-                      esHorizontal ? 'entrada-galeria-caja--horizontal' : 'entrada-galeria-caja--vertical',
-                    ]}
-                    style={maxAncho ? `--imagen-max: ${maxAncho}px` : undefined}
-                    data-galeria-slide
-                  >
-                    <div class:list={['overflow-hidden', esHorizontal ? 'aspect-[4/3]' : 'aspect-[3/4]']}>
-                      <img
-                        src={item.imagen}
-                        alt={altDe(item)}
-                        loading={i === 0 ? 'eager' : 'lazy'}
-                        decoding="async"
-                        class="h-full w-full object-cover"
-                      />
-                    </div>
+                  <figure class="shrink-0 snap-center" data-galeria-slide>
+                    <FotoAntigua
+                      imagen={item.imagen}
+                      alt={altDe(item)}
+                      orientacion={orientacion}
+                      maxAncho={maxAncho}
+                      loading={i === 0 ? 'eager' : 'lazy'}
+                    />
                     {item.leyenda && (
                       <figcaption class="entrada-galeria-leyenda mt-2 font-mono text-xs text-ink-muted">
                         {item.leyenda}
@@ -140,30 +130,14 @@ const altDe = (item: GaleriaItem) => item.alt || item.leyenda || titulo;
     display: none;
   }
 
-  /* Mismo esquema de topes que EntradaImagen.astro/EntradaBanner.astro: el menor entre el
-     ancho de columna y el tamaño real de la imagen (`--imagen-max`). */
-  .entrada-galeria-caja--vertical {
-    width: min(78vw, 360px, var(--imagen-max, 100vw));
-  }
-
-  .entrada-galeria-caja--horizontal {
-    width: min(92vw, 560px, var(--imagen-max, 100vw));
-  }
-
-  @media (min-width: 768px) {
-    .entrada-galeria-caja--vertical {
-      width: min(420px, var(--imagen-max, 100vw));
-    }
-
-    .entrada-galeria-caja--horizontal {
-      width: min(640px, var(--imagen-max, 100vw));
-    }
-  }
-
-  /* Tope extra solo para las cajas dentro del carril (`cqw`, 1% de SU ancho): la figura suelta
-     de 1 sola imagen no tiene un ancestro con `container-type`, así que esta regla no le
-     aplica a ella — `cqw` sin contenedor contenedor resolvería a 0. */
-  .entrada-galeria-carousel [data-galeria-slide] {
+  /* Tope extra solo para las cajas dentro del carril (`cqw`, 1% de SU ancho): el ancho base
+     de cada caja lo pone FotoAntigua.astro (`.foto-antigua--vertical/horizontal`); esto solo
+     la recorta más si el carril es más angosto que ese ancho. `:global()` porque .foto-antigua
+     es markup de un componente hijo, no de este archivo — sin eso el selector no matchearía
+     (ver scoping de estilos de Astro). La figura suelta de 1 sola imagen no tiene un
+     ancestro con `container-type`, así que esta regla no le aplica a ella — `cqw` sin
+     contenedor resolvería a 0. */
+  .entrada-galeria-carousel :global(.foto-antigua) {
     max-width: 90cqw;
   }
 

@@ -1,0 +1,352 @@
+# Imágenes con duotono amarillo/rojo, para reemplazar
+
+Detectadas analizando los píxeles de las 1.354 imágenes de `public/images`, y verificadas a ojo en los bordes del criterio. El rasgo que las identifica es que **el color es función del brillo**: una rampa de un solo eje, de rojo oscuro a amarillo. Una foto cálida o un sepia no lo cumplen, y por eso quedaron fuera los frescos pompeyanos de `10-epigramas-eroticos`, las litografías del XIX y las fotos de las minas de `animalismo-subsole`.
+
+**205 archivos en 194 entradas.** 186 son portadas.
+
+## Dudosas, decidir a ojo (no están en la lista)
+
+- `delcielo-y-gunen…-comun-silvestre-3/portada.webp` — cartel impreso a dos tintas. Tiene la paleta, pero puede ser el original del afiche y no el tratamiento.
+- `galeria-rectangulo-de-plata-8/polanco-6.jpg` — foto de un papel rojo. Es rojo de verdad, no duotonado.
+
+
+## Ya reemplazadas con el original (2026-10-12)
+
+41 portadas de los números 26, 29 y 30 se reemplazaron por los originales en color que
+entregó la revista, y salen de la lista de abajo. El mapeo salió del índice de cada
+número: por el ordinal del nombre del archivo donde lo traía (29 y 30) y por el nombre
+contra título y autor donde no (26).
+
+Quedan sin resolver, y vuelven a la lista:
+
+- `borges-testigo-del-infinito`: su original (`4. Miguel Ogalde-Borges.jpg`) está dañado
+  —sharp lo rechaza con "Invalid SOS parameters for sequential JPEG"—. Hay que pedirlo
+  de nuevo.
+- Los números **21 a 25** tienen zip pero **no índice**, y sin él el mapeo es ambiguo: los
+  archivos se llaman por autor o por tema ("Antonin Artaud", "Eduardo Cobos") y esas
+  entradas todavía figuran como "redacción". Son 35 portadas esperando esos índices.
+- Los números **4 a 20** no tienen zip (126 imágenes, 65 de ellas en `sin-numero`).
+
+Nota sobre resolución: las portadas duotonadas miden todas 961 px y varios originales son
+menores (601–960 px). Se reemplazaron igual, que es el objetivo de la tanda; a 1400 px de
+tope y una columna de ~700 px la diferencia no se ve.
+
+## Lista
+
+- [ ] **3001**
+      - portada: `portada.jpg`
+- [ ] **4-poemas**
+      - portada: `portada.jpg`
+- [ ] **4-poemas-3**
+      - portada: `portada.webp`
+- [ ] **5-poemas**
+      - portada: `portada.jpg`
+- [ ] **5-poemas-2**
+      - portada: `portada.jpg`
+- [ ] **5-poemas-4**
+      - portada: `portada.jpg`
+- [ ] **5-poemas-5**
+      - portada: `portada.jpg`
+- [ ] **5-poemas-6**
+      - portada: `portada.webp`
+- [ ] **5-poemas-de-la-trilla**
+      - portada: `portada.webp`
+- [ ] **6-poemas-2**
+      - galeria+cuerpo: `juan-pablo-navia.webp`
+      - portada: `portada.jpg`
+- [ ] **6-poemas-3**
+      - portada: `portada.webp`
+- [ ] **7-poemas**
+      - ?: `portada.jpg`
+- [ ] **8-poemas**
+      - portada: `portada.webp`
+- [ ] **a-proposito-de-proteccion-de-la-raza-historias-de-eugenesia-y-profilaxia-social-en-chile-de-guido-flores**
+      - portada+galeria: `proteccion-raza.jpg`
+- [ ] **alfonso-alcalde-y-la-coneja**
+      - portada: `portada.webp`
+- [ ] **andres-royer**
+      - portada: `portada.webp`
+- [ ] **animalismo-subsole-los-invalidos-de-baldomero-lillo**
+      - portada: `portada.webp`
+- [ ] **apuntes-sobre-la-estrella-del-mariachi-yugoslavo-una-sintesis-barrientos-bradasic**
+      - portada: `portada.webp`
+- [ ] **asumir-pero-hasta-ahi-noma-ideas-sobre-no-soy-yo**
+      - portada: `portada.jpg`
+- [ ] **bandera-negra-al-choque**
+      - portada: `portada.webp`
+- [ ] **bandera-roja**
+      - portada: `portada.jpg`
+- [ ] **bangutot**
+      - portada: `portada.jpg`
+- [ ] **bano**
+      - portada: `portada.webp`
+- [ ] **bastonero-de-aldea**
+      - portada+cuerpo: `portada.jpg`
+- [ ] **bolano-o-la-capacidad-humana-de-danar-un-sondeo-por-su-ficcion-breve**
+      - portada: `portada.webp`
+- [ ] **borges-testigo-del-infinito**
+      - portada: `portada.webp`
+- [ ] **camion-de-carga**
+      - portada: `portada.webp`
+- [ ] **carta-de-amor-a-j-alfred-prufrock**
+      - galeria+cuerpo: `cartamor.webp`
+      - portada: `portada.jpg`
+- [ ] **carver-o-la-molestia-de-lo-cotidiano**
+      - portada: `portada.jpg`
+- [ ] **casas-de-luz-para-criaturas-pequenas**
+      - portada: `portada.jpg`
+- [ ] **catalejo-30-anos-en-su-propia-tinta**
+      - portada: `portada.jpg`
+- [ ] **causa-de-muerte-sobre-el-hombre-de-juan-rulfo**
+      - portada: `portada.webp`
+- [ ] **chacabuco-calle-rota-en-todo-chile-presentacion-de-ruptugrafia-de-alex-bay**
+      - portada: `portada.jpg`
+- [ ] **ckausama-ritos-del-despojo-de-boris-durandeau**
+      - portada: `portada.webp`
+- [ ] **colmo-de-juan-antonio-bley-la-energia-del-futuro-que-no-fue**
+      - portada: `portada.webp`
+- [ ] **combustion-interna**
+      - portada: `portada.jpg`
+- [ ] **conmigo-dios-el-perro-y-su-lengua**
+      - portada: `portada.webp`
+- [ ] **cristina-galvez-martos**
+      - portada: `portada.webp`
+- [ ] **cristobal-gaete-mi-lugar-en-las-letras-nacionales-es-absolutamente-marginal**
+      - portada: `portada.webp`
+- [ ] **daniel-camacho-francabandiera**
+      - portada: `portada.webp`
+- [ ] **de-chamanes-y-poetas-malditos**
+      - portada+galeria: `artaud.webp`
+- [ ] **defensa-del-marxismo-de-jose-carlos-mariategui-presentacion-a-la-segunda-reedicion**
+      - portada: `portada.jpg`
+- [ ] **deseo-rescate-desgaste-un-ejercicio-oulipiano**
+      - galeria+cuerpo: `deseo.webp`
+      - portada: `portada.jpg`
+- [ ] **desordenes**
+      - portada: `portada.webp`
+- [ ] **despues-de-las-doce-ya-se-puede-tomar**
+      - portada: `portada.jpg`
+- [ ] **docupoesia-y-deseo-de-archivo**
+      - portada: `portada.webp`
+- [ ] **dos-hermanas**
+      - portada: `portada.jpg`
+- [ ] **el-archivo-historiador-y-su-soporte**
+      - portada: `portada.webp`
+- [ ] **el-asco-y-el-grito-de-sergio-rojas**
+      - portada: `portada.jpg`
+- [ ] **el-bolero-impudico-de-patricio-contreras**
+      - portada: `portada.jpg`
+- [ ] **el-bombero-del-mar**
+      - portada: `portada.jpg`
+- [ ] **el-espejismo-industrial-del-cine-latinoamericano-1936-1950**
+      - portada: `portada.webp`
+- [ ] **el-factor-ecologico-en-la-critica-literaria**
+      - portada: `portada.jpg`
+- [ ] **el-feminismo-se-hizo-palabra-y-sentido-comun**
+      - portada: `portada.jpg`
+- [ ] **el-fin-del-acontecimiento-otra-pregunta-por-el-futuro-de-la-historia**
+      - galeria+cuerpo: `muro.webp`
+      - portada: `portada.jpg`
+- [ ] **el-horizonte-utopico-de-lo-venidero**
+      - portada: `portada.jpg`
+- [ ] **el-impacto-indefinible-sentir-poesia-leer-poesia-escribir-poesia**
+      - portada: `portada.webp`
+- [ ] **el-jardin-de-manzanos-de-alejandra-wolleter-y-fabiola-narvaez**
+      - portada: `portada.jpg`
+- [ ] **el-mudo**
+      - portada: `portada.jpg`
+- [ ] **el-olvido-de-los-conventillos-la-mirada-elitista-del-valparaiso-patrimonial**
+      - portada: `portada.webp`
+- [ ] **el-patio-de-atras**
+      - portada: `portada.jpg`
+- [ ] **empedocles-dios-supuesto**
+      - portada: `portada.jpg`
+- [ ] **escribir**
+      - portada: `portada.jpg`
+- [ ] **feliz-cumpleanos-vecino-artista**
+      - portada: `portada.jpg`
+- [ ] **fernanda-meza**
+      - portada: `portada.jpg`
+- [ ] **folie-a-deux-presentacion-de-vida-y-muerte-de-satan-el-fuego-de-artaud**
+      - portada: `portada.webp`
+- [ ] **fotografo-javier-godoy-lo-que-me-gusta-del-futbol-es-el-fenomeno-ritual-y-social-al-que-esta-asociado**
+      - portada+galeria+cuerpo: `portada.jpg`
+- [ ] **freud-y-la-religion-de-moises**
+      - portada: `portada.webp`
+- [ ] **frivolidad**
+      - portada: `portada.jpg`
+- [ ] **gabriela-mesones-rojo**
+      - portada: `portada.webp`
+- [ ] **galeria-rectangulo-de-plata-3**
+      - portada: `portada.jpg`
+- [ ] **galeria-rectangulo-de-plata-4**
+      - portada: `portada.jpg`
+- [ ] **galeria-rectangulo-de-plata-5**
+      - portada+galeria+cuerpo: `portada.jpg`
+- [ ] **galeria-rectangulo-de-plata-6**
+      - portada+galeria+cuerpo: `portada.jpg`
+- [ ] **galeria-rectangulo-de-plata-8**
+      - portada: `portada.webp`
+- [ ] **galeria-rectangulo-de-plata-9**
+      - portada: `portada.webp`
+- [ ] **gandhi-un-asesinato-que-siempre-vuelve**
+      - portada: `portada.jpg`
+- [ ] **garrido-cadiz-en-el-submundo**
+      - galeria+cuerpo: `escalera.webp`
+      - portada: `portada.jpg`
+- [ ] **gaspar-penaloza-avsolomovich**
+      - portada: `portada.jpg`
+- [ ] **golpe-a-golpe-verso-a-verso-una-mirada-a-las-poeticas-de-teillier-y-montane**
+      - portada: `portada.jpg`
+- [ ] **grita-la-lluvia-cantan-las-flores-presentacion-del-libro-objeto-marta-de-mariana-zegers-izquierdo**
+      - portada: `portada.jpg`
+- [ ] **intimidad**
+      - portada: `portada.jpg`
+- [ ] **kit-de-supervivencia-de-ninas-que-usaban-baby-g-amarillo-de-natasha-isabella-martinez**
+      - portada: `portada.webp`
+- [ ] **klavdij-sluban-la-experiencia-humana-por-medio-de-la-luz**
+      - portada: `portada.webp`
+- [ ] **la-caracas-suicida-de-ricardo-azuaje**
+      - portada: `portada.jpg`
+- [ ] **la-cultura-juvenil-en-chile-durante-los-anos-60-y-70**
+      - portada: `portada.jpg`
+- [ ] **la-escritura-ginocentrica-de-mary-daly**
+      - portada: `portada.jpg`
+- [ ] **la-espera-es-mala-consejera**
+      - portada: `portada.jpg`
+- [ ] **la-exempla-de-sylvia-plath-alejandro-salas**
+      - portada: `portada.jpg`
+- [ ] **la-hegemonia-norteamericana-en-america-latina-i-desde-el-plan-marshall-a-la-intervencion-en-guatemala-1945-1952**
+      - portada: `portada.jpg`
+- [ ] **la-hegemonia-norteamericana-en-america-latina-ii-la-conciencia-norteamericana-la-revolucion-de-fidel-y-la-alianza-para-el-progreso-1958-1965**
+      - galeria+cuerpo: `10kmiles4.webp`
+      - portada: `portada.jpg`
+- [ ] **la-hegemonia-norteamericana-en-america-latina-iii-doctrina-de-seguridad-nacional-su-aplicacion-en-chile-la-insercion-del-neoliberalismo-y-el-consenso-de-washington-1964-1990**
+      - portada: `portada.jpg`
+- [ ] **la-memoria-de-los-libros**
+      - portada: `portada.jpg`
+- [ ] **la-proteccion-de-la-raza-chilena-historias-de-eugenesia-y-profilaxia-social**
+      - portada: `portada.jpg`
+- [ ] **la-quebrada**
+      - portada: `portada.jpg`
+- [ ] **la-residencia-de-paula-lavanderos-en-la-usera-de-madrid**
+      - portada+cuerpo: `portada.jpg`
+- [ ] **la-salida-insurreccional-a-la-dictadura-y-el-surgimiento-del-fpmr-autonomo**
+      - portada: `portada.jpg`
+- [ ] **la-urbex-de-la-lengua**
+      - portada: `portada.jpg`
+- [ ] **las-aves**
+      - portada: `portada.jpg`
+- [ ] **lo-que-el-ojo-no-ve-la-imaginacion-lo-atraviesa**
+      - portada: `portada.jpg`
+- [ ] **los-aeroplanos-de-brescia**
+      - portada: `portada.jpg`
+- [ ] **los-grandes-mamiferos-o-la-increible-historia-de-amor-entre-un-caballo-y-una-barcaza**
+      - portada: `portada.webp`
+- [ ] **los-monstruos-del-nuevo-mundo-una-vision-europea**
+      - portada: `portada.jpg`
+- [ ] **mallarme-y-los-libros**
+      - portada: `portada.jpg`
+- [ ] **mas-noticias-desde-los-poemas-poeticas-investigativas-documentales-sociales-en-el-decimo-aniversario-de-la-publicacion-de-from-reznikoff-to-public-enemyi**
+      - portada: `portada.webp`
+- [ ] **nunca-tuve-un-cuarto-propio**
+      - portada: `portada.jpg`
+- [ ] **pamela-rahn-sanchez**
+      - portada: `portada.webp`
+- [ ] **pancho-sazo-no-tenemos-vuelta-estamos-condenados-a-ser-seres-humanos**
+      - portada: `portada.jpg`
+- [ ] **paolo-bortolameolli-el-maestro-que-no-para-nunca**
+      - portada: `portada.jpg`
+- [ ] **pasaje-cerrado**
+      - portada: `portada.jpg`
+- [ ] **pase-por-copiapo**
+      - galeria+cuerpo: `copiapo.webp`
+      - portada: `portada.jpg`
+- [ ] **poema-y-duelo-sobre-ninos-en-el-rio-de-teofilo-cid**
+      - portada: `portada.jpg`
+- [ ] **poemas-de-amor-y-muerte-a-proposito-de-dido-la-amante-de-dios-de-santos-lopez**
+      - portada: `portada.webp`
+- [ ] **poemas-de-luz-que-ya-no-era-antologia-poetica**
+      - portada: `portada.webp`
+- [ ] **poesia-transactivismos-y-otros-cuentos-analisis-descarrilado-sobre-transpoesia-y-la-guerra-cultural-en-curso**
+      - portada: `portada.jpg`
+- [ ] **postfacio-en-intercepto-intercambio-interrumpido-a-limo-de-natalia-rojas**
+      - portada: `portada.jpg`
+- [ ] **presentacion-de-el-tiempo-del-silencio-las-cartas-de-mi-abuelo-durante-el-exilio-insilio-de-leticia-martinez**
+      - portada: `portada.webp`
+- [ ] **presentacion-de-que-hay-detras-de-la-ventana-letra-imagen-musica-arte-x-roberto-bolano**
+      - portada: `portada.jpg`
+- [ ] **presentacion-zorian-ramirez-espinoza**
+      - portada: `portada.webp`
+- [ ] **que-es-el-pensamiento-politico-radical-algunas-consideraciones-ejecutivas**
+      - portada: `portada.jpg`
+- [ ] **quimantu-ediciones-para-el-poder-popular**
+      - portada: `portada.webp`
+- [ ] **raices-ritos-y-huacas-un-camino-que-se-abre**
+      - portada: `portada.jpg`
+- [ ] **recabarren-el-despertar-de-los-trabajadores-y-la-casa-del-pueblo**
+      - portada: `portada.jpg`
+- [ ] **recuerdos-del-porvenir**
+      - portada: `portada.jpg`
+- [ ] **reflexiones-sobre-diversidad-e-interculturalidad-en-la-escuela**
+      - portada: `portada.webp`
+- [ ] **ricardo-azuaje-a-cuatro-tiempos-y-la-narrativa-venezolana-de-los-90**
+      - galeria+cuerpo: `4tiempos.webp`
+      - portada: `portada.jpg`
+- [ ] **rodrigo-arroyo-castro-inubicalistas-privilegia-lo-que-no-esta-necesariamente-en-el-lugar-del-canon-literario-o-las-ventas**
+      - portada: `portada.webp`
+- [ ] **sobre-la-belleza-o-el-tiempo**
+      - portada: `portada.webp`
+- [ ] **sobre-la-oscuridad-y-sus-efectos-en-dos-poemas-de-jorge-teillier**
+      - portada: `portada.jpg`
+- [ ] **socavon-zombi**
+      - portada: `portada.jpg`
+- [ ] **stasiologia-guerra-civil-formas-de-vida-capitalismo-de-rodrigo-karmy-los-momentos-del-texto**
+      - portada: `portada.jpg`
+- [ ] **tejer-redes-de-lo-invisible-el-surgimiento-del-campo-cultural-en-chile-i**
+      - portada: `portada.jpg`
+- [ ] **tercer-mundo-y-sur-global-algunas-consideraciones-conceptuales**
+      - portada: `portada.jpg`
+- [ ] **terror-consenso-y-monumento-politicas-de-patrimonio-cultural-en-las-dictaduras-de-chile-y-uruguay-1973-1989**
+      - galeria+cuerpo: `monumento.webp`
+      - portada: `portada.jpg`
+- [ ] **tinturas-madres**
+      - portada: `portada.webp`
+- [ ] **todo-por-dana-presentacion-de-ninas-piromanas**
+      - portada: `portada.jpg`
+- [ ] **too-much-munch**
+      - portada: `portada.jpg`
+- [ ] **traccion-a-sangre-de-sergio-guerra-la-intima-victoria-de-lo-comun**
+      - portada: `portada.jpg`
+- [ ] **trizaduras-refracciones-y-silencios-una-poetica-de-la-transparencia-en-objetos-de-vidrio-de-jaime-villanueva-donoso**
+      - portada: `portada.jpg`
+- [ ] **turismo-del-abandono-o-turistas-en-el-abandono**
+      - portada: `portada.jpg`
+- [ ] **un-angel-no-tiene-anatomia-lectura-de-samotracia-de-ida-gramcko**
+      - portada: `portada.webp`
+- [ ] **un-cine-que-baila-1-el-desierto-de-nacer-khemir**
+      - portada: `portada.jpg`
+- [ ] **un-cine-que-baila-2-la-petite-vendeuse-du-soleil-de-mambety-diop**
+      - galeria+cuerpo: `cinequebaila.webp`
+      - portada: `portada.jpg`
+- [ ] **un-paseo-circular**
+      - portada: `portada.jpg`
+- [ ] **un-viaje-a-la-selva-peruana**
+      - portada: `portada.jpg`
+- [ ] **una-roca-se-deshilacha-en-el-calor-del-utero-o-algo-asi-presentacion-de-retablo-de-natalia-rojas**
+      - portada: `portada.jpg`
+      - galeria+cuerpo: `rocas.webp`
+- [ ] **valparaiso-ciudad-de-contradicciones**
+      - portada: `portada.jpg`
+- [ ] **variaciones-sobre-el-punto-de-vista-sobre-la-agonia-de-las-imagenes-de-rodrigo-arroyo**
+      - portada: `portada.webp`
+- [ ] **verdades-verdaderas**
+      - portada: `portada.jpg`
+- [ ] **viaje-a-italia**
+      - portada: `portada.webp`
+- [ ] **yhonais-lemus**
+      - portada: `portada.webp`
+- [ ] **yo-le-doy-mi-nombre-de-viviana-ponce-escudero**
+      - portada: `portada.jpg`
+- [ ] **zapping-de-mauricio-tapia-rojo-la-television-analoga-que-nos-crio-2**
+      - portada: `portada.webp`

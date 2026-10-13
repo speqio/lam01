@@ -559,13 +559,11 @@ const { orientacion, maxAncho } = datosPortada(portada);
     overflow-y: auto;
   }
 
-  /* En modo lectura las imágenes de la cinta bajan de altura para que cinta, leyendas e
-     indicador quepan en el alto del bloque (80vh) sin scroll vertical. Solo cambia el
-     tamaño: la proporción y los colores siguen siendo los originales. */
-  #entrada-content.is-reading-mode .entrada-reading-fade [data-galeria-slide] img {
-    max-height: min(42vh, 400px);
-    max-width: 100cqw;
-  }
+  /* Antes acá se bajaba la altura de cada imagen de la cinta a mano: ya no hace falta,
+     EntradaGaleria.astro le da a cada una una caja de ancho fijo (ver
+     .foto-antigua--vertical/horizontal en FotoAntigua.astro), que ya queda dentro del tope
+     de 80vh del bloque. Si `.entrada-reading-fade` no alcanza, cae a su propio
+     `overflow-y: auto`. */
 
   /* Prosa: bloque centrado en el stage. */
   .entrada-reading-block.entrada-block {
@@ -604,5 +602,16 @@ const { orientacion, maxAncho } = datosPortada(portada);
     max-width: 100%;
     margin-inline: auto;
     object-fit: contain;
+  }
+
+  /* La regla de arriba es para imágenes sueltas del cuerpo (sin caja propia). Las de
+     imagenesIndividuales/galeria SÍ tienen el mockup de foto antigua (FotoAntigua.astro,
+     con su propia caja de proporción fija y object-cover) y no deben perderlo en modo
+     lectura. */
+  #entrada-content.is-reading-mode .foto-antigua img {
+    max-height: none;
+    max-width: none;
+    margin-inline: 0;
+    object-fit: cover;
   }
 </style>

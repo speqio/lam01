@@ -6,10 +6,14 @@
  * `entrada/[slug].astro` para reubicarla en el texto y tratarla como un bloque más del
  * modo lectura.
  *
- * La imagen se muestra tal cual la subió el editor: sin recorte (nada de `object-cover` ni
- * cajas de proporción fija) y sin filtros de color. Ocupa su tamaño natural, limitado al
- * ancho de la columna y al alto de la pantalla, así que nunca se estira ni se deforma.
+ * La imagen se muestra con el mockup de "foto antigua" (FotoAntigua.astro): caja de
+ * proporción fija, marco de papel y filtro envejecido. Mismo componente que usa
+ * EntradaGaleria.astro, para que varias imágenes de distinta proporción seguidas en el
+ * cuerpo calcen entre sí en vez de alternar anchos y altos sueltos.
  */
+import FotoAntigua from './FotoAntigua.astro';
+import { datosImagen } from '../lib/portada';
+
 interface Props {
   imagen: string;
   alt?: string;
@@ -19,6 +23,7 @@ interface Props {
 }
 
 const { imagen, alt, leyenda, posicion, titulo } = Astro.props;
+const { orientacion, maxAncho } = datosImagen(imagen);
 ---
 
 <figure
@@ -27,13 +32,7 @@ const { imagen, alt, leyenda, posicion, titulo } = Astro.props;
   data-etiqueta="Imagen"
   data-posicion={posicion ?? ''}
 >
-  <img
-    src={imagen}
-    alt={alt || leyenda || titulo}
-    loading="lazy"
-    decoding="async"
-    class="entrada-imagen block h-auto max-h-[80vh] w-auto max-w-full border border-ink/15"
-  />
+  <FotoAntigua imagen={imagen} alt={alt || leyenda || titulo} orientacion={orientacion} maxAncho={maxAncho} class="mx-auto" />
   {
     leyenda && (
       <figcaption class="entrada-leyenda mt-2 font-mono text-xs text-ink-muted">{leyenda}</figcaption>

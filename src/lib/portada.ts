@@ -1,14 +1,16 @@
 /**
- * Datos de la portada de una entrada que el banner (EntradaBanner.astro) necesita:
+ * Datos de orientación de una imagen de entrada (portada, o cualquier imagen de
+ * `imagenesIndividuales`/`galeria`):
  *
- *  - `orientacion`: elige la forma de la estampilla, 3:4 si es vertical y 4:3 si es horizontal.
+ *  - `orientacion`: elige la forma de la caja, 3:4 si es vertical y 4:3 si es horizontal.
  *  - `maxAncho`: ancho máximo al que se puede mostrar sin agrandarla. La imagen rellena la caja
- *    con `object-cover`, y las portadas del sitio van de 399x467 a 3436x4970: sin este tope las
+ *    con `object-cover`, y las imágenes del sitio van de 399x467 a 3436x4970: sin este tope las
  *    más chicas saldrían borrosas al estirarse hasta el tamaño del diseño.
  *
  * Los mide la integración `integrations/portadas.mjs` leyendo la cabecera de cada archivo, y
- * los entrega por el módulo virtual `virtual:portadas-orientacion`. Ese rodeo es necesario, no
- * un capricho: las portadas viven en `public/`, fuera del pipeline de assets de Astro, y el
+ * los entrega por el módulo virtual `virtual:portadas-orientacion` (el mismo mapa cubre las
+ * tres fuentes de imagen, con la ruta pública como clave). Ese rodeo es necesario, no un
+ * capricho: las imágenes viven en `public/`, fuera del pipeline de assets de Astro, y el
  * prerender del adaptador de Cloudflare corre en workerd, donde ni `sharp` ni `node:fs` pueden
  * leer del disco (ambas comprobadas acá). La integración, en cambio, corre en Node al cargar la
  * configuración.
@@ -35,3 +37,10 @@ export function datosPortada(rutaPublica: string | undefined): DatosPortada {
   if (!rutaPublica) return { orientacion: 'vertical', maxAncho: null };
   return portadas[rutaPublica] ?? { orientacion: 'vertical', maxAncho: null };
 }
+
+/**
+ * Mismo lookup que `datosPortada`, con el nombre que corresponde cuando la ruta es de
+ * `imagenesIndividuales`/`galeria` en vez de `portada`. Es la misma función: el mapa que
+ * entrega `virtual:portadas-orientacion` ya cubre las tres fuentes por igual.
+ */
+export const datosImagen = datosPortada;

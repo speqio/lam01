@@ -1,0 +1,102 @@
+---
+/**
+ * Caja de imagen compartida por EntradaImagen.astro y EntradaGaleria.astro: mockup de
+ * "foto antigua" (marco de papel desgastado real, filtro envejecido con viñeta) sobre una
+ * caja de proporción fija (3:4 vertical, 4:3 horizontal) con `object-cover`.
+ *
+ * El marco es `public/images/mockups/papel-foto-marco.png` (PNG con alpha, recortado a su
+ * bounding box real — sin el margen transparente de sobra que traía el original) aplicado
+ * con `border-image`: estira cada borde por separado según `border-image-slice`, así que UN
+ * solo archivo sirve igual para la caja vertical y la horizontal, sin distorsionar las
+ * esquinas. El asset no es contenido de Keystatic (no lo referencia ningún frontmatter), es
+ * un recurso de código — mismo criterio que public/images/categorias/ o public/images/home/
+ * (ver cabecera de scripts/optimizar-imagenes.mjs).
+ *
+ * El porcentaje de `border-image-slice` (5% arriba/abajo, 7% a los lados) sale de medir el
+ * grosor real del marco contra el tamaño del recorte (1564×2219 px): ~110px de marco contra
+ * ~1564/2219 de lado. Si se reemplaza el PNG por otro con proporciones de marco distintas,
+ * hay que volver a medir esos porcentajes.
+ *
+ * El filtro de envejecido (grayscale + sepia + contraste) sigue aplicado a la foto, no al
+ * marco — el marco ya trae su propio desgaste en la textura del PNG.
+ *
+ * La orientación/maxAncho vienen de `integrations/portadas.mjs` vía `datosImagen()`
+ * (src/lib/portada.ts) — mismo mecanismo que la estampilla de portada (EntradaBanner.astro).
+ */
+interface Props {
+  imagen: string;
+  alt: string;
+  orientacion: 'vertical' | 'horizontal';
+  /** En px. `null` cuando no se pudo medir: entonces manda el tope del diseño. */
+  maxAncho: number | null;
+  class?: string;
+  /** 'eager' para la primera imagen visible de una tira (EntradaGaleria.astro); el resto, 'lazy'. */
+  loading?: 'eager' | 'lazy';
+}
+
+const { imagen, alt, orientacion, maxAncho, class: claseExtra, loading = 'lazy' } = Astro.props;
+const esHorizontal = orientacion === 'horizontal';
+---
+
+<div
+  class:list={[
+    'foto-antigua',
+    esHorizontal ? 'foto-antigua--horizontal' : 'foto-antigua--vertical',
+    claseExtra,
+  ]}
+  style={maxAncho ? `--imagen-max: ${maxAncho}px` : undefined}
+>
+  <div class:list={['foto-antigua-marco', esHorizontal ? 'aspect-[4/3]' : 'aspect-[3/4]']}>
+    <img src={imagen} alt={alt} loading={loading} decoding="async" class="h-full w-full object-cover" />
+    <span class="foto-antigua-vineta pointer-events-none absolute inset-0" aria-hidden="true"></span>
+  </div>
+</div>
+
+<style>
+  /* Mismo esquema de topes que EntradaBanner.astro: el menor entre el ancho de columna y el
+     tamaño real de la imagen (`--imagen-max`), para no agrandar una foto chica. */
+  .foto-antigua--vertical {
+    width: min(78vw, 360px, var(--imagen-max, 100vw));
+  }
+
+  .foto-antigua--horizontal {
+    width: min(92vw, 560px, var(--imagen-max, 100vw));
+  }
+
+  @media (min-width: 768px) {
+    .foto-antigua--vertical {
+      width: min(420px, var(--imagen-max, 100vw));
+    }
+
+    .foto-antigua--horizontal {
+      width: min(640px, var(--imagen-max, 100vw));
+    }
+  }
+
+  .foto-antigua {
+    /* `box-sizing: border-box` para que el borde del marco quede DENTRO del ancho que ya
+       fijan .foto-antigua--vertical/horizontal, en vez de sumarse a él. */
+    box-sizing: border-box;
+    border-style: solid;
+    border-width: 22px 28px;
+    border-image-source: url('/images/mockups/papel-foto-marco.png');
+    border-image-slice: 5% 7%;
+    border-image-repeat: stretch;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .foto-antigua-marco {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .foto-antigua-marco img {
+    /* Look envejecido: desatura, sube el contraste y tiñe levemente a sepia. */
+    filter: grayscale(0.85) sepia(0.2) contrast(1.08) brightness(0.98);
+  }
+
+  /* Viñeta interior, mismo recurso que .entrada-estampilla-vineta en EntradaBanner.astro. */
+  .foto-antigua-vineta {
+    box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.45);
+  }
+</style>

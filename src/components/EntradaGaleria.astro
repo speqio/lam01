@@ -1,22 +1,24 @@
 ---
 import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
+import { datosImagen } from '../lib/portada';
+import FotoAntigua from './FotoAntigua.astro';
 
 /**
- * Galería de una entrada: una "cinta" horizontal donde cada imagen se ve completa, con su
- * proporción y sus colores originales (sin recorte ni filtros).
- * - Cada imagen se muestra en su tamaño natural (nunca se agranda), limitada al ancho de
- *   la columna y a ~60vh de alto: una vertical queda angosta, una panorámica ancha. Nada
- *   de cajas de proporción fija con `object-cover`, que recortarían fotos de formatos
- *   mixtos, ni de estirar todas a una misma altura, que desenfocaría las chicas.
- * - Un solo diseño para escritorio y móvil, con scroll-snap NATIVO (mismo patrón que
- *   NumeroSequence.astro — nada de Draggable/Observer controlando el carril, ver el
- *   comentario ahí). Sin botones de navegación: en los extremos hay un degradado del color
- *   de fondo de la página (`--color-canvas`, así también funciona en el tema claro) que
- *   funde las imágenes con el fondo y avisa que hay más a ese lado; cada degradado solo
- *   aparece cuando hay contenido por ver hacia ese lado.
- * - Cada imagen lleva su leyenda debajo. El indicador "01 / N" (`src/lib/dialNav.ts`)
- *   sigue a la imagen más cercana al centro.
- * - 1 sola imagen: se muestra sola, en su tamaño natural, sin cinta ni indicador.
+ * Galería de una entrada: una "cinta" horizontal con scroll-snap NATIVO (mismo patrón que
+ * NumeroSequence.astro — nada de Draggable/Observer controlando el carril, ver el comentario
+ * ahí). Sin botones de navegación: en los extremos hay un degradado del color de fondo de la
+ * página (`--color-canvas`, así también funciona en el tema claro) que funde las imágenes con
+ * el fondo y avisa que hay más a ese lado; cada degradado solo aparece cuando hay contenido
+ * por ver hacia ese lado.
+ *
+ * Cada imagen usa el mockup de "foto antigua" (FotoAntigua.astro) — mismo componente que
+ * EntradaImagen.astro, para que las imágenes de la cinta calcen entre sí en vez de alternar
+ * anchos y altos sueltos. La cinta en sí sigue siendo una tira de scroll simple: no es el
+ * carrusel 3D del home (CategoriasCards.astro).
+ *
+ * Cada imagen lleva su leyenda debajo. El indicador "01 / N" (`src/lib/dialNav.ts`) sigue a
+ * la imagen más cercana al centro.
+ * - 1 sola imagen: se muestra sola, en su caja, sin cinta ni indicador.
  */
 interface GaleriaItem {
   imagen: string;
@@ -44,21 +46,26 @@ const altDe = (item: GaleriaItem) => item.alt || item.leyenda || titulo;
       data-etiqueta="Galería"
       data-posicion={posicion ?? ''}
     >
-      {items.length === 1 ? (
-        <figure class="mx-auto w-fit max-w-full">
-          <img
-            src={items[0].imagen}
-            alt={altDe(items[0])}
-            decoding="async"
-            class="entrada-imagen block h-auto max-h-[80vh] w-auto max-w-full border border-ink/15"
-          />
-          {items[0].leyenda && (
-            <figcaption class="entrada-galeria-leyenda mt-2 font-mono text-xs text-ink-muted">
-              {items[0].leyenda}
-            </figcaption>
-          )}
-        </figure>
-      ) : (
+      {items.length === 1 && (() => {
+        const { orientacion, maxAncho } = datosImagen(items[0].imagen);
+        return (
+          <figure class="mx-auto w-fit max-w-full">
+            <FotoAntigua
+              imagen={items[0].imagen}
+              alt={altDe(items[0])}
+              orientacion={orientacion}
+              maxAncho={maxAncho}
+              class="mx-auto"
+            />
+            {items[0].leyenda && (
+              <figcaption class="entrada-galeria-leyenda mt-2 font-mono text-xs text-ink-muted">
+                {items[0].leyenda}
+              </figcaption>
+            )}
+          </figure>
+        );
+      })()}
+      {items.length > 1 && (
         <>
           <div class="relative">
             <div
@@ -68,22 +75,25 @@ const altDe = (item: GaleriaItem) => item.alt || item.leyenda || titulo;
               aria-label="Galería de imágenes"
               tabindex="0"
             >
-              {items.map((item, i) => (
-                <figure class="w-fit shrink-0 snap-center" data-galeria-slide>
-                  <img
-                    src={item.imagen}
-                    alt={altDe(item)}
-                    loading={i === 0 ? 'eager' : 'lazy'}
-                    decoding="async"
-                    class="block h-auto max-h-[min(60vh,520px)] w-auto max-w-[100cqw] border border-ink/15"
-                  />
-                  {item.leyenda && (
-                    <figcaption class="entrada-galeria-leyenda mt-2 font-mono text-xs text-ink-muted">
-                      {item.leyenda}
-                    </figcaption>
-                  )}
-                </figure>
-              ))}
+              {items.map((item, i) => {
+                const { orientacion, maxAncho } = datosImagen(item.imagen);
+                return (
+                  <figure class="shrink-0 snap-center" data-galeria-slide>
+                    <FotoAntigua
+                      imagen={item.imagen}
+                      alt={altDe(item)}
+                      orientacion={orientacion}
+                      maxAncho={maxAncho}
+                      loading={i === 0 ? 'eager' : 'lazy'}
+                    />
+                    {item.leyenda && (
+                      <figcaption class="entrada-galeria-leyenda mt-2 font-mono text-xs text-ink-muted">
+                        {item.leyenda}
+                      </figcaption>
+                    )}
+                  </figure>
+                );
+              })}
             </div>
 
             <div class="entrada-galeria-fade entrada-galeria-fade--izq" aria-hidden="true" data-galeria-fade-izq />
@@ -111,13 +121,24 @@ const altDe = (item: GaleriaItem) => item.alt || item.leyenda || titulo;
      sigue siendo el nativo del navegador (mismo criterio que NumeroSequence.astro). */
   .entrada-galeria-carousel {
     scrollbar-width: none;
-    /* Las imágenes limitan su ancho con `cqw` (1% del ancho de este carril): una imagen
-       ancha nunca queda más ancha que la columna, sin deformarse ni cortarse. */
+    /* `cqw` abajo (1% del ancho de este carril) es el tope extra que evita que una caja se
+       pase del ancho de la columna en pantallas angostas. */
     container-type: inline-size;
   }
 
   .entrada-galeria-carousel::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Tope extra solo para las cajas dentro del carril (`cqw`, 1% de SU ancho): el ancho base
+     de cada caja lo pone FotoAntigua.astro (`.foto-antigua--vertical/horizontal`); esto solo
+     la recorta más si el carril es más angosto que ese ancho. `:global()` porque .foto-antigua
+     es markup de un componente hijo, no de este archivo — sin eso el selector no matchearía
+     (ver scoping de estilos de Astro). La figura suelta de 1 sola imagen no tiene un
+     ancestro con `container-type`, así que esta regla no le aplica a ella — `cqw` sin
+     contenedor resolvería a 0. */
+  .entrada-galeria-carousel :global(.foto-antigua) {
+    max-width: 90cqw;
   }
 
   /* Degradados de los extremos: van del color de fondo de la página a transparente, así

@@ -50,11 +50,22 @@ export interface ArchivoCatalogoItem {
 interface FiltroOpcion {
   slug: string;
   label: string;
+  /**
+   * La opción existe en el catálogo completo pero NO entre los items que esta página
+   * renderiza — el caso del home, que muestra las 100 entradas más recientes. Antes esas
+   * opciones simplemente no se listaban, y el filtro terminaba mintiendo sobre lo que
+   * existe: en el home llegó a ofrecer 4 números de 29, y daba a entender que la revista
+   * iba por el 26. Ahora se listan todas y elegir una de estas lleva a /archivo ya
+   * filtrada, que es donde está el catálogo sin recortar.
+   */
+  fuera?: boolean;
 }
 
 interface Props {
   items: ArchivoCatalogoItem[];
-  anios: number[];
+  /** Años del catálogo. Misma forma que `categorias` y `numeros` para que los tres
+      puedan marcar opciones `fuera` (ver FiltroOpcion). */
+  anios: FiltroOpcion[];
   categorias: FiltroOpcion[];
   autorNombres: string[];
   numeros: FiltroOpcion[];
@@ -107,7 +118,7 @@ const inputClass =
   'archivo-catalogo-autor rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-ink-muted placeholder:text-ink-muted/70 transition-colors hover:border-ink/40 focus:border-accent focus:outline-none md:text-sm';
 
 const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones: FiltroOpcion[] }> = [
-  { key: 'anio', label: 'Año', ariaLabel: 'Filtrar por año', opciones: anios.map((a) => ({ slug: String(a), label: String(a) })) },
+  { key: 'anio', label: 'Año', ariaLabel: 'Filtrar por año', opciones: anios },
   { key: 'categoria', label: 'Categoría', ariaLabel: 'Filtrar por categoría', opciones: categorias },
   { key: 'numero', label: 'Número', ariaLabel: 'Filtrar por número', opciones: numeros },
 ];
@@ -200,6 +211,7 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
                     role="option"
                     aria-selected="false"
                     data-value={opcion.slug}
+                    data-fuera={opcion.fuera ? 'true' : undefined}
                     class="archivo-catalogo-dropdown-option"
                   >
                     {opcion.label}
@@ -408,15 +420,36 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
       menu.hidden = isOpen;
     });
 
+    const elegir = (option: HTMLButtonElement) => {
+      dropdown.dataset.value = option.dataset.value ?? 'all';
+      label.textContent = option.textContent;
+      options.forEach((o) => o.setAttribute('aria-selected', String(o === option)));
+      closeDropdown(dropdown);
+      aplicarFiltros();
+    };
+
     options.forEach((option) => {
       option.addEventListener('click', () => {
-        dropdown.dataset.value = option.dataset.value ?? 'all';
-        label.textContent = option.textContent;
-        options.forEach((o) => o.setAttribute('aria-selected', String(o === option)));
-        closeDropdown(dropdown);
-        aplicarFiltros();
+        /* Opción que existe en el catálogo pero no entre los items de esta página (ver
+           `fuera` en FiltroOpcion): filtrarla acá dejaría la grilla vacía, así que se
+           delega en /archivo, que tiene el catálogo entero y lee el parámetro al cargar. */
+        if (option.dataset.fuera === 'true') {
+          const clave = dropdown.dataset.dropdown ?? '';
+          const valor = option.dataset.value ?? '';
+          window.location.href = `/archivo?${encodeURIComponent(clave)}=${encodeURIComponent(valor)}`;
+          return;
+        }
+        elegir(option);
       });
     });
+
+    /* Al cargar, aplica el filtro que venga en la URL. Es lo que hace que el salto desde
+       el home llegue a /archivo ya filtrado, y de paso hace enlazable cualquier filtro. */
+    const pedido = new URLSearchParams(window.location.search).get(dropdown.dataset.dropdown ?? '');
+    if (pedido) {
+      const option = options.find((o) => o.dataset.value === pedido);
+      if (option) elegir(option);
+    }
   });
 
   /* Chips de categoría (/categorias): escriben el mismo data-value que elegiría el

@@ -70,32 +70,44 @@ const catalogoCompleto = todasConRelaciones.map(({ entrada, autor, categoria, tr
 const catalogoItems = catalogoCompleto.slice(0, LIMITE_HOME);
 const hayMasQueElTope = catalogoCompleto.length > catalogoItems.length;
 
-/* Las opciones de los filtros salen de las 100 que se muestran, no del catálogo
-   completo: un chip o una opción que deje la grilla vacía porque esa categoría/año/número
-   quedó fuera del tope no sirve de nada. El catálogo sin recortar está en /archivo. */
+/* LOS FILTROS LISTAN TODO EL CATÁLOGO, NO SOLO LAS 100 QUE SE MUESTRAN. Antes salían de
+   las 100 para que ninguna opción dejara la grilla vacía, y el efecto secundario era que
+   el filtro mentía sobre lo que existe: ofrecía 4 números de 29 y daba a entender que la
+   revista iba por el 26. Ahora se listan todas y las que quedan fuera del tope van
+   marcadas con `fuera`, que ArchivoCatalogo.astro resuelve llevando a /archivo ya
+   filtrado — el catálogo completo, que no tiene tope. */
 const slugsCategoriaEnHome = new Set(catalogoItems.map((item) => item.categoriaSlug));
 const slugsNumeroEnHome = new Set(catalogoItems.map((item) => item.numeroSlug));
-const nombresAutorEnHome = new Set(catalogoItems.map((item) => item.authorName));
+const aniosEnHome = new Set(catalogoItems.map((item) => item.anio));
 
-const catalogoAnios = Array.from(new Set(catalogoItems.map((item) => item.anio))).sort(
-  (a, b) => b - a
-);
+const catalogoAnios = Array.from(new Set(catalogoCompleto.map((item) => item.anio)))
+  .sort((a, b) => b - a)
+  .map((anio) => ({ slug: String(anio), label: String(anio), fuera: !aniosEnHome.has(anio) }));
 
 const categorias = await getCollection('categorias');
 
 const catalogoCategorias = categorias
-  .filter((categoria) => slugsCategoriaEnHome.has(categoria.id))
-  .map((categoria) => ({ slug: categoria.id, label: categoria.data.nombre }))
+  .map((categoria) => ({
+    slug: categoria.id,
+    label: categoria.data.nombre,
+    fuera: !slugsCategoriaEnHome.has(categoria.id),
+  }))
   .sort((a, b) => a.label.localeCompare(b.label, 'es'));
 
+/* El buscador de autor sí se queda con los del home: no es una lista desplegable sino
+   sugerencias sobre lo que hay en pantalla, y no tiene a dónde saltar. */
+const nombresAutorEnHome = new Set(catalogoItems.map((item) => item.authorName));
 const catalogoAutores = (await getCollection('autores'))
   .map((autor) => autor.data.nombre)
   .filter((nombre) => nombresAutorEnHome.has(nombre))
   .sort((a, b) => a.localeCompare(b, 'es'));
 
 const catalogoNumeros = numeros
-  .filter((numero) => slugsNumeroEnHome.has(numero.id))
-  .map((numero) => ({ slug: numero.id, label: splitNumeroTitle(numero.data.titulo).titulo }))
+  .map((numero) => ({
+    slug: numero.id,
+    label: splitNumeroTitle(numero.data.titulo).titulo,
+    fuera: !slugsNumeroEnHome.has(numero.id),
+  }))
   .sort((a, b) => b.slug.localeCompare(a.slug));
 
 // Ilustración fija por categoría para el carrusel del home (public/images/categorias/)

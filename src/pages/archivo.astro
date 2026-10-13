@@ -36,7 +36,9 @@ const catalogoItems = entradasConRelaciones.map(({ entrada, autor, categoria, tr
   numeroSlug: entrada.data.numero,
 }));
 
-const anios = Array.from(new Set(catalogoItems.map((item) => item.anio))).sort((a, b) => b - a);
+const anios = Array.from(new Set(catalogoItems.map((item) => item.anio)))
+  .sort((a, b) => b - a)
+  .map((anio) => ({ slug: String(anio), label: String(anio) }));
 
 const todasLasCategorias = await getCollection('categorias');
 const categoriaOpciones = todasLasCategorias

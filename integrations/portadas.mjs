@@ -1,6 +1,7 @@
 /**
- * Integración que mide la orientación de las portadas de las entradas y la deja disponible
- * para los componentes a través del módulo virtual `virtual:portadas-orientacion`.
+ * Integración que mide la orientación de las imágenes de las entradas (portada,
+ * imagenesIndividuales y galeria) y la deja disponible para los componentes a través del
+ * módulo virtual `virtual:portadas-orientacion`.
  *
  * POR QUÉ UNA INTEGRACIÓN Y NO UNA FUNCIÓN EN src/lib. Las portadas viven en
  * `public/images/entradas/<slug>/…`, fuera del pipeline de assets de Astro, y el sitio las
@@ -94,8 +95,17 @@ function medirArchivo(absoluta) {
   return medirPng(b) ?? medirWebp(b) ?? medirJpeg(b);
 }
 
-/** Saca las rutas de `portada:` del frontmatter de cada entrada. */
-function rutasDePortada(raiz) {
+/**
+ * Saca del frontmatter de cada entrada la ruta de `portada:` y la de cada `imagen:` que
+ * aparece dentro de los arrays `imagenesIndividuales`/`galeria` (mismo campo en los dos, por
+ * eso un solo regex global los cubre a ambos). El valor puede venir en línea, entre comillas,
+ * o replegado con ">-" cuando la ruta es larga — las tres formas conviven en el contenido real
+ * (ver `docs/retomar-trabajo.md`).
+ */
+/** Quita comillas envolventes, si las hay. */
+const sinComillas = (s) => s.trim().replace(/^"(.*)"$/, '$1');
+
+function rutasDeImagenes(raiz) {
   const dir = path.join(raiz, 'src', 'content', 'entradas');
   if (!fs.existsSync(dir)) return [];
   const rutas = new Set();
@@ -103,24 +113,39 @@ function rutasDePortada(raiz) {
     const texto = fs.readFileSync(path.join(dir, archivo), 'utf8');
     const fm = /^---\r?\n[\s\S]*?\r?\n---\r?\n/.exec(texto);
     if (!fm) continue;
-    // El valor puede venir en línea o replegado con ">-" cuando la ruta es larga.
-    const m = /^portada:\s*(?:>-\s*\r?\n\s*)?(\S[^\r\n]*)/m.exec(fm[0]);
-    if (m) rutas.add(m[1].trim());
+    const lineas = fm[0].split(/\r?\n/);
+    for (let i = 0; i < lineas.length; i++) {
+      // `portada:` es una clave suelta; `imagen:` es la misma clave repetida dentro de cada
+      // ítem de `imagenesIndividuales`/`galeria` (con o sin "- " delante, según sea el primer
+      // campo del ítem o no) — un único bucle cubre las dos formas.
+      const clave = /^\s*-?\s*(portada|imagen):\s*(.*)$/.exec(lineas[i]);
+      if (!clave) continue;
+      const resto = clave[2].trim();
+      if (resto === '>-' || resto === '|' || resto === '|-') {
+        // Valor replegado: vive solo, indentado, en la línea siguiente.
+        const siguiente = lineas[i + 1];
+        if (siguiente && /^\s+\S/.test(siguiente)) rutas.add(sinComillas(siguiente));
+      } else if (resto) {
+        rutas.add(sinComillas(resto));
+      }
+    }
   }
   return [...rutas];
 }
 
-// Proporción de la caja de la estampilla según orientación (ancho / alto).
+// Proporción de la caja (estampilla de portada, o la caja fija de imagenesIndividuales/
+// galeria) según orientación (ancho / alto). Misma proporción para las dos, a propósito: es
+// lo que hace que las imágenes de cuerpo calcen visualmente con el tratamiento de la portada.
 const CAJA = { vertical: 3 / 4, horizontal: 4 / 3 };
 
 /**
- * Ancho máximo al que se puede mostrar la portada sin agrandarla.
+ * Ancho máximo al que se puede mostrar la imagen sin agrandarla.
  *
  * La imagen rellena la caja con `object-cover`, así que manda el lado que se queda corto: si
  * la foto es relativamente más ancha que la caja, el límite lo pone su alto; si es más
- * estrecha, su ancho. Sin esto las portadas chicas —hay una de 399x467— se verían borrosas al
- * estirarse hasta el tope del diseño, que es justo lo que CLAUDE.md pide evitar con las
- * imágenes pequeñas que sube el editor.
+ * estrecha, su ancho. Sin esto las imágenes chicas —hay una portada de 399x467— se verían
+ * borrosas al estirarse hasta el tope del diseño, que es justo lo que CLAUDE.md pide evitar
+ * con las imágenes pequeñas que sube el editor.
  */
 function anchoMaximo({ ancho, alto }, orientacion) {
   const caja = CAJA[orientacion];
@@ -131,7 +156,7 @@ function construirMapa(raiz, log) {
   const mapa = {};
   let horizontales = 0;
   let sinMedir = 0;
-  for (const ruta of rutasDePortada(raiz)) {
+  for (const ruta of rutasDeImagenes(raiz)) {
     let orientacion = 'vertical';
     // Sin medida fiable no se limita el ancho: manda el tope del diseño.
     let maxAncho = null;
@@ -146,15 +171,15 @@ function construirMapa(raiz, log) {
       }
     } catch (error) {
       sinMedir++;
-      // Una portada que falte o esté corrupta no puede tumbar el build: se asume vertical.
-      log?.warn(`no se pudo medir la portada, se asume vertical: ${ruta} (${error.message})`);
+      // Una imagen que falte o esté corrupta no puede tumbar el build: se asume vertical.
+      log?.warn(`no se pudo medir la imagen, se asume vertical: ${ruta} (${error.message})`);
     }
     if (orientacion === 'horizontal') horizontales++;
     mapa[ruta] = { orientacion, maxAncho };
   }
   const total = Object.keys(mapa).length;
   log?.info(
-    `${total} portadas medidas: ${total - horizontales} verticales, ${horizontales} horizontales` +
+    `${total} imágenes medidas (portada/imagenesIndividuales/galeria): ${total - horizontales} verticales, ${horizontales} horizontales` +
       (sinMedir ? `, ${sinMedir} sin medir` : '')
   );
   return mapa;

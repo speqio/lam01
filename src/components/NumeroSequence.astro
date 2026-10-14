@@ -12,6 +12,7 @@ import {
   ticketCta,
 } from '../lib/ticketCardStyles';
 import EntradaTicket from './ui/EntradaTicket.astro';
+import ColeccionEstampillas from './ui/ColeccionEstampillas.astro';
 
 interface EntradaItem {
   slug: string;
@@ -33,9 +34,38 @@ interface Props {
   tituloLiteral?: boolean;
   /** La descripción se muestra siempre completa (sin plegarse ni desvanecerse al recorrer las cards). */
   descripcionCompleta?: boolean;
+  /**
+   * Con qué pieza se listan las entradas:
+   * - `boletos` (por defecto): la card tipo boleto, en la secuencia apilada de desktop y
+   *   en la tira de mobile. Es lo que sigue usando la página de un autor.
+   * - `estampillas`: la misma mecánica —tira horizontal con scroll nativo y dial— pero
+   *   con la estampilla, que al pulsarla se retira del conjunto y abre su ficha con el
+   *   botón a la entrada. Es lo que usa la página de un número.
+   *
+   * No se cambió el componente entero porque /autor/[slug] lo comparte: la vista es un
+   * prop y no un reemplazo para no tocar esa página de paso.
+   */
+  vista?: 'boletos' | 'estampillas';
 }
 
-const { titulo, descripcion, fechaFormateada, entradas, tituloLiteral = false, descripcionCompleta = false } = Astro.props;
+const {
+  titulo,
+  descripcion,
+  fechaFormateada,
+  entradas,
+  tituloLiteral = false,
+  descripcionCompleta = false,
+  vista = 'boletos',
+} = Astro.props;
+const esEstampillas = vista === 'estampillas';
+const itemsEstampillas = entradas.map((item) => ({
+  title: item.titulo,
+  authorName: item.autorNombre,
+  translatorName: item.translatorName,
+  categoryName: item.categoriaNombre,
+  slug: item.slug,
+  coverImage: item.portada,
+}));
 const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
   ? { titulo, subtitulo: '' }
   : splitNumeroTitle(titulo);
@@ -86,6 +116,7 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
        carruseles anteriores porque no hay ningún Draggable/Observer controlando el
        carril, solo un observador pasivo de su posición. */
   }
+  {!esEstampillas && (
   <div class="numero-entradas-mobile mt-8 flex min-h-[54vh] flex-col justify-center gap-5 md:hidden">
     <div
       class="numero-entradas-scroll flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2"
@@ -122,6 +153,9 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
     }
   </div>
 
+  )}
+
+  {!esEstampillas && (
   <div class="numero-sequence-runway relative hidden w-full md:block md:h-full">
     <div class="numero-sequence-track static h-full w-full overflow-visible">
       {
@@ -147,6 +181,20 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
       }
     </div>
   </div>
+  )}
+
+  {/* Vista de estampillas (página de un número): `tira` ya es "una fila horizontal en
+      cualquier ancho con el dial debajo", o sea la misma mecánica de arriba -- scroll
+      nativo con snap, dial de solo lectura -- pero con la estampilla, que al pulsarla se
+      retira del conjunto y abre su ficha con el botón a la entrada. No hace falta
+      reimplementar nada: el gesto y el dial ya viven en ese componente. */}
+  {
+    esEstampillas && (
+      <div class="numero-entradas-estampillas mt-8 flex min-w-0 items-center md:mt-0 md:h-full">
+        <ColeccionEstampillas items={itemsEstampillas} disposicion="tira" />
+      </div>
+    )
+  }
 </section>
 
 <style>

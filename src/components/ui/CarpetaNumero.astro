@@ -137,6 +137,10 @@ const asoman = items.slice(0, 3);
     display: block;
   }
 
+  .carpeta {
+    --carpeta-radio: 14px;
+  }
+
   .carpeta-pieza {
     position: relative;
     display: block;
@@ -152,7 +156,11 @@ const asoman = items.slice(0, 3);
     justify-content: flex-end;
     gap: 0.15rem;
     overflow: hidden;
-    border-radius: 3px;
+    /* Esquinas redondeadas de la tapa. Van en una custom property porque la portada, el
+       degradado y el filo interior se recortan todos contra este mismo radio: el
+       `overflow: hidden` de aca es lo que redondea la foto que va a sangre adentro, asi
+       que cambiar el numero en un solo lugar alcanza. */
+    border-radius: var(--carpeta-radio);
     padding: 1rem 1.1rem;
     background-color: rgb(var(--carpeta-papel));
     /* Un filo tenue para que la silueta se despegue del fondo del sitio, que también es
@@ -168,6 +176,7 @@ const asoman = items.slice(0, 3);
     position: absolute;
     inset: 0;
     overflow: hidden;
+    border-radius: inherit;
   }
   .carpeta-portada img {
     width: 100%;

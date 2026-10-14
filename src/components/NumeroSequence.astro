@@ -92,6 +92,13 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
         </p>
       )
     }
+
+    {/* Pie de la columna del titulo: la tapa del numero, al otro lado del carrusel.
+        Solo desktop -- en pantallas chicas no hay dos lados, y meterla aca empujaria la
+        tira de estampillas fuera de la primera pantalla. */}
+    <div class="mt-10 hidden md:block">
+      <slot name="tapa" />
+    </div>
   </div>
 
   {

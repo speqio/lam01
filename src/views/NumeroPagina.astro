@@ -67,7 +67,21 @@ const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : 
       translatorName: traductor?.data.nombre,
       portada: entrada.data.portada,
     }))}
-  />
+  >
+    {/* En desktop la tapa va al pie de la columna del titulo, enfrente del carrusel. */}
+    <div slot="tapa" class="w-40 lg:w-48">
+      <CarpetaNumero
+        numero={indiceNumero}
+        titulo={tituloPagina}
+        subtitulo={subtituloPagina}
+        portada={numero.data.portada}
+        href={`/${numero.id}`}
+        fecha={fechaCarpeta}
+        items={[]}
+        soloTapa
+      />
+    </div>
+  </NumeroSequence>
 
   {
     entradasConRelaciones.length === 0 && (
@@ -77,11 +91,12 @@ const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : 
     )
   }
 
-  {/* La carpeta del número, como cierre de la página. Va en modo `soloTapa`: sin las
-      estampillas asomadas ni el abanico del hover, porque las entradas ya están
-      listadas arriba y abrir acá una segunda colección sería mostrar dos veces lo
-      mismo. Sigue siendo un link a este mismo número. */}
-  <div class="mt-20 flex justify-center md:mt-28">
+  {/* La misma tapa, para pantallas chicas: ahí no hay dos lados, así que cierra la
+      página en vez de acompañar al título. En desktop la de arriba ocupa su lugar y esta
+      se esconde. Va en modo `soloTapa`: sin estampillas asomadas ni abanico del hover,
+      porque las entradas ya están listadas y abrir acá una segunda colección sería
+      mostrar dos veces lo mismo. */}
+  <div class="mt-20 flex justify-center md:hidden">
     <div class="w-44 sm:w-52">
       <CarpetaNumero
         numero={indiceNumero}

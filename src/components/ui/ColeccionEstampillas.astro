@@ -444,8 +444,12 @@ const conDial = disposicion === 'tira' || dialVertical;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.18em;
     color: rgb(var(--color-ink-muted));
-    /* De abajo hacia arriba, al lado de la pista. */
-    writing-mode: vertical-rl;
+    /* La CUENTA se lee en horizontal aunque la pista sea vertical. Estuvo girada con
+       `writing-mode: vertical-rl` para ocupar menos, pero un numero de costado hay que
+       descifrarlo: lo unico que tiene que girar es la pista, que es la que representa el
+       eje por el que se recorre. `white-space: nowrap` para que "01 / 14" no se parta en
+       tres lineas dentro de una columna angosta. */
+    white-space: nowrap;
   }
   .dial-vertical-pista {
     position: relative;

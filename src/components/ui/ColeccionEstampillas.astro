@@ -107,7 +107,11 @@ const { items, columnas = 4, disposicion = 'hoja', filtrable = false } = Astro.p
 
 /* El dial vertical lo comparten la columna y el bucle: las clases de dialNav.ts están
    escritas para una franja horizontal. */
-const dialVertical = disposicion === 'columna' || disposicion === 'bucle';
+/* Solo la columna gira el dial: el bucle, aunque corra de arriba abajo, usa el dial
+   horizontal de siempre --una franja debajo del carril--. Un indicador vertical al lado
+   de un bucle que no tiene principio ni fin no informa nada: no hay recorrido que
+   mostrar, solo en que entrada se esta. */
+const dialVertical = disposicion === 'columna';
 const conDial = disposicion === 'tira' || dialVertical;
 
 /* Una entrada sin `portada` muestra la estampilla vacía, con su título como única
@@ -377,66 +381,43 @@ const conDial = disposicion === 'tira' || dialVertical;
     margin: 0 auto;
   }
 
-  /* BUCLE (solo desktop): la columna sin principio ni fin. Las estampillas van DE PIE
-     (la proporción del mockup del hero, como en la grilla) y apiladas en el centro del
-     carril; el script las mueve con transform, así que el carril no tiene scroll propio
-     —overflow: hidden— y nada que encastrar. La ficha abierta se mide desde el ALTO por
-     lo mismo que en la grilla: partir del ancho, con una estampilla vertical, da una
-     ficha más alta que la ventana. */
+  /* BUCLE (solo desktop): la columna sin principio ni fin. Las estampillas conservan su
+     medida y su proporcion normales (acostadas, como en la hoja); lo unico distinto es
+     que el carril no scrollea --el script las mueve con transform-- y que al pasarse del
+     final vuelve a empezar. El dial es el horizontal de siempre, debajo.
+
+     El apilado en absoluto va gateado por `html.js` (la misma regla que
+     .entry-card-reveal): sin JS no hay nada que las mueva, asi que quedan en flujo, una
+     debajo de otra y cada una link a su entrada. Lo que NO se hace es nacer con
+     opacity: 0 esperando al script: si el script falla, la seccion entera queda en
+     blanco. Mejor un primer frame apilado que una pagina vacia. */
   .coleccion--bucle {
     position: relative;
     display: flex;
-    align-items: stretch;
-    gap: 1.25rem;
-    --est-w: 220px;
-    --card-h: min(68vh, 560px);
-    --card-w: calc(var(--card-h) * 300 / 460);
+    flex-direction: column;
+    gap: 0.75rem;
   }
   .coleccion--bucle .coleccion-pliego {
     position: relative;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: var(--aire);
-    flex: 1;
     min-width: 0;
-    height: min(72vh, 620px);
-    /* Sin JS la columna se recorre con el scroll del propio carril; con JS la recorre el
-       bucle y no hay nada que scrollear. */
+    height: min(66vh, 560px);
     overflow-y: auto;
     scrollbar-width: none;
     padding: 0;
   }
   :global(html.js) .coleccion--bucle .coleccion-pliego {
-    overflow: hidden;
-  }
-  /* El apilado existe SOLO con JS, igual que .entry-card-reveal: el suelo es lo que se
-     sirve. Sin JS no hay nada que mueva las estampillas, así que quedan en flujo, una
-     debajo de la otra, y cada una sigue siendo un link a su entrada; apiladas en
-     absoluto serían catorce estampillas una encima de otra. `html.js` lo escribe
-     BaseLayout.astro en un script bloqueante del head, antes del primer pintado. */
-  .coleccion--bucle .estampilla-hueco {
-    width: var(--est-w);
-    height: auto;
-    aspect-ratio: 300 / 460;
-    margin: 0 auto;
-  }
-  :global(html.js) .coleccion--bucle .coleccion-pliego {
     display: block;
+    overflow: hidden;
   }
   :global(html.js) .coleccion--bucle .estampilla-hueco {
     position: absolute;
     left: 50%;
     top: 50%;
-    /* Invisibles hasta que el script les dé su lugar: el primer frame las tiene todas
-       centradas en el mismo punto, y se vería el montón antes de abrirse. El script las
-       muestra con la opacidad que les toca por lejanía. */
-    opacity: 0;
-    transform: translate(-50%, -50%);
-  }
-  @media (min-width: 1280px) {
-    .coleccion--bucle {
-      --est-w: 260px;
-    }
+    margin: 0;
   }
 
   .dial-vertical {
@@ -935,11 +916,16 @@ const conDial = disposicion === 'tira' || dialVertical;
     const contador = raiz.querySelector<HTMLElement>('[data-dial-count]');
     const total = huecos.length;
     const pista = thumb?.parentElement ?? null;
-    if (thumb) thumb.style.height = `${100 / total}%`;
+    if (thumb) thumb.style.width = `${100 / total}%`;
 
-    /* El paso entre dos estampillas y el alcance del desvanecido se miden del alto real
-       del hueco, no de un número fijo: la estampilla cambia de tamaño por breakpoint. */
-    const paso = () => huecos[0].getBoundingClientRect().height * 0.62 || 180;
+    /* El paso se mide del alto real del hueco y no de un numero fijo, porque la
+       estampilla cambia de tamanio por breakpoint. Si todavia no esta medido (primer
+       frame, o la seccion aun oculta) cae en un valor razonable en vez de en cero, que
+       dejaria todas las estampillas en el mismo punto. */
+    const paso = () => {
+      const alto = huecos[0].getBoundingClientRect().height;
+      return (alto > 0 ? alto : 150) * 0.78;
+    };
 
     let desplazamiento = 0;
     let indiceDial = -1;
@@ -964,14 +950,16 @@ const conDial = disposicion === 'tira' || dialVertical;
         if (avance < -vuelta / 2) avance += vuelta;
         if (avance > vuelta / 2) avance -= vuelta;
 
-        const lejania = Math.abs(avance) / (SALTO * 2.2);
+        const lejania = Math.abs(avance) / (SALTO * 2.4);
         gsap.set(hueco, {
           xPercent: -50,
           yPercent: -50,
           y: avance,
-          scale: Math.max(0.72, 1 - lejania * 0.28),
-          opacity: Math.max(0, 1 - lejania * 1.1),
-          zIndex: Math.round(100 - Math.abs(avance)),
+          scale: Math.max(0.74, 1 - lejania * 0.26),
+          opacity: Math.max(0, 1 - lejania * 0.95),
+          /* Nunca negativo: un z-index negativo manda al hueco DETRAS del fondo de su
+             contexto de apilado, y la estampilla desaparece aunque su opacidad sea 1. */
+          zIndex: Math.max(1, Math.round(100 - Math.abs(avance) / 10)),
         });
       });
 
@@ -984,9 +972,9 @@ const conDial = disposicion === 'tira' || dialVertical;
         contador.textContent = `${String(activa + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
       }
       if (thumb && pista) {
-        const largoPista = pista.clientHeight;
+        const largoPista = pista.clientWidth;
         gsap.to(thumb, {
-          y: (activa / total) * largoPista,
+          x: (activa / total) * largoPista,
           duration: 0.3,
           ease: 'power2.out',
           overwrite: true,

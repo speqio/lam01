@@ -945,26 +945,33 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
     let desplazamiento = 0;
     let indiceDial = -1;
 
+    /* CON TOPE EN LAS DOS PUNTAS. El recorrido va de la primera estampilla a la ultima y
+       ahi se planta: no vuelve a empezar. Dar la vuelta parecia mas vivo pero deja al
+       lector sin saber donde esta --en una lista de catorce piezas, pasar de la ultima a
+       la primera sin aviso se lee como que algo fallo--, y el dial, que cuenta "03 / 14",
+       estaria diciendo una posicion de una lista que no tiene principio. El tope se
+       aplica al acumular, no al dibujar: asi la rueda no sigue sumando contra el limite y
+       soltarla no deja un saldo guardado que despues se descuente solo. */
+    const tope = () => Math.max(0, (total - 1) * paso());
+
     Observer.create({
       target: pliego,
       type: 'wheel',
       preventDefault: true,
       onChange: (self) => {
-        desplazamiento += self.deltaY * 0.5;
+        desplazamiento = Math.min(tope(), Math.max(0, desplazamiento + self.deltaY * 0.5));
       },
     });
 
     const dibujar = () => {
       const SALTO = paso();
-      const vuelta = total * SALTO;
+      /* Un cambio de tamanio (girar el telefono, cambiar de breakpoint) mueve el paso, y
+         con el el tope: si el desplazamiento quedo mas alla, se recorta aca. */
+      const limite = Math.max(0, (total - 1) * SALTO);
+      if (desplazamiento > limite) desplazamiento = limite;
 
       huecos.forEach((hueco, i) => {
-        let avance = (i * SALTO - desplazamiento) % vuelta;
-        /* Centrado en cero: la mitad de la vuelta para cada lado, así la que sale por
-           abajo reaparece por arriba y la lista no tiene punta. */
-        if (avance < -vuelta / 2) avance += vuelta;
-        if (avance > vuelta / 2) avance -= vuelta;
-
+        const avance = i * SALTO - desplazamiento;
         const lejania = Math.abs(avance) / (SALTO * 2.1);
         gsap.set(hueco, {
           xPercent: -50,
@@ -980,8 +987,7 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
         });
       });
 
-      const posicion = ((desplazamiento / SALTO) % total + total) % total;
-      const activa = Math.round(posicion) % total;
+      const activa = Math.min(total - 1, Math.max(0, Math.round(desplazamiento / SALTO)));
       if (activa === indiceDial) return;
       indiceDial = activa;
 

@@ -93,7 +93,7 @@ solo si no entra se reintenta 72 / 64 / 55, con suelo en 55. La mayoría entra e
 paso y conserva la calidad alta.
 
 **La red de seguridad**, que es la mitad del trabajo: `verificar-keystatic.mjs` tiene un
-paso 6 que falla si hay una imagen de más de 250 KB o de más de 1600 px de lado. Sin eso
+paso 6 que falla si hay una imagen de más de 600 KB o de más de 1600 px de lado. Sin eso
 la mejora se degrada sola — basta que alguien suba una foto de 3 MB desde el panel. El
 Action `verificar` ya corre ese script, así que el control vive en el PR
 `keystatic` → `main`. Las excepciones conscientes van en

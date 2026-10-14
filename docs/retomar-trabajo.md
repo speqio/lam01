@@ -141,7 +141,7 @@ crecer demasiado antes de fusionar.
    Si pasa acá, el check `verificar` del PR también va a pasar — no hay que
    esperar a que falle en GitHub para enterarse.
 
-## Si una imagen no baja de 250 KB ni al lado máximo (1600 px)
+## Si una imagen no baja de 600 KB ni al lado máximo (1600 px)
 
 Pasó con una foto de grano fino (586 KB a 1234×1569, ya en calidad mínima).
 El optimizador no agranda ni empeora una imagen más allá de cierto punto; si

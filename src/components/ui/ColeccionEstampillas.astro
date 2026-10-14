@@ -112,7 +112,7 @@ const { items, columnas = 4, disposicion = 'hoja', filtrable = false } = Astro.p
    de un bucle que no tiene principio ni fin no informa nada: no hay recorrido que
    mostrar, solo en que entrada se esta. */
 const dialVertical = disposicion === 'columna';
-const conDial = disposicion === 'tira' || dialVertical;
+const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertical;
 
 /* Una entrada sin `portada` muestra la estampilla vacía, con su título como única
    marca. Es a propósito: rellenar con la tapa de un número sería mostrar una imagen que

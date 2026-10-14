@@ -187,7 +187,12 @@ const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : 
           <h2 class="mb-5 text-center font-mono text-xs uppercase tracking-widest text-ink-muted md:text-left">
             Números anteriores
           </h2>
-          <div class="grid max-w-sm grid-cols-3 gap-4 md:max-w-md md:gap-5">
+          {/* Centradas mientras el carrusel es horizontal (pantallas chicas): ahí la
+              página entera se lee por el eje central, con la tapa y el título centrados,
+              y la fila pegada a la izquierda rompía esa línea. En desktop, donde esta
+              columna convive con el carrusel vertical a la derecha, vuelve a alinearse a
+              la izquierda con el resto de su columna. */}
+          <div class="mx-auto grid max-w-sm grid-cols-3 gap-4 md:mx-0 md:max-w-md md:gap-5">
             {anteriores.map((otro) => (
               <CarpetaNumero
                 numero={otro.indice}

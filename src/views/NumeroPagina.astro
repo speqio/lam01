@@ -2,6 +2,7 @@
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import NumeroSequence from '../components/NumeroSequence.astro';
+import CarpetaNumero from '../components/ui/CarpetaNumero.astro';
 import { splitNumeroTitle } from '../lib/text';
 
 const { numero } = Astro.props;
@@ -31,6 +32,19 @@ const formattedDate = numero.data.fecha.toLocaleDateString('es-ES', {
   month: 'long',
   timeZone: 'UTC',
 });
+
+/* La fecha corta de la tapa ("oct·26"), el mismo formato que en /numeros: la carpeta se
+   tiene que leer igual acá que allá. */
+const fechaCarpeta = `${numero.data.fecha
+  .toLocaleDateString('es-ES', { month: 'short', timeZone: 'UTC' })
+  .replace('.', '')}·${numero.data.fecha.toLocaleDateString('es-ES', {
+  year: '2-digit',
+  timeZone: 'UTC',
+})}`;
+
+/* El indice sale del slug (`numero-31`), igual que en /numeros: el titulo puede traer
+   subtitulo y el numero no siempre es el que se lee ahí. */
+const indiceNumero = Number(numero.id.match(/(\d+)/)?.[0] ?? 0);
 
 const { titulo: tituloPagina, subtitulo: subtituloPagina } = splitNumeroTitle(numero.data.titulo);
 const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : tituloPagina;
@@ -62,4 +76,23 @@ const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : 
       </p>
     )
   }
+
+  {/* La carpeta del número, como cierre de la página. Va en modo `soloTapa`: sin las
+      estampillas asomadas ni el abanico del hover, porque las entradas ya están
+      listadas arriba y abrir acá una segunda colección sería mostrar dos veces lo
+      mismo. Sigue siendo un link a este mismo número. */}
+  <div class="mt-20 flex justify-center md:mt-28">
+    <div class="w-44 sm:w-52">
+      <CarpetaNumero
+        numero={indiceNumero}
+        titulo={tituloPagina}
+        subtitulo={subtituloPagina}
+        portada={numero.data.portada}
+        href={`/${numero.id}`}
+        fecha={fechaCarpeta}
+        items={[]}
+        soloTapa
+      />
+    </div>
+  </div>
 </BaseLayout>

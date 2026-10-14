@@ -39,26 +39,37 @@ interface Props {
   fecha: string;
   items: EstampillaItem[];
   /** Rango al que pertenece, para el filtro por chips de /numeros. */
-  rangoId: number;
+  rangoId?: number;
+  /**
+   * Solo la tapa: la carpeta como imagen del número, sin las estampillas asomadas, sin
+   * el abanico del hover y sin la ventana con la colección. Es lo que usa la página de
+   * un número, donde las entradas ya están listadas arriba: abrir ahí una segunda
+   * colección sería mostrar dos veces lo mismo.
+   */
+  soloTapa?: boolean;
 }
 
-const { numero, titulo, subtitulo, portada, href, fecha, items, rangoId } = Astro.props;
+const { numero, titulo, subtitulo, portada, href, fecha, items, rangoId, soloTapa = false } = Astro.props;
 
 const ventanaId = `carpeta-${numero}-contenido`;
 
 /* Lo que asoma: las tres primeras entradas del número. Más que eso no se distingue
    detrás de la tapa, y cada una es un nodo más por carpeta en una página que ya trae
    todas las entradas del sitio. */
-const asoman = items.slice(0, 3);
+const asoman = soloTapa ? [] : items.slice(0, 3);
 ---
 
-<article class="carpeta" data-carpeta data-numero-rango={rangoId}>
+<article
+  class:list={['carpeta', soloTapa && 'carpeta--sola']}
+  data-carpeta={soloTapa ? undefined : ''}
+  data-numero-rango={rangoId}
+>
   <a
     class="carpeta-tapa"
     href={href}
-    data-abrir-carpeta
-    aria-expanded="false"
-    aria-controls={ventanaId}
+    data-abrir-carpeta={soloTapa ? undefined : ''}
+    aria-expanded={soloTapa ? undefined : 'false'}
+    aria-controls={soloTapa ? undefined : ventanaId}
   >
     <span class="carpeta-pieza">
       {/* Las estampillas guardadas: asoman en abanico cuando la carpeta se abre. Van
@@ -93,7 +104,9 @@ const asoman = items.slice(0, 3);
     </span>
   </a>
 
-  <div class="carpeta-telon" data-telon-carpeta aria-hidden="true"></div>
+  {!soloTapa && <div class="carpeta-telon" data-telon-carpeta aria-hidden="true" />}
+
+  {!soloTapa && (
 
   <div
     class="carpeta-ventana"
@@ -124,6 +137,7 @@ const asoman = items.slice(0, 3);
       }
     </div>
   </div>
+  )}
 </article>
 
 <style>
@@ -271,6 +285,15 @@ const asoman = items.slice(0, 3);
   }
   .carpeta[data-estado='abierta'] .carpeta-cuerpo {
     transform: translateY(4px);
+  }
+
+  /* La tapa sola no se mueve al pasar por encima: no hay estampillas que asomar, y el
+     cuerpo levantandose sin nada detras se lee como un salto sin motivo. Va despues de
+     las reglas de hover y con su misma especificidad (dos clases y la pseudoclase), o no
+     las gana. */
+  .carpeta--sola:hover .carpeta-cuerpo,
+  .carpeta--sola:focus-within .carpeta-cuerpo {
+    transform: none;
   }
 
   @media (prefers-reduced-motion: reduce) {

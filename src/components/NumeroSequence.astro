@@ -190,9 +190,20 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
       reimplementar nada: el gesto y el dial ya viven en ese componente. */}
   {
     esEstampillas && (
-      <div class="numero-entradas-estampillas mt-8 flex min-w-0 items-center md:mt-0 md:h-full">
-        <ColeccionEstampillas items={itemsEstampillas} disposicion="tira" />
-      </div>
+      <Fragment>
+        {/* Mobile: tira horizontal con el scroll nativo del navegador. Desktop: la misma
+            lista en bucle vertical, con las estampillas de pie y el dial al costado. Son
+            dos colecciones y no una que se adapte, por la razon de siempre (ver "Mobile
+            vs. desktop" en CLAUDE.md): el bucle captura la rueda, y un gesto capturado
+            sin escape no puede ir a un telefono. El componente soporta varias
+            colecciones en la misma pagina, cada una con su telon y su escenario. */}
+        <div class="numero-entradas-estampillas mt-8 flex min-w-0 items-center md:hidden">
+          <ColeccionEstampillas items={itemsEstampillas} disposicion="tira" />
+        </div>
+        <div class="hidden min-w-0 items-center md:flex md:h-full">
+          <ColeccionEstampillas items={itemsEstampillas} disposicion="bucle" />
+        </div>
+      </Fragment>
     )
   }
 </section>

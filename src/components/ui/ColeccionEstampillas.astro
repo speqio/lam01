@@ -413,6 +413,12 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
     display: block;
     overflow: hidden;
   }
+  /* El dial queda FUERA del difuminado: el degradado del borde inferior del carril
+     cubria tambien la paginacion y se leia atenuada, como si estuviera deshabilitada. */
+  .coleccion--bucle [data-dial] {
+    position: relative;
+    z-index: 6;
+  }
   :global(html.js) .coleccion--bucle .estampilla-hueco {
     position: absolute;
     left: 50%;
@@ -683,10 +689,15 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
   .coleccion-ficha .estampilla-datos {
     padding: 0;
   }
+  /* En la ESQUINA de la ventana, no pegada a la ficha: el escenario ocupa la pantalla
+     entera, asi que una posicion absoluta contra el es una posicion contra la ventana.
+     Pegada arriba de la ficha quedaba flotando en medio de la pantalla y no se leia
+     como "cerrar". */
   .coleccion-cerrar {
-    position: absolute;
-    top: -2.5rem;
-    right: 0;
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 62;
     padding: 0.4rem 0.6rem;
     font-size: 1rem;
     line-height: 1;
@@ -833,7 +844,11 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
       focoActivo = null;
     });
 
-    return { abrir, cerrar };
+    /* Si ESTA estampilla es la que esta en el foco. Lo usa el click para que la misma
+       estampilla sirva de interruptor: abre y vuelve. */
+    const estaAbierta = (est: HTMLElement) => abierta === est;
+
+    return { abrir, cerrar, abierta: estaAbierta };
   }
 
   /* Qué colección tiene algo abierto, a nivel página: hace falta porque Escape se
@@ -957,9 +972,11 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
           y: avance,
           scale: Math.max(0.74, 1 - lejania * 0.26),
           opacity: Math.max(0, 1 - lejania * 0.95),
-          /* Nunca negativo: un z-index negativo manda al hueco DETRAS del fondo de su
-             contexto de apilado, y la estampilla desaparece aunque su opacidad sea 1. */
-          zIndex: Math.max(1, Math.round(100 - Math.abs(avance) / 10)),
+          /* Entre 1 y 50, nunca fuera: negativo manda el hueco DETRAS del fondo de su
+             contexto de apilado (desaparece aunque su opacidad sea 1), y por encima de
+             60 le pasaria por delante al telon y al escenario del foco, tapando la
+             ficha que se acaba de abrir. La informacion pedida gana siempre. */
+          zIndex: Math.max(1, Math.round(50 - Math.abs(avance) / 20)),
         });
       });
 
@@ -1010,6 +1027,13 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
       ev.preventDefault();
       const est = abrir.closest<HTMLElement>('[data-estampilla]');
       if (!est) return;
+      /* La misma estampilla es el interruptor: pulsarla de nuevo, ya abierta, vuelve a
+         la coleccion. Las otras dos salidas siguen ahi: la X de la esquina y Escape. */
+      if (foco.abierta(est)) {
+        foco.cerrar();
+        focoActivo = null;
+        return;
+      }
       foco.abrir(est);
       focoActivo = foco;
     });

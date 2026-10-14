@@ -6,7 +6,8 @@ import ColeccionEstampillas from '../components/ui/ColeccionEstampillas.astro';
 import HeroAnagram from '../components/HeroAnagram.astro';
 import ArchivoCatalogo from '../components/ArchivoCatalogo.astro';
 import HoverRevealHero from '../components/HoverRevealHero.astro';
-import CategoriasCards from '../components/CategoriasCards.astro';
+// Guardado, fuera del home por ahora (ver el comentario en la seccion de abajo):
+// import CategoriasCards from '../components/CategoriasCards.astro';
 
 // "sin-numero" es el contenedor interno de las entradas sin numero asignado: no es una
 // edicion y no puede salir en el home ni contarse como la ultima.
@@ -189,34 +190,21 @@ const CATEGORIA_IMAGENES: Record<string, string> = {
     )
   }
 
-  {
-    categorias.length > 0 && (
+  {/*
+    EL CARRUSEL DE CATEGORIAS ESTA GUARDADO, NO BORRADO. Se saco del home por ahora; la
+    pieza sigue entera en `src/components/CategoriasCards.astro` --con su abanico, su
+    dial y su gesto acotado al eje horizontal-- y el mapa de ilustraciones fijas,
+    `CATEGORIA_IMAGENES`, sigue mas arriba en este mismo archivo junto con las imagenes
+    en `public/images/categorias/`. Para devolverlo, el bloque que iba aca era:
+
       <section class="mb-16 md:mb-32 md:mt-24 md:flex md:min-h-[85vh] md:flex-col md:justify-center lg:mb-40 lg:mt-32">
-        <div class="mb-6 md:hidden">
-          <h2 class="font-headline text-2xl text-ink lg:text-3xl">Categorías</h2>
-        </div>
-
-        <div class="mb-6 hidden md:block">
-          <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
-            Explora nuestro catálogo
-          </span>
-          <h2 class="font-headline text-4xl leading-none tracking-tight text-ink lg:text-6xl">
-            Categorías
-          </h2>
-        </div>
-
-        <CategoriasCards
-          categorias={categorias
-            .filter((categoria) => categoria.id in CATEGORIA_IMAGENES)
-            .map((categoria) => ({
-              slug: categoria.id,
-              nombre: categoria.data.nombre,
-              coverImage: CATEGORIA_IMAGENES[categoria.id],
-            }))}
-        />
+        ... titulo "Categorias" ...
+        <CategoriasCards categorias={categorias.filter(...).map(...)} />
       </section>
-    )
-  }
+
+    y esta completo en el commit que lo saco. Se deja el import comentado y no borrado
+    por la misma razon: que el camino de vuelta sea una linea.
+  */}
 
   <section id="archivo-explorer" class="mb-16 md:mb-32 md:mt-24 lg:mb-40 lg:mt-32">
     <div class="mb-6 flex items-end justify-between gap-4 md:mb-10">

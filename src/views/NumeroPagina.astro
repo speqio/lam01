@@ -1,16 +1,22 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import NumeroSequence from '../components/NumeroSequence.astro';
 import CarpetaNumero from '../components/ui/CarpetaNumero.astro';
-import { splitNumeroTitle } from '../lib/text';
+import ColeccionEstampillas from '../components/ui/ColeccionEstampillas.astro';
+import type { EstampillaItem } from '../components/ui/ColeccionEstampillas.astro';
+import { normalizeTitleText, splitNumeroTitle } from '../lib/text';
 
 const { numero } = Astro.props;
 
+/* El índice sale del slug (`numero-31`) y no del título, que puede traer subtítulo: es el
+   mismo criterio de /numeros y del home. Con él se ordena y se eligen los anteriores, sin
+   depender de `fecha`, que puede traer una errata (numero-26 está fechado en 2026 cuando
+   sus entradas son de 2025). */
+const indiceDe = (id: string) => Number(id.match(/(\d+)/)?.[0] ?? 0);
+const indiceNumero = indiceDe(numero.id);
+
 const todasLasEntradas = await getCollection('entradas');
-const entradasDelNumero = todasLasEntradas.filter(
-  (entrada) => entrada.data.numero === numero.id
-);
+const entradasDelNumero = todasLasEntradas.filter((entrada) => entrada.data.numero === numero.id);
 
 const entradasConRelaciones = await Promise.all(
   entradasDelNumero.map(async (entrada) => {
@@ -27,24 +33,65 @@ entradasConRelaciones.sort(
   (a, b) => b.entrada.data.fecha.valueOf() - a.entrada.data.fecha.valueOf()
 );
 
-const formattedDate = numero.data.fecha.toLocaleDateString('es-ES', {
-  year: 'numeric',
-  month: 'long',
-  timeZone: 'UTC',
-});
+const items: EstampillaItem[] = entradasConRelaciones.map(
+  ({ entrada, autor, categoria, traductor }) => ({
+    title: entrada.data.titulo,
+    authorName: autor?.data.nombre,
+    translatorName: traductor?.data.nombre,
+    categoryName: categoria?.data.nombre,
+    slug: entrada.id,
+    coverImage: entrada.data.portada,
+  })
+);
 
-/* La fecha corta de la tapa ("oct·26"), el mismo formato que en /numeros: la carpeta se
+/* La fecha corta de la tapa ("sept·26"), el mismo formato que en /numeros: la carpeta se
    tiene que leer igual acá que allá. */
-const fechaCarpeta = `${numero.data.fecha
-  .toLocaleDateString('es-ES', { month: 'short', timeZone: 'UTC' })
-  .replace('.', '')}·${numero.data.fecha.toLocaleDateString('es-ES', {
-  year: '2-digit',
-  timeZone: 'UTC',
-})}`;
+const fechaCorta = (fecha: Date) =>
+  `${fecha
+    .toLocaleDateString('es-ES', { month: 'short', timeZone: 'UTC' })
+    .replace('.', '')}·${fecha.toLocaleDateString('es-ES', { year: '2-digit', timeZone: 'UTC' })}`;
 
-/* El indice sale del slug (`numero-31`), igual que en /numeros: el titulo puede traer
-   subtitulo y el numero no siempre es el que se lee ahí. */
-const indiceNumero = Number(numero.id.match(/(\d+)/)?.[0] ?? 0);
+/**
+ * LOS TRES ANTERIORES. Se eligen por índice y no por fecha, y se saltea el hueco del 5
+ * (extinto) solo: no se exige que sean correlativos, se toman los tres más altos por
+ * debajo de este. En el número 1 no hay ninguno y la sección no se dibuja.
+ *
+ * A diferencia de la tapa de arriba, estas van COMPLETAS —con sus estampillas asomadas y
+ * su ventana—, que es como se comportan en /numeros: acá son una invitación a seguir
+ * mirando, así que tienen que dejar ver qué hay dentro.
+ */
+const otrosNumeros = (await getCollection('numeros'))
+  .filter((n) => n.id !== 'sin-numero' && indiceDe(n.id) < indiceNumero)
+  .sort((a, b) => indiceDe(b.id) - indiceDe(a.id))
+  .slice(0, 3);
+
+const autores = new Map((await getCollection('autores')).map((a) => [a.id, a.data.nombre]));
+const categorias = new Map((await getCollection('categorias')).map((c) => [c.id, c.data.nombre]));
+
+const anteriores = otrosNumeros.map((otro) => {
+  const { titulo, subtitulo } = splitNumeroTitle(otro.data.titulo);
+  return {
+    id: otro.id,
+    indice: indiceDe(otro.id),
+    titulo,
+    subtitulo,
+    portada: otro.data.portada,
+    fecha: fechaCorta(otro.data.fecha),
+    items: todasLasEntradas
+      .filter((entrada) => entrada.data.numero === otro.id)
+      .sort((a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf())
+      .map((entrada) => ({
+        title: normalizeTitleText(entrada.data.titulo),
+        authorName: autores.get(entrada.data.autor),
+        translatorName: entrada.data.traducidoPor
+          ? autores.get(entrada.data.traducidoPor)
+          : undefined,
+        categoryName: categorias.get(entrada.data.categoria),
+        slug: entrada.id,
+        coverImage: entrada.data.portada,
+      })),
+  };
+});
 
 const { titulo: tituloPagina, subtitulo: subtituloPagina } = splitNumeroTitle(numero.data.titulo);
 const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : tituloPagina;
@@ -54,60 +101,88 @@ const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : 
   title={numero.data.metaTitulo || `${tituloCompleto} — La Antorcha Magacín`}
   description={numero.data.metaDescripcion || numero.data.descripcion}
 >
-  <NumeroSequence
-    vista="estampillas"
-    titulo={numero.data.titulo}
-    descripcion={numero.data.descripcion}
-    fechaFormateada={formattedDate}
-    entradas={entradasConRelaciones.map(({ entrada, autor, categoria, traductor }) => ({
-      slug: entrada.id,
-      titulo: entrada.data.titulo,
-      categoriaNombre: categoria?.data.nombre ?? '',
-      autorNombre: autor?.data.nombre ?? '',
-      translatorName: traductor?.data.nombre,
-      portada: entrada.data.portada,
-    }))}
-  >
-    {/* En desktop la tapa va al pie de la columna del titulo, enfrente del carrusel. */}
-    <div slot="tapa" class="w-40 lg:w-48">
-      <CarpetaNumero
-        numero={indiceNumero}
-        titulo={tituloPagina}
-        subtitulo={subtituloPagina}
-        portada={numero.data.portada}
-        href={`/${numero.id}`}
-        fecha={fechaCarpeta}
-        items={[]}
-        soloTapa
-      />
+  {/*
+    LA TAPA DICE DE QUÉ NÚMERO SE TRATA. Por eso no hay encabezado de texto: la carpeta
+    ya lleva su fecha y su título, y repetirlos al lado era decir dos veces lo mismo.
+
+    UNA SOLA COPIA DE CADA PIEZA, COLOCADA POR GRILLA. En pantallas chicas se leen en el
+    orden del documento (tapa, carrusel, anteriores); en desktop la grilla manda la tapa
+    y los anteriores a la columna izquierda y el carrusel a la derecha, ocupando las dos
+    filas. Es la razón de colocar por `col-start`/`row-start` en vez de envolver: con dos
+    envoltorios, uno por lado, el orden en mobile saldría tapa → anteriores → carrusel.
+  */}
+  {/* `md:mt-header-clear` (tailwind.config.mjs): el masthead flota encima del contenido
+      y solo existe en md+, así que sin este despeje la tapa le quedaba debajo. Es el
+      mismo token que usa PageHeader en el resto de las páginas. */}
+  <section class="md:mt-header-clear md:grid md:grid-cols-2 md:items-start md:gap-10 lg:gap-16">
+    {/* La tapa y la descripción comparten celda: son el mismo bloque, el que dice de qué
+        número se trata. En celdas separadas de la misma fila se superponían, porque las
+        dos arrancaban arriba y la descripción solo podía empujarse con relleno. */}
+    <div class="flex flex-col items-center md:col-start-1 md:row-start-1 md:items-start">
+      <div class="w-44 sm:w-52 lg:w-56">
+        <CarpetaNumero
+          numero={indiceNumero}
+          titulo={tituloPagina}
+          subtitulo={subtituloPagina}
+          portada={numero.data.portada}
+          href={`/${numero.id}`}
+          fecha={fechaCorta(numero.data.fecha)}
+          items={[]}
+          soloTapa
+        />
+      </div>
+
+      {
+        numero.data.descripcion && (
+          <p class="mt-6 max-w-md whitespace-pre-line text-center font-serif text-ink-muted md:text-left">
+            {numero.data.descripcion}
+          </p>
+        )
+      }
     </div>
-  </NumeroSequence>
+
+    {/* El carrusel: tira horizontal con scroll nativo en pantallas chicas, bucle vertical
+        con la rueda en desktop. Son dos colecciones y no una que se adapte porque el
+        bucle captura la rueda, y un gesto capturado sin escape no puede ir a un teléfono
+        (ver "Mobile vs. desktop" en CLAUDE.md). */}
+    <div class="mt-10 flex min-w-0 items-center md:col-start-2 md:row-span-2 md:row-start-1 md:mt-0">
+      <div class="w-full md:hidden">
+        <ColeccionEstampillas items={items} disposicion="tira" />
+      </div>
+      <div class="hidden w-full md:block">
+        <ColeccionEstampillas items={items} disposicion="bucle" />
+      </div>
+    </div>
+
+    {
+      anteriores.length > 0 && (
+        <section class="mt-16 md:col-start-1 md:row-start-2 md:mt-12">
+          <h2 class="mb-5 text-center font-mono text-xs uppercase tracking-widest text-ink-muted md:text-left">
+            Números anteriores
+          </h2>
+          <div class="grid grid-cols-3 gap-4 md:gap-5">
+            {anteriores.map((otro) => (
+              <CarpetaNumero
+                numero={otro.indice}
+                titulo={otro.titulo}
+                subtitulo={otro.subtitulo}
+                portada={otro.portada}
+                href={`/${otro.id}`}
+                fecha={otro.fecha}
+                items={otro.items}
+              />
+            ))}
+          </div>
+        </section>
+      )
+    }
+  </section>
 
   {
     entradasConRelaciones.length === 0 && (
-      <p class="text-center font-sans text-ink-muted">
+      <p class="mt-10 text-center font-sans text-ink-muted">
         Todavía no hay entradas publicadas en este número.
       </p>
     )
   }
-
-  {/* La misma tapa, para pantallas chicas: ahí no hay dos lados, así que cierra la
-      página en vez de acompañar al título. En desktop la de arriba ocupa su lugar y esta
-      se esconde. Va en modo `soloTapa`: sin estampillas asomadas ni abanico del hover,
-      porque las entradas ya están listadas y abrir acá una segunda colección sería
-      mostrar dos veces lo mismo. */}
-  <div class="mt-20 flex justify-center md:hidden">
-    <div class="w-44 sm:w-52">
-      <CarpetaNumero
-        numero={indiceNumero}
-        titulo={tituloPagina}
-        subtitulo={subtituloPagina}
-        portada={numero.data.portada}
-        href={`/${numero.id}`}
-        fecha={fechaCarpeta}
-        items={[]}
-        soloTapa
-      />
-    </div>
-  </div>
 </BaseLayout>

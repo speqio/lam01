@@ -107,12 +107,10 @@ const { items, columnas = 4, disposicion = 'hoja', filtrable = false } = Astro.p
 
 /* El dial vertical lo comparten la columna y el bucle: las clases de dialNav.ts están
    escritas para una franja horizontal. */
-/* Solo la columna gira el dial: el bucle, aunque corra de arriba abajo, usa el dial
-   horizontal de siempre --una franja debajo del carril--. Un indicador vertical al lado
-   de un bucle que no tiene principio ni fin no informa nada: no hay recorrido que
-   mostrar, solo en que entrada se esta. */
-const dialVertical = disposicion === 'columna';
-const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertical;
+/* El dial acompania al eje del carril: vertical en la columna y en el bucle --los dos
+   corren de arriba abajo--, horizontal en la tira. */
+const dialVertical = disposicion === 'columna' || disposicion === 'bucle';
+const conDial = disposicion === 'tira' || dialVertical;
 
 /* Una entrada sin `portada` muestra la estampilla vacía, con su título como única
    marca. Es a propósito: rellenar con la tapa de un número sería mostrar una imagen que
@@ -394,8 +392,8 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
   .coleccion--bucle {
     position: relative;
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    align-items: stretch;
+    gap: 1rem;
   }
   .coleccion--bucle .coleccion-pliego {
     position: relative;
@@ -403,6 +401,11 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
     flex-direction: column;
     align-items: center;
     gap: var(--aire);
+    /* `flex: 1` o el carril no mide nada: la raiz es una fila (carril + dial al costado)
+       y sus estampillas estan en posicion absoluta, asi que no hay contenido en flujo
+       que le de ancho. Sin esto el carril queda en cero y las estampillas se apilan
+       fuera de la vista. */
+    flex: 1;
     min-width: 0;
     height: min(66vh, 560px);
     overflow-y: auto;
@@ -413,8 +416,8 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
     display: block;
     overflow: hidden;
   }
-  /* El dial queda FUERA del difuminado: el degradado del borde inferior del carril
-     cubria tambien la paginacion y se leia atenuada, como si estuviera deshabilitada. */
+  /* El dial queda FUERA del difuminado: el degradado de los bordes del carril cubria
+     tambien la paginacion y se leia atenuada, como si estuviera deshabilitada. */
   .coleccion--bucle [data-dial] {
     position: relative;
     z-index: 6;
@@ -931,7 +934,7 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
     const contador = raiz.querySelector<HTMLElement>('[data-dial-count]');
     const total = huecos.length;
     const pista = thumb?.parentElement ?? null;
-    if (thumb) thumb.style.width = `${100 / total}%`;
+    if (thumb) thumb.style.height = `${100 / total}%`;
 
     /* El paso se mide del alto real del hueco y no de un numero fijo, porque la
        estampilla cambia de tamanio por breakpoint. Si todavia no esta medido (primer
@@ -995,9 +998,9 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
         contador.textContent = `${String(activa + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
       }
       if (thumb && pista) {
-        const largoPista = pista.clientWidth;
+        const largoPista = pista.clientHeight;
         gsap.to(thumb, {
-          x: (activa / total) * largoPista,
+          y: (activa / total) * largoPista,
           duration: 0.3,
           ease: 'power2.out',
           overwrite: true,

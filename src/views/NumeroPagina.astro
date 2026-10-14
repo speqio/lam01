@@ -93,6 +93,14 @@ const anteriores = otrosNumeros.map((otro) => {
   };
 });
 
+/* La fecha larga del encabezado ("septiembre de 2026"), la que se lee al lado de la
+   tapa. La corta ("sept·26") es la de las carpetas de abajo. */
+const formattedDate = numero.data.fecha.toLocaleDateString('es-ES', {
+  year: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+});
+
 const { titulo: tituloPagina, subtitulo: subtituloPagina } = splitNumeroTitle(numero.data.titulo);
 const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : tituloPagina;
 ---
@@ -115,11 +123,29 @@ const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : 
       y solo existe en md+, así que sin este despeje la tapa le quedaba debajo. Es el
       mismo token que usa PageHeader en el resto de las páginas. */}
   <section class="md:mt-header-clear md:grid md:grid-cols-2 md:items-start md:gap-10 lg:gap-16">
-    {/* La tapa y la descripción comparten celda: son el mismo bloque, el que dice de qué
-        número se trata. En celdas separadas de la misma fila se superponían, porque las
-        dos arrancaban arriba y la descripción solo podía empujarse con relleno. */}
+    {/* El encabezado, la tapa y la descripción comparten celda: son el mismo bloque, el
+        que dice de qué número se trata. En celdas separadas de la misma fila se
+        superponían, porque las dos arrancaban arriba y la segunda solo podía empujarse
+        con relleno.
+
+        El dato va UNA sola vez: acá, en la diagramación, y no encima de la portada
+        (`sinDatos`), donde competía con la foto y repetía lo mismo a diez píxeles. */}
     <div class="flex flex-col items-center md:col-start-1 md:row-start-1 md:items-start">
-      <div class="w-44 sm:w-52 lg:w-56">
+      <p class="font-mono text-xs uppercase tracking-widest text-ink-muted">{formattedDate}</p>
+      <h1 class="mt-1 font-headline leading-[0.9] text-ink text-[2.6rem] md:text-5xl lg:text-6xl">
+        {tituloPagina}
+      </h1>
+      {
+        subtituloPagina && (
+          <p class="mt-1 font-serif italic leading-tight text-ink/70 text-xl md:text-2xl">
+            {subtituloPagina}
+          </p>
+        )
+      }
+
+      {/* Más grande que las de abajo, a propósito: es el número que se está mirando, y
+          las anteriores son la invitación a seguir. */}
+      <div class="mt-7 w-56 sm:w-64 lg:w-72">
         <CarpetaNumero
           numero={indiceNumero}
           titulo={tituloPagina}
@@ -129,6 +155,7 @@ const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : 
           fecha={fechaCorta(numero.data.fecha)}
           items={[]}
           soloTapa
+          sinDatos
         />
       </div>
 
@@ -160,7 +187,7 @@ const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : 
           <h2 class="mb-5 text-center font-mono text-xs uppercase tracking-widest text-ink-muted md:text-left">
             Números anteriores
           </h2>
-          <div class="grid grid-cols-3 gap-4 md:gap-5">
+          <div class="grid max-w-sm grid-cols-3 gap-4 md:max-w-md md:gap-5">
             {anteriores.map((otro) => (
               <CarpetaNumero
                 numero={otro.indice}

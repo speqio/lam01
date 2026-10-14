@@ -47,9 +47,28 @@ interface Props {
    * colección sería mostrar dos veces lo mismo.
    */
   soloTapa?: boolean;
+  /**
+   * Sin la fecha ni el título sobre la portada. Es para cuando la página ya los dice al
+   * lado (la de un número): ahí la carpeta es la imagen del número, no su ficha, y
+   * repetir el dato encima de la foto lo dice dos veces. Se va con ellos el degradado
+   * oscuro del pie, que existía solo para que ese texto se leyera sobre cualquier
+   * portada.
+   */
+  sinDatos?: boolean;
 }
 
-const { numero, titulo, subtitulo, portada, href, fecha, items, rangoId, soloTapa = false } = Astro.props;
+const {
+  numero,
+  titulo,
+  subtitulo,
+  portada,
+  href,
+  fecha,
+  items,
+  rangoId,
+  soloTapa = false,
+  sinDatos = false,
+} = Astro.props;
 
 const ventanaId = `carpeta-${numero}-contenido`;
 
@@ -60,7 +79,7 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
 ---
 
 <article
-  class:list={['carpeta', soloTapa && 'carpeta--sola']}
+  class:list={['carpeta', soloTapa && 'carpeta--sola', sinDatos && 'carpeta--sin-datos']}
   data-carpeta={soloTapa ? undefined : ''}
   data-numero-rango={rangoId}
 >
@@ -94,11 +113,13 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
           </span>
         )}
 
-        <span class="carpeta-datos">
-          <span class="carpeta-fecha">{fecha}</span>
-          <span class="carpeta-titulo">{titulo}</span>
-          {subtitulo && <span class="carpeta-subtitulo">{subtitulo}</span>}
-        </span>
+        {!sinDatos && (
+          <span class="carpeta-datos">
+            <span class="carpeta-fecha">{fecha}</span>
+            <span class="carpeta-titulo">{titulo}</span>
+            {subtitulo && <span class="carpeta-subtitulo">{subtitulo}</span>}
+          </span>
+        )}
       </span>
 
     </span>
@@ -197,6 +218,12 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
     height: 100%;
     object-fit: cover;
   }
+  /* Sin datos no hace falta el degradado: estaba para que el texto se leyera sobre
+     cualquier portada, y sin texto solo oscurece la foto. */
+  .carpeta--sin-datos .carpeta-cuerpo::after {
+    content: none;
+  }
+
   .carpeta-cuerpo::after {
     /* Degradado hacia abajo: es lo que deja leer el título sobre cualquier portada.
        Va en negro literal y no en tokens: en tema claro los tokens se invierten y la

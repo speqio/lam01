@@ -7,8 +7,9 @@ const currentPath = Astro.url.pathname;
 ---
 
 <nav
-  class="fixed inset-x-4 bottom-4 z-30 flex items-stretch justify-between rounded-2xl border border-ink/15 bg-surface/95 px-1 py-1 backdrop-blur md:hidden"
+  class="nav-flotante fixed inset-x-4 bottom-4 z-30 flex items-stretch justify-between rounded-2xl border border-ink/15 bg-surface/95 px-1 py-1 backdrop-blur md:hidden"
   aria-label="Navegación móvil"
+  data-nav-flotante
 >
   {
     navItems.map((item) => {
@@ -25,7 +26,7 @@ const currentPath = Astro.url.pathname;
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d={item.icon} />
           </svg>
-          <span>{item.name}</span>
+          <span class="nav-etiqueta">{item.name}</span>
         </a>
       );
     })
@@ -36,3 +37,86 @@ const currentPath = Astro.url.pathname;
     <ThemeToggle class="h-8 w-8 border-ink/15" />
   </div>
 </nav>
+
+<style>
+  /*
+   * SE CONTRAE MIENTRAS SE BAJA Y SE ABRE CUANDO EL SCROLL SE DETIENE. Lo que se esconde
+   * son las ETIQUETAS, no la barra entera: los iconos quedan siempre a mano, asi que la
+   * navegacion nunca deja de estar disponible --es la unica que hay en mobile-- y lo que
+   * se recupera es alto de pantalla mientras se lee.
+   *
+   * Se anima `max-height` y no `display`, que no transiciona; `overflow: hidden` en la
+   * etiqueta es lo que recorta mientras se cierra.
+   */
+  /* `:global` en la etiqueta porque una de ellas vive en el island de React del buscador
+     (SearchModal.tsx), fuera del alcance del estilo acotado de este componente: sin esto,
+     "Buscar" se quedaba sola al contraerse la barra. El contenedor sigue acotado, asi que
+     la regla no se escapa de esta barra. */
+  .nav-flotante :global(.nav-etiqueta) {
+    display: block;
+    max-height: 1.2em;
+    overflow: hidden;
+    opacity: 1;
+    transition:
+      max-height 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 0.2s ease;
+  }
+  .nav-flotante[data-contraida='true'] :global(.nav-etiqueta) {
+    max-height: 0;
+    opacity: 0;
+  }
+
+  .nav-flotante {
+    transition: padding 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .nav-flotante[data-contraida='true'] {
+    padding-top: 0.125rem;
+    padding-bottom: 0.125rem;
+  }
+
+  /* Con el movimiento desactivado el cambio sigue pasando, pero sin animarlo: la barra
+     se contrae igual, de una. */
+  @media (prefers-reduced-motion: reduce) {
+    .nav-flotante,
+    .nav-flotante :global(.nav-etiqueta) {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  /*
+   * Contraer al bajar, abrir al detenerse. Dos reglas y nada mas:
+   *  - cada vez que la pagina baja, se contrae;
+   *  - cuando el scroll deja de llegar por 180 ms, se abre.
+   * Subir no la abre sola a proposito: abrirla a mitad de un gesto hacia arriba la hace
+   * crecer debajo del pulgar justo donde se esta tocando. Al soltar, el scroll se detiene
+   * y se abre igual.
+   *
+   * El listener es pasivo y solo escribe un atributo: no mide nada en el handler (leer
+   * scrollY ya obliga al navegador a calcular posicion, y hacerlo por frame es el
+   * clasico atascadero del scroll en mobile), y el trabajo real lo hace CSS.
+   */
+  const barra = document.querySelector<HTMLElement>('[data-nav-flotante]');
+
+  if (barra) {
+    let ultimaY = window.scrollY;
+    let quieta: number | undefined;
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        const y = window.scrollY;
+        // El umbral evita que el rebote de iOS (unos pocos pixeles) la cierre sola.
+        if (y > ultimaY + 4) barra.dataset.contraida = 'true';
+        ultimaY = y;
+
+        window.clearTimeout(quieta);
+        quieta = window.setTimeout(() => {
+          barra.dataset.contraida = 'false';
+        }, 180);
+      },
+      { passive: true }
+    );
+  }
+</script>

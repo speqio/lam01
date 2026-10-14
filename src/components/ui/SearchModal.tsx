@@ -153,7 +153,10 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
             <circle cx="11" cy="11" r="7" />
             <path d="m21 21-4.3-4.3" />
           </svg>
-          <span>Buscar</span>
+          {/* `nav-etiqueta`: la clase con la que la barra flotante de mobile contrae las
+              etiquetas al bajar (ver MobileFloatingNav.astro). Sin esto, "Buscar" se
+              quedaba sola cuando las demas se escondian. */}
+          <span className="nav-etiqueta">Buscar</span>
         </button>
       ) : (
         <button

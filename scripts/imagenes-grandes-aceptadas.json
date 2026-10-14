@@ -14,12 +14,9 @@
     "Probar eso ANTES de anotar una excepción: el lado largo es la palanca, la calidad es el",
     "último recurso.",
     "",
-    "Las dos entradas de hoy son la única clase de archivo para la que esa palanca no sirve: un",
-    "asset del código cuyo tamaño lo fija el diseño, no la foto. No son contenido: no pasan por",
-    "Keystatic y nadie las sube desde el panel, así que no pueden degradarse solas."
+    "Hoy está VACÍA otra vez, y conviene que siga así. Los dos PNG del marco de papel de",
+    "FotoAntigua.astro (272 KB cada uno) estuvieron anotados acá mientras el tope eran 250 KB;",
+    "al subirlo a 600 KB dejaron de necesitar excepción y se borraron de la lista."
   ],
-  "archivos": {
-    "/images/mockups/papel-foto-marco-horizontal.png": "Marco de papel de FotoAntigua.astro: un PNG de 1418×1000 que es casi todo borde y centro transparente, superpuesto a la foto. Su lado no se puede bajar (tiene que cubrir el ancho de la columna al píxel o el borde del papel queda borroso) y el optimizador lo reporta “ya está al mínimo con este formato”. Pendiente mejor: pasarlo a WebP, que conserva el alfa y mide un 80% menos (medido: 272 KB → ~55 KB); son 20 líneas de FotoAntigua.astro, y entonces esta excepción se borra.",
-    "/images/mockups/papel-foto-marco-vertical.png": "El mismo archivo rotado 90°, con la misma razón y el mismo pendiente."
-  }
+  "archivos": {}
 }

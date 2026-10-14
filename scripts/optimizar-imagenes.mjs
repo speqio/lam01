@@ -2,7 +2,7 @@
 //
 //   node scripts/optimizar-imagenes.mjs                 informe, NO escribe nada
 //   node scripts/optimizar-imagenes.mjs --escribir      aplica los cambios
-//   node scripts/optimizar-imagenes.mjs --lado=1600 --peso=250
+//   node scripts/optimizar-imagenes.mjs --lado=1600 --peso=600
 //   node scripts/optimizar-imagenes.mjs --webp-codigo   además pasa a WebP las imágenes
 //                                                       que solo referencia el código
 //   node scripts/optimizar-imagenes.mjs --webp-png-sin-alfa
@@ -68,7 +68,7 @@ const leerNum = (nombre, porDefecto) => {
 const LADO_MAX = leerNum('lado', 1600);
 /** Peso máximo deseado por imagen, en KB. Es el mismo tope que comprueba
     verificar-keystatic.mjs, para que las dos herramientas no se desincronicen. */
-const PESO_MAX_KB = leerNum('peso', 250);
+const PESO_MAX_KB = leerNum('peso', 600);
 /** Por debajo de esta mejora no vale reescribir el archivo: ensucia el historial de git
     con un blob nuevo para no ganar nada. Al 10% el script es además casi idempotente —
     volver a correrlo sobre imágenes ya optimizadas no toca nada, en vez de arañar un 3%

@@ -238,7 +238,10 @@ if (!usaMarkdoc && !usaDocument) {
 //
 // Las portadas provisionales (scripts/portadas-provisionales.json) no cuentan: son los
 // placeholders generados que se reemplazan en cuanto llega la tapa real.
-const PESO_MAX_KB = 250;
+// El tope se subio de 250 a 600 KB: las tapas de numero se ven a pantalla completa en
+// el hero del home y en /numeros, no en la columna de ~700 px donde se lee el texto, y
+// a 250 KB varias no entraban sin que se notara la perdida.
+const PESO_MAX_KB = 600;
 const LADO_MAX = 1600;
 
 const provisionalesPath = path.join(root, 'scripts', 'portadas-provisionales.json');

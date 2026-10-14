@@ -373,7 +373,7 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
   /* La hoja solo tiene carril en pantallas chicas: en desktop es grilla a todo el ancho
      y un degradado sobre sus bordes taparía las estampillas de las puntas. */
   @media (min-width: 768px) {
-    .coleccion:not(.coleccion--lineal) .coleccion-difuminado {
+    .coleccion:not(.coleccion--lineal):not(.coleccion--bucle) .coleccion-difuminado {
       display: none;
     }
   }
@@ -488,7 +488,7 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
   @media (min-width: 768px) {
     /* En tira y en columna esta grilla no corre: el carril se mantiene en todos los
        anchos. */
-    .coleccion:not(.coleccion--lineal):not(.coleccion--grilla) .coleccion-pliego {
+    .coleccion:not(.coleccion--lineal):not(.coleccion--grilla):not(.coleccion--bucle) .coleccion-pliego {
       display: grid;
       /* 1fr y no var(--est-w): la hoja ocupa EXACTAMENTE el ancho de la sección, así sus
          bordes caen a plomo con el título ("Últimas entradas") y con el botón de la
@@ -503,7 +503,7 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
     }
     /* La estampilla ya no mide --est-w: la mide la columna, y la proporción acostada la
        sostiene aspect-ratio. */
-    .coleccion:not(.coleccion--lineal):not(.coleccion--grilla) .estampilla-hueco {
+    .coleccion:not(.coleccion--lineal):not(.coleccion--grilla):not(.coleccion--bucle) .estampilla-hueco {
       width: auto;
       height: auto;
       aspect-ratio: 460 / 300;
@@ -924,7 +924,7 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
        dejaria todas las estampillas en el mismo punto. */
     const paso = () => {
       const alto = huecos[0].getBoundingClientRect().height;
-      return (alto > 0 ? alto : 150) * 0.78;
+      return (alto > 0 ? alto : 150) * 1.12;
     };
 
     let desplazamiento = 0;
@@ -950,7 +950,7 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
         if (avance < -vuelta / 2) avance += vuelta;
         if (avance > vuelta / 2) avance -= vuelta;
 
-        const lejania = Math.abs(avance) / (SALTO * 2.4);
+        const lejania = Math.abs(avance) / (SALTO * 2.1);
         gsap.set(hueco, {
           xPercent: -50,
           yPercent: -50,
@@ -983,6 +983,7 @@ const conDial = disposicion === 'tira' || disposicion === 'bucle' || dialVertica
     };
 
     gsap.ticker.add(dibujar);
+
   }
 
   function initColeccion(raiz: HTMLElement) {

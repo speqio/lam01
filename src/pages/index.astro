@@ -8,11 +8,27 @@ import ArchivoCatalogo from '../components/ArchivoCatalogo.astro';
 import HoverRevealHero from '../components/HoverRevealHero.astro';
 import CategoriasCards from '../components/CategoriasCards.astro';
 
-const numeros = await getCollection('numeros');
+// "sin-numero" es el contenedor interno de las entradas sin numero asignado: no es una
+// edicion y no puede salir en el home ni contarse como la ultima.
+const numeros = (await getCollection('numeros')).filter((numero) => numero.id !== 'sin-numero');
 const numerosOrdenados = numeros.sort(
   (a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf()
 );
-const ultimoNumero = numerosOrdenados[0];
+/**
+ * El ultimo numero es el de INDICE mas alto, no el de `fecha` mas reciente. Ordenar por
+ * fecha deja el home a merced de una errata: hoy numero-26 tiene 2026-10-05 cuando sus
+ * entradas son de 2025, y por eso el hero anunciaba el 26 existiendo el 31. El indice
+ * sale del slug (`numero-31`), que es el unico dato garantizado numerico y estable.
+ */
+const indiceDeNumero = (id: string) => {
+  const match = id.match(/(\d+)/);
+  return match ? parseInt(match[0], 10) : 0;
+};
+const ultimoNumero = numeros.reduce<(typeof numeros)[number] | undefined>(
+  (mayor, numero) =>
+    !mayor || indiceDeNumero(numero.id) > indiceDeNumero(mayor.id) ? numero : mayor,
+  undefined
+);
 
 const todasLasEntradas = await getCollection('entradas');
 
@@ -136,7 +152,11 @@ const CATEGORIA_IMAGENES: Record<string, string> = {
 
   {
     ultimoNumero && (
-      <HoverRevealHero titulo={ultimoNumero.data.titulo} href={`/${ultimoNumero.id}`} />
+      <HoverRevealHero
+        titulo={ultimoNumero.data.titulo}
+        href={`/${ultimoNumero.id}`}
+        portada={ultimoNumero.data.portada}
+      />
     )
   }
 

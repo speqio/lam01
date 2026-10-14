@@ -15,9 +15,14 @@ interface Props {
   titulo: string;
   descripcion?: string;
   href?: string;
+  /** Portada del número: es la cara de la estampilla. Sin ella queda la ilustración
+      genérica de /images/home/, que es la que había antes de que los números tuvieran
+      tapa propia. */
+  portada?: string;
 }
 
-const { titulo, descripcion, href } = Astro.props;
+const { titulo, descripcion, href, portada } = Astro.props;
+const caraEstampilla = portada ?? '/images/home/estampilla.webp';
 const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
 ---
 
@@ -67,10 +72,10 @@ const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
     >
       <div class="stamp" data-stamp>
         <EstampillaFace class="stamp-face stamp-front">
-          <img src="/images/home/estampilla.webp" alt="" draggable="false" />
+          <img src={caraEstampilla} alt="" draggable="false" />
         </EstampillaFace>
         <EstampillaFace class="stamp-face stamp-back">
-          <img src="/images/home/estampilla.webp" alt="" draggable="false" />
+          <img src={caraEstampilla} alt="" draggable="false" />
         </EstampillaFace>
       </div>
     </div>

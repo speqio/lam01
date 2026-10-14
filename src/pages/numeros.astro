@@ -18,10 +18,26 @@ function formatoBadgeFecha(fecha: Date) {
   return `${mes}·${anio}`;
 }
 
-const numeros = await getCollection('numeros');
-const numerosOrdenados = numeros.sort(
-  (a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf()
-);
+// "sin-numero" es el contenedor interno de las entradas sin numero asignado: no es una
+// edicion, no tiene pagina publica (ver [slug].astro) y no debe tener carpeta.
+const numeros = (await getCollection('numeros')).filter((numero) => numero.id !== 'sin-numero');
+
+/** El indice de una edicion sale de su slug (`numero-9`, `numero-13`), no del titulo, que
+    puede llevar subtitulo y mayusculas. */
+function numeroIndice(numero: { id: string }) {
+  const match = numero.id.match(/(\d+)/);
+  return match ? parseInt(match[0], 10) : 0;
+}
+
+/**
+ * Orden ascendente por INDICE, del 1 al ultimo: la grilla se lee como la coleccion
+ * completa en su orden natural, y es el orden que se ve con el chip "Todos" puesto (el
+ * filtro solo esconde carpetas, nunca reordena el DOM). Por indice y no por `fecha` a
+ * proposito: la fecha puede traer una errata --numero-26 tiene 2026-10-05 cuando sus
+ * entradas son de 2025-- y entonces el 26 se colaba entre los ultimos. El indice sale del
+ * slug, que es el unico dato garantizado numerico y estable.
+ */
+const numerosOrdenados = numeros.sort((a, b) => numeroIndice(a) - numeroIndice(b));
 
 /**
  * Las entradas de cada número, agrupadas una sola vez. A diferencia del resto de las
@@ -63,11 +79,6 @@ for (const entrada of (await getCollection('entradas')).sort(
  */
 const RANGO_SIZE = 5;
 
-function numeroIndice(numero: (typeof numerosOrdenados)[number]) {
-  const match = numero.id.match(/(\d+)/);
-  return match ? parseInt(match[0], 10) : 0;
-}
-
 const indices = numerosOrdenados.map(numeroIndice);
 const maxIndice = indices.length > 0 ? Math.max(...indices) : 0;
 const totalRangos = Math.max(1, Math.ceil(maxIndice / RANGO_SIZE));
@@ -84,7 +95,7 @@ const chipClass =
 
 <BaseLayout
   title="Números — La Antorcha Magacín"
-  description="Todas las ediciones publicadas de la revista, ordenadas de la más reciente a la más antigua."
+  description="Todas las ediciones publicadas de la revista, del primer número al último."
 >
   <PageHeader eyebrow="Ediciones" title="Números" />
 

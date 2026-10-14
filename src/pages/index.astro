@@ -6,7 +6,7 @@ import ColeccionEstampillas from '../components/ui/ColeccionEstampillas.astro';
 import HeroAnagram from '../components/HeroAnagram.astro';
 import ArchivoCatalogo from '../components/ArchivoCatalogo.astro';
 import HoverRevealHero from '../components/HoverRevealHero.astro';
-// Guardado, fuera del home por ahora (ver el comentario en la seccion de abajo):
+// Guardado, fuera del home por ahora (docs/piezas-guardadas.md):
 // import CategoriasCards from '../components/CategoriasCards.astro';
 
 // "sin-numero" es el contenedor interno de las entradas sin numero asignado: no es una
@@ -191,19 +191,11 @@ const CATEGORIA_IMAGENES: Record<string, string> = {
   }
 
   {/*
-    EL CARRUSEL DE CATEGORIAS ESTA GUARDADO, NO BORRADO. Se saco del home por ahora; la
-    pieza sigue entera en `src/components/CategoriasCards.astro` --con su abanico, su
-    dial y su gesto acotado al eje horizontal-- y el mapa de ilustraciones fijas,
-    `CATEGORIA_IMAGENES`, sigue mas arriba en este mismo archivo junto con las imagenes
-    en `public/images/categorias/`. Para devolverlo, el bloque que iba aca era:
-
-      <section class="mb-16 md:mb-32 md:mt-24 md:flex md:min-h-[85vh] md:flex-col md:justify-center lg:mb-40 lg:mt-32">
-        ... titulo "Categorias" ...
-        <CategoriasCards categorias={categorias.filter(...).map(...)} />
-      </section>
-
-    y esta completo en el commit que lo saco. Se deja el import comentado y no borrado
-    por la misma razon: que el camino de vuelta sea una linea.
+    ACA IBA EL CARRUSEL DE CATEGORIAS, que esta guardado y no borrado: el bloque
+    completo, lo que tiene que seguir en pie y como comprobar que volvio bien estan en
+    `docs/piezas-guardadas.md`. La pieza (`CategoriasCards.astro`), el mapa
+    `CATEGORIA_IMAGENES` de mas arriba y las ilustraciones de `public/images/categorias/`
+    siguen todos en su lugar.
   */}
 
   <section id="archivo-explorer" class="mb-16 md:mb-32 md:mt-24 lg:mb-40 lg:mt-32">

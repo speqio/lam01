@@ -125,6 +125,15 @@ top; CSS `:hover` where there is hover, first tap where there isn't) → the blu
 with that número's sheet of stamps. The state is cleared when the stage opens *and* when
 it closes, or the folder stays fanned out behind the backdrop and reappears that way.
 
+**Piezas guardadas (`docs/piezas-guardadas.md`).** Un componente que sale de su página
+pero puede volver se **deja en el repositorio y se anota ahí**, con el bloque exacto que
+hay que pegar y lo que tiene que seguir en pie para que funcione —no se borra el
+componente, solo su uso—. Hoy hay dos: el **carrusel de categorías del home**
+(`CategoriasCards.astro`, fuera desde 2026-10-14; su `CATEGORIA_IMAGENES` y las diez
+ilustraciones de `public/images/categorias/` siguen en pie y **no hay que borrarlas** aunque
+un barrido de huérfanas las marque, porque sus rutas viven en el código) y el hero de
+partículas (`HoverRevealHero.particulas.astro.bak`).
+
 ### Design system
 
 `tailwind.config.mjs` defines **semantic** color tokens rather than literal palette names — component code should reference the role, not a hardcoded color, since the token values are what get swapped on a re-theme:

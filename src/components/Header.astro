@@ -7,12 +7,9 @@ import { navItems } from '../data/navItems';
 
 <header class="pointer-events-none fixed inset-x-0 top-0 z-20 hidden md:block" data-header>
   <!-- Masthead: se contrae en una nav bar compacta al bajar el scroll (ver script abajo) -->
-  <div
-    class="pointer-events-auto border-b border-transparent bg-transparent backdrop-blur-none"
-    data-header-masthead
-  >
+  <div class="border-b border-transparent bg-transparent backdrop-blur-none" data-header-masthead>
     <div
-      class="mx-auto grid h-20 max-w-[1600px] grid-cols-3 items-center gap-4 px-4 md:px-8 lg:px-12"
+      class="pointer-events-auto mx-auto grid h-20 max-w-[1600px] grid-cols-3 items-center gap-4 px-4 md:px-8 lg:px-12"
       data-header-bar
     >
       <div class="relative z-10 justify-self-start">
@@ -48,6 +45,16 @@ import { navItems } from '../data/navItems';
    * llegaba a mostrarse como nav bar.
    */
   [data-header-masthead] {
+    /* El blur/fondo del masthead se difumina hacia abajo en vez de cortar en una
+       línea recta contra el contenido que scrollea detrás: `padding-bottom` agrega
+       una franja extra debajo de la barra visible (`[data-header-bar]`, que define
+       el alto real) y `mask-image` la usa para desvanecer — opaco hasta el borde de
+       la barra, transparente al final de esa franja. Sin `pointer-events` acá (lo
+       tiene `[data-header-bar]` en su lugar): si esta franja extra fuera clickeable,
+       un área invisible debajo de la nav bar bloquearía clics en el contenido. */
+    padding-bottom: 1.5rem;
+    mask-image: linear-gradient(to bottom, black calc(100% - 1.5rem), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 1.5rem), transparent 100%);
     transition:
       background-color 0.35s ease,
       border-color 0.35s ease,

@@ -1,14 +1,25 @@
 ---
 import SearchModal from './ui/SearchModal.tsx';
 import ThemeToggle from './ThemeToggle.astro';
+import HeroAnagram from './HeroAnagram.astro';
 import { navItems } from '../data/navItems';
 ---
 
-<header class="pointer-events-none absolute inset-x-0 top-0 z-20 hidden md:block">
-  <!-- Masthead -->
-  <div class="pointer-events-auto border-b border-transparent bg-transparent backdrop-blur-none">
-    <div class="mx-auto flex h-20 max-w-[1600px] items-center justify-between gap-4 px-4 md:px-8 lg:px-12">
-      <nav class="hidden items-center gap-6 font-mono text-xs uppercase tracking-widest text-ink md:flex">
+<header class="pointer-events-none fixed inset-x-0 top-0 z-20 hidden md:block" data-header>
+  <!-- Masthead: se contrae en una nav bar compacta al bajar el scroll (ver script abajo) -->
+  <div
+    class="pointer-events-auto border-b border-transparent bg-transparent backdrop-blur-none"
+    data-header-masthead
+  >
+    <div
+      class="mx-auto grid h-20 max-w-[1600px] grid-cols-3 items-center gap-4 px-4 md:px-8 lg:px-12"
+      data-header-bar
+    >
+      <div class="relative z-10 justify-self-start">
+        <HeroAnagram variant="header" />
+      </div>
+
+      <nav class="flex items-center justify-center gap-6 font-mono text-xs uppercase tracking-widest text-ink">
         {
           navItems.map((item) => (
             <a href={item.url} class="group relative text-ink transition-colors hover:text-accent">
@@ -19,10 +30,60 @@ import { navItems } from '../data/navItems';
         }
       </nav>
 
-      <div class="hidden items-center gap-3 md:flex">
+      <div class="flex items-center gap-3 justify-self-end">
         <SearchModal client:load />
         <ThemeToggle />
       </div>
     </div>
   </div>
 </header>
+
+<style>
+  /*
+   * Contracción al bajar el scroll: el header pasa de masthead transparente (flota sobre
+   * el hero) a nav bar compacta con fondo, como la barra flotante de mobile pero sin
+   * esconder nada — en desktop siempre hay espacio para los tres bloques, lo que cambia
+   * es el alto y el fondo. `header` es `fixed` (no `absolute`) para que se quede anclado
+   * al viewport mientras se scrollea: con `absolute` se iba con el contenido y nunca
+   * llegaba a mostrarse como nav bar.
+   */
+  [data-header-masthead] {
+    transition:
+      background-color 0.35s ease,
+      border-color 0.35s ease,
+      backdrop-filter 0.35s ease;
+  }
+  [data-header-bar] {
+    transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  [data-header][data-compacto='true'] [data-header-masthead] {
+    /* Fondo SIEMPRE transparente, también contraído: un fondo sólido interrumpe la
+       lectura del contenido que pasa debajo. El blur alcanza para separar visualmente
+       la nav bar sin tapar lo que hay detrás. */
+    backdrop-filter: blur(8px);
+  }
+  [data-header][data-compacto='true'] [data-header-bar] {
+    height: 3.5rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-header-masthead],
+    [data-header-bar] {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  const header = document.querySelector<HTMLElement>('[data-header]');
+
+  if (header) {
+    const actualizar = () => {
+      header.dataset.compacto = window.scrollY > 24 ? 'true' : 'false';
+    };
+
+    actualizar();
+    window.addEventListener('scroll', actualizar, { passive: true });
+  }
+</script>

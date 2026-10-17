@@ -26,11 +26,24 @@ const caraEstampilla = portada ?? '/images/home/estampilla.webp';
 const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
 ---
 
-<section class="relative mb-16 w-full px-4 py-4 sm:py-6 md:mb-32 lg:mb-40">
-  <div
-    class="mx-auto grid max-w-none grid-cols-2 items-center gap-3 md:gap-6 lg:gap-12"
-  >
-    <div class="flex w-full min-w-0 flex-col items-start text-left">
+<section class="relative mb-16 w-full mt-10 px-4 py-4 sm:mt-14 sm:py-6 md:mt-16 md:mb-32 lg:mt-20 lg:mb-40">
+  <div class="mx-auto flex max-w-none flex-col items-center gap-3 text-center">
+    <div
+      class="stamp-scene shrink-0 justify-self-center"
+      data-stamp-scene
+      aria-hidden="true"
+    >
+      <div class="stamp" data-stamp>
+        <EstampillaFace class="stamp-face stamp-front">
+          <img src={caraEstampilla} alt="" draggable="false" />
+        </EstampillaFace>
+        <EstampillaFace class="stamp-face stamp-back">
+          <img src={caraEstampilla} alt="" draggable="false" />
+        </EstampillaFace>
+      </div>
+    </div>
+
+    <div class="flex w-full min-w-0 flex-col items-center text-center">
       <h1
         class="max-w-full font-headline leading-[0.85] tracking-tight text-ink text-[7.5vw] md:text-[min(7vw,7rem)] lg:text-[min(6.5vw,8.5rem)]"
       >
@@ -52,40 +65,28 @@ const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
           </p>
         )
       }
-
-      {
-        href && (
-          <a
-            href={href}
-            class="mt-5 inline-block rounded-full border border-ink px-4 py-2.5 font-mono text-[0.65rem] sm:px-6 sm:py-3 sm:text-xs uppercase tracking-widest text-ink transition-colors hover:bg-ink hover:text-canvas md:mt-8 md:px-8 md:py-4 md:text-sm"
-          >
-            Ver número completo
-          </a>
-        )
-      }
     </div>
 
-    <div
-      class="stamp-scene shrink-0 justify-self-center"
-      data-stamp-scene
-      aria-hidden="true"
-    >
-      <div class="stamp" data-stamp>
-        <EstampillaFace class="stamp-face stamp-front">
-          <img src={caraEstampilla} alt="" draggable="false" />
-        </EstampillaFace>
-        <EstampillaFace class="stamp-face stamp-back">
-          <img src={caraEstampilla} alt="" draggable="false" />
-        </EstampillaFace>
-      </div>
-    </div>
+    {
+      href && (
+        <a
+          href={href}
+          class="mt-5 inline-block rounded-full border border-ink px-4 py-2.5 font-mono text-[0.65rem] sm:px-6 sm:py-3 sm:text-xs uppercase tracking-widest text-ink transition-colors hover:bg-ink hover:text-canvas md:px-8 md:py-4 md:text-sm"
+        >
+          Ver número completo
+        </a>
+      )
+    }
   </div>
 </section>
 
 <style>
   .stamp-scene {
-    --stamp-w: min(38vw, 200px);
-    width: var(--stamp-w);
+    /* La estampilla es enorme a propósito: su mitad superior ocupa el alto visible
+       disponible al cargar, y hay que bajar con scroll para ver el resto + la info del
+       número. Altura en vh/vw (nunca en px fijos) para que la proporción 300/460 se
+       mantenga en todos los dispositivos sin recortarse por ancho. */
+    height: min(85vh, 130vw, 760px);
     aspect-ratio: 300 / 460;
     perspective: 1200px;
     /* Solo el scroll vertical pasa al navegador; el giro horizontal lo captura Observer. */
@@ -94,16 +95,6 @@ const { titulo: tituloPrincipal, subtitulo } = splitNumeroTitle(titulo);
   }
   .stamp-scene:active {
     cursor: grabbing;
-  }
-  @media (min-width: 768px) {
-    .stamp-scene {
-      --stamp-w: 260px;
-    }
-  }
-  @media (min-width: 1024px) {
-    .stamp-scene {
-      --stamp-w: 300px;
-    }
   }
   .stamp {
     position: relative;

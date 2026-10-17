@@ -1,0 +1,81 @@
+---
+/**
+ * Lista de categorías: cada línea aparece con fade-in + blur al entrar en pantalla
+ * scrolleando hacia abajo, y se revierte (vuelve a blur + opacidad 0) al pasarla de
+ * largo scrolleando hacia arriba — fiel al scroll en ambas direcciones.
+ *
+ * El estado inicial oculto lo pone CSS (clase "categoria-linea-reveal" + regla en
+ * global.css gateada en `html.js`), NO este script — mismo criterio que
+ * .entry-card-reveal (EntryCard.tsx): si el `gsap.set` inicial lo pusiera el script, con
+ * la página ya pintada se vería la línea completa un instante y recién ahí saltar a
+ * oculta antes de animarse de vuelta. El script solo revela (`onEnter`) y esconde de
+ * nuevo (`onLeaveBack`, lo único que difiere del patrón de una sola vez que usa
+ * EntryCard.tsx — acá el pedido es que se repita en ambos sentidos del scroll).
+ */
+interface CategoriaLinea {
+  nombre: string;
+  href: string;
+}
+
+interface Props {
+  items: CategoriaLinea[];
+}
+
+const { items } = Astro.props;
+---
+
+{
+  items.length > 0 && (
+    <section class="relative mb-16 w-full px-4 md:mb-32 lg:mb-40" data-categorias-scroll>
+      <div class="mb-10 md:mb-16">
+        <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+          Explorar por género
+        </span>
+        <h2 class="font-headline text-2xl leading-none tracking-tight text-ink md:text-4xl lg:text-6xl">
+          Categorías
+        </h2>
+      </div>
+
+      <ul class="mx-auto flex max-w-3xl flex-col">
+        {items.map((item) => (
+          <li>
+            <a
+              href={item.href}
+              class="categoria-linea categoria-linea-reveal block py-6 font-headline leading-none tracking-tight text-ink text-[8vw] transition-[color,transform] duration-200 ease-out hover:translate-x-2 hover:text-accent md:py-9 md:text-[4.5vw] lg:text-[3.5rem]"
+            >
+              {item.nombre}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const secciones = document.querySelectorAll<HTMLElement>('[data-categorias-scroll]');
+
+  secciones.forEach((seccion) => {
+    const lineas = Array.from(seccion.querySelectorAll<HTMLElement>('.categoria-linea'));
+    if (lineas.length === 0) return;
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
+
+    lineas.forEach((linea) => {
+      ScrollTrigger.create({
+        trigger: linea,
+        start: 'top 85%',
+        onEnter: () =>
+          gsap.to(linea, { opacity: 1, filter: 'blur(0px)', y: 0, duration: 0.7, ease: 'power2.out' }),
+        onLeaveBack: () =>
+          gsap.to(linea, { opacity: 0, filter: 'blur(14px)', y: 24, duration: 0.5, ease: 'power2.out' }),
+      });
+    });
+  });
+</script>

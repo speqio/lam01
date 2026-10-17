@@ -134,6 +134,19 @@
     }
   }
 
+  /* Mismo criterio que .entry-card-reveal de arriba, para las líneas de categorías del
+     home (CategoriasScrollReveal.astro) — además de opacidad/traslado, arrancan con
+     blur, que GSAP anima a foco nítido al entrar en viewport (y revierte al salir de
+     vuelta hacia arriba: a diferencia de .entry-card-reveal, esta sí se puede volver a
+     esconder después de pintarse visible, es el comportamiento pedido). */
+  @media (prefers-reduced-motion: no-preference) {
+    html.js .categoria-linea-reveal {
+      opacity: 0;
+      filter: blur(14px);
+      transform: translateY(24px);
+    }
+  }
+
   /* Chip de filtro seleccionado (FilterChip.astro y los chips de /numeros) — mismo
      criterio que .card-badge de arriba: blanco/negro en modo oscuro en vez de acento
      rojo + texto casi negro, acento sólido + texto canvas en modo claro. Los chips de

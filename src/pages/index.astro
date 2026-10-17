@@ -6,8 +6,10 @@ import ColeccionEstampillas from '../components/ui/ColeccionEstampillas.astro';
 import HeroAnagram from '../components/HeroAnagram.astro';
 import ArchivoCatalogo from '../components/ArchivoCatalogo.astro';
 import HoverRevealHero from '../components/HoverRevealHero.astro';
-// Guardado, fuera del home por ahora (docs/piezas-guardadas.md):
-// import CategoriasCards from '../components/CategoriasCards.astro';
+import CategoriasCards from '../components/CategoriasCards.astro';
+// Guardadas, fuera del home por ahora (docs/piezas-guardadas.md):
+// import CategoriasScrollReveal from '../components/ui/CategoriasScrollReveal.astro';
+// import CategoriasHoverStack from '../components/ui/CategoriasHoverStack.astro';
 
 // "sin-numero" es el contenedor interno de las entradas sin numero asignado: no es una
 // edicion y no puede salir en el home ni contarse como la ultima.
@@ -144,10 +146,12 @@ const CATEGORIA_IMAGENES: Record<string, string> = {
   prologo: '/images/categorias/prologo-laantorchamagacin.webp',
   resena: '/images/categorias/resena-laantorchamagacin.webp',
 };
+
+
 ---
 
 <BaseLayout title="La Antorcha Magacín">
-  <section class="py-4 sm:py-6 md:flex md:min-h-[85vh] md:flex-col md:justify-center md:py-0">
+  <section class="pt-6 pb-0 sm:pt-8 md:hidden">
     <HeroAnagram />
   </section>
 
@@ -191,12 +195,40 @@ const CATEGORIA_IMAGENES: Record<string, string> = {
   }
 
   {/*
-    ACA IBA EL CARRUSEL DE CATEGORIAS, que esta guardado y no borrado: el bloque
-    completo, lo que tiene que seguir en pie y como comprobar que volvio bien estan en
-    `docs/piezas-guardadas.md`. La pieza (`CategoriasCards.astro`), el mapa
-    `CATEGORIA_IMAGENES` de mas arriba y las ilustraciones de `public/images/categorias/`
-    siguen todos en su lugar.
+    Carrusel en rueda de categorías (CategoriasCards.astro) — la versión original,
+    restaurada después de probar dos reemplazos que no funcionaron bien: una lista con
+    reveal en scroll (CategoriasScrollReveal.astro) y una grilla de carpetas con stack
+    de estampillas al hover (CategoriasHoverStack.astro). Ninguna de las dos se borró
+    del repositorio, ver docs/piezas-guardadas.md para volver a cualquiera.
   */}
+  {
+    categorias.length > 0 && (
+      <section class="mb-16 md:mb-32 md:mt-24 md:flex md:min-h-[85vh] md:flex-col md:justify-center lg:mb-40 lg:mt-32">
+        <div class="mb-6 md:hidden">
+          <h2 class="font-headline text-2xl text-ink lg:text-3xl">Categorías</h2>
+        </div>
+
+        <div class="mb-6 hidden md:block">
+          <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+            Explora nuestro catálogo
+          </span>
+          <h2 class="font-headline text-4xl leading-none tracking-tight text-ink lg:text-6xl">
+            Categorías
+          </h2>
+        </div>
+
+        <CategoriasCards
+          categorias={categorias
+            .filter((categoria) => categoria.id in CATEGORIA_IMAGENES)
+            .map((categoria) => ({
+              slug: categoria.id,
+              nombre: categoria.data.nombre,
+              coverImage: CATEGORIA_IMAGENES[categoria.id],
+            }))}
+        />
+      </section>
+    )
+  }
 
   <section id="archivo-explorer" class="mb-16 md:mb-32 md:mt-24 lg:mb-40 lg:mt-32">
     <div class="mb-6 flex items-end justify-between gap-4 md:mb-10">

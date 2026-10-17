@@ -63,9 +63,9 @@ const currentPath = Astro.url.pathname;
     white-space: nowrap;
     opacity: 1;
     transition:
-      max-height 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
-      max-width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-      opacity 0.2s ease;
+      max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      max-width 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.35s ease-out;
   }
   .nav-flotante[data-contraida='true'] :global(.nav-etiqueta) {
     max-height: 0;
@@ -82,8 +82,8 @@ const currentPath = Astro.url.pathname;
     margin-inline: auto;
     max-width: 100%;
     transition:
-      max-width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-      padding 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      max-width 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+      padding 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .nav-flotante[data-contraida='true'] {
     /* Lo que miden los seis iconos con su aire: por debajo empiezan a amontonarse. */
@@ -104,12 +104,13 @@ const currentPath = Astro.url.pathname;
 
 <script>
   /*
-   * Contraer al bajar, abrir al detenerse. Dos reglas y nada mas:
-   *  - cada vez que la pagina baja, se contrae;
-   *  - cuando el scroll deja de llegar por 180 ms, se abre.
-   * Subir no la abre sola a proposito: abrirla a mitad de un gesto hacia arriba la hace
-   * crecer debajo del pulgar justo donde se esta tocando. Al soltar, el scroll se detiene
-   * y se abre igual.
+   * Contraer mientras hay movimiento (subiendo o bajando), abrir al detenerse. Dos
+   * reglas y nada mas:
+   *  - cualquier scroll, en cualquier direccion, la contrae;
+   *  - cuando el scroll deja de llegar por 180 ms, se abre, tambien subiendo: a
+   *    diferencia de la version anterior, abrirla a mitad de un gesto hacia arriba
+   *    debajo del pulgar ya no es un problema porque solo se abre al soltar/detenerse,
+   *    nunca a mitad de gesto.
    *
    * El listener es pasivo y solo escribe un atributo: no mide nada en el handler (leer
    * scrollY ya obliga al navegador a calcular posicion, y hacerlo por frame es el
@@ -126,7 +127,7 @@ const currentPath = Astro.url.pathname;
       () => {
         const y = window.scrollY;
         // El umbral evita que el rebote de iOS (unos pocos pixeles) la cierre sola.
-        if (y > ultimaY + 4) barra.dataset.contraida = 'true';
+        if (Math.abs(y - ultimaY) > 4) barra.dataset.contraida = 'true';
         ultimaY = y;
 
         window.clearTimeout(quieta);

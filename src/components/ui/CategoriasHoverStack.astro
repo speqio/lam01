@@ -1,0 +1,439 @@
+---
+/**
+ * Grilla de categorías del home: carpetas apiladas, no tarjetas en una grilla prolija.
+ * Al pasar el mouse (o al primer toque en táctil) cada carpeta se inclina hacia el
+ * visitante y asoma un stack en abanico de hasta 3 estampillas REALES de esa categoría
+ * (las portadas de sus propias entradas más recientes, calculadas en
+ * `src/pages/index.astro` como `estampillasPorCategoria`) — mismo patrón de datos que
+ * `asoman` en `CarpetaNumero.astro`.
+ *
+ * LA SILUETA Y EL HOVER replican un ejemplo HTML/CSS funcional que pasó el usuario
+ * (no un snapshot de Framer sin JS, sino reglas `:hover` reales que se pueden copiar
+ * tal cual), adaptado a los tokens de diseño del sitio:
+ *   - Tres piezas, no una: pestaña con número + triángulo (`clip-path`, mismo corte
+ *     diagonal que una lengüeta SVG) + placa a todo el ancho, igual que el ejemplo
+ *     (`folder-tab` + `folder-tab-slope` + `folder-plate`). Un solo `clip-path` sobre
+ *     toda la tarjeta (lo que se probó antes) simplifica el código pero pierde la
+ *     "pestaña angosta" que hace que de verdad se lea como carpeta.
+ *   - El stack se esconde con `clip-path: inset(-500% -50% 1px -50%)` sobre su propio
+ *     contenedor: recorta todo lo que quede por debajo del borde inferior de esa caja,
+ *     sin importar qué hermano esté encima — más robusto que depender de que un cuerpo
+ *     opaco lo tape (que fue la causa real de que versiones anteriores no se vieran).
+ *   - Abanico real al asomar: cada estampilla tiene su propio ángulo/escala/altura
+ *     (izquierda gira -12°, centro sube más y crece 8%, derecha gira +12°), no una
+ *     rotación lineal por índice.
+ *   - La carpeta entera se inclina en 3D (`rotateX(8deg) translateY(-2px)`, con
+ *     `perspective` en el contenedor) y profundiza su sombra al abrirse — se despega
+ *     de la pila hacia el visitante, no se hunde.
+ *
+ * Un solo color: nada de paleta-por-categoría (el sistema de diseño tiene un único
+ * acento a propósito, ver tailwind.config.mjs) — todas las piezas de la carpeta
+ * comparten `surface`, lo que cambia es el nombre, la cantidad y las estampillas.
+ *
+ * LA GRILLA EXTERIOR (2 columnas reales con `display: grid`, filas superpuestas vía
+ * `margin-top` negativo + `z-index` creciente por `nth-child`) no cambió en esta
+ * pasada — ya es segura porque `grid-template-columns: repeat(2, 1fr)` garantiza
+ * siempre 2 por fila, a diferencia de un intento anterior con `flex-wrap` que no lo
+ * garantizaba y por eso se rompía fuera de un rango angosto de anchos.
+ *
+ * Sin `position: fixed` en ningún lado (a diferencia de CarpetaNumero, que sí lo usa
+ * para su ventana modal): acá cada tag ES el link a /category/[slug], así que no hay
+ * riesgo de la trampa de stacking-context de un `fixed` resolviendo contra un
+ * ancestro con `transform`/`perspective` en vez de la ventana.
+ *
+ * Un solo componente para mobile y desktop: el hover no bloquea nada, y en táctil el
+ * primer toque solo abre el stack (preventDefault), el segundo navega.
+ */
+export interface CategoriaHoverItem {
+  slug: string;
+  nombre: string;
+  cantidad: number;
+  href: string;
+  /** Hasta 3 portadas de entradas reales de esta categoría, ya resueltas en index.astro. */
+  estampillas: string[];
+}
+
+interface Props {
+  items: CategoriaHoverItem[];
+}
+
+const { items } = Astro.props;
+---
+
+{
+  items.length > 0 && (
+    <ul class="categorias-hover-grid" data-categorias-hover>
+      {items.map((item, i) => (
+        <li>
+          <a
+            href={item.href}
+            class="categoria-tag"
+            data-tag-categoria
+            aria-expanded="false"
+          >
+            {item.estampillas.length > 0 && (
+              <span class="categoria-tag-hojas" aria-hidden="true">
+                <span class="categoria-tag-stack">
+                  {item.estampillas.map((cover) => (
+                    <span class="categoria-tag-hoja estampilla-perforada">
+                      <img src={cover} alt="" loading="lazy" />
+                    </span>
+                  ))}
+                </span>
+              </span>
+            )}
+
+            <span class="categoria-tag-body">
+              <span class="categoria-tag-tab-fila">
+                <span class="categoria-tag-numero">{String(i + 1).padStart(2, '0')}</span>
+                <span class="categoria-tag-corte" aria-hidden="true" />
+              </span>
+
+              <span class="categoria-tag-plate">
+                <span class="categoria-tag-nombre">{item.nombre}</span>
+                <span class="categoria-tag-cantidad">
+                  {item.cantidad} {item.cantidad === 1 ? 'entrada' : 'entradas'}
+                </span>
+              </span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+<style>
+  /*
+   * MOBILE-FIRST, columnas explícitas por punto de quiebre (nunca `auto-fit`/
+   * `auto-fill`): la superposición entre filas de abajo necesita saber EXACTAMENTE
+   * cuántas carpetas entran por fila para agrupar el `nth-child` correctamente — con
+   * columnas automáticas esa cantidad puede variar según el ancho exacto del
+   * contenedor, que es justo el bug que tuvo una versión anterior con `flex-wrap`.
+   * Más columnas en pantallas grandes (no 2 fijas): la carpeta de la referencia es
+   * angosta (relación de card, no de tarjeta ancha), así que el espacio extra de
+   * pantallas grandes se usa para MÁS carpetas por fila, no para estirar cada una.
+   */
+  .categorias-hover-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    column-gap: 0.9rem;
+    row-gap: 0.9rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .categorias-hover-grid > li {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (min-width: 481px) {
+    .categorias-hover-grid {
+      grid-template-columns: repeat(2, 1fr);
+      /* Sin row-gap desde acá: las filas se superponen (la de abajo tapa parte de
+         la de arriba, como carpetas reales apiladas) — eso lo hace el margin-top
+         negativo de abajo. */
+      row-gap: 0;
+    }
+    .categorias-hover-grid > li:nth-child(n + 3) {
+      margin-top: -2.75rem;
+      z-index: 2;
+    }
+    .categorias-hover-grid > li:nth-child(n + 5) {
+      z-index: 3;
+    }
+    .categorias-hover-grid > li:nth-child(n + 7) {
+      z-index: 4;
+    }
+    .categorias-hover-grid > li:nth-child(n + 9) {
+      z-index: 5;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .categorias-hover-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    /* Reagrupar por fila de 3: fila 2 empieza en el ítem 4, no en el 3. */
+    .categorias-hover-grid > li:nth-child(n + 3) {
+      margin-top: 0;
+      z-index: 1;
+    }
+    .categorias-hover-grid > li:nth-child(n + 4) {
+      margin-top: -2.75rem;
+      z-index: 2;
+    }
+    .categorias-hover-grid > li:nth-child(n + 7) {
+      z-index: 3;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .categorias-hover-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    /* Reagrupar por fila de 4: fila 2 empieza en el ítem 5. */
+    .categorias-hover-grid > li:nth-child(n + 4) {
+      margin-top: 0;
+      z-index: 1;
+    }
+    .categorias-hover-grid > li:nth-child(n + 5) {
+      margin-top: -2.75rem;
+      z-index: 2;
+    }
+    .categorias-hover-grid > li:nth-child(n + 9) {
+      z-index: 3;
+    }
+  }
+
+  .categoria-tag {
+    position: relative;
+    display: block;
+    /* Angosta, como la referencia (su `folder-wrapper` tiene `max-width: 320px`) —
+       no se estira a lo ancho de la columna si la columna termina siendo más ancha. */
+    max-width: 20rem;
+    min-height: 8rem;
+    /* Necesario para que `rotateX` de `.categoria-tag-body` (más abajo) se vea como
+       una inclinación en 3D de verdad y no como un simple achatado vertical. */
+    perspective: 700px;
+  }
+
+  /* LO QUE ASOMA: hasta 3 estampillas reales de la categoría. `clip-path: inset(-500%
+     -50% 1px -50%)` recorta todo lo que caiga por debajo del borde inferior de esta
+     caja (sin importar cómo se posicionen sus hijos con `transform`), así que queda
+     oculto de verdad en reposo — no depende de que `.categoria-tag-body` lo tape. */
+  .categoria-tag-hojas {
+    position: absolute;
+    top: 2.5rem;
+    left: 0;
+    right: 0;
+    height: 6.25rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+    z-index: 0;
+    clip-path: inset(-500% -50% 1px -50%);
+  }
+  .categoria-tag-stack {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  /* Mismo dentado que el resto del sitio usa para "esto es una estampilla"
+     (`.estampilla-perforada`, global.css — también en `.carpeta-hoja` de
+     CarpetaNumero.astro), no una foto cuadrada lisa: por eso `filter: drop-shadow`
+     y no `box-shadow` — la sombra tiene que seguir la silueta dentada, no la caja
+     rectangular que hay debajo de la máscara. */
+  .categoria-tag-hoja {
+    position: absolute;
+    width: 5.5rem;
+    height: 5.5rem;
+    overflow: hidden;
+    background-color: rgb(var(--color-surface));
+    filter: drop-shadow(0 8px 16px rgb(0 0 0 / 0.35));
+    --diente-r: 4px;
+    --diente-paso: 12px;
+    opacity: 0;
+    transform: translateY(1.75rem) scale(0.9);
+    transition:
+      transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.3s ease;
+  }
+  .categoria-tag-hoja:nth-child(1) {
+    z-index: 1;
+  }
+  .categoria-tag-hoja:nth-child(2) {
+    z-index: 2;
+  }
+  .categoria-tag-hoja:nth-child(3) {
+    z-index: 3;
+  }
+  .categoria-tag-hoja img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* LA CARPETA: tres piezas (pestaña + triángulo + placa), no una sola con el corte
+     de esquina — así la pestaña queda angosta de verdad (ajustada al número) y se
+     lee como una carpeta, no como una tarjeta con la punta cortada. */
+  .categoria-tag-body {
+    position: relative;
+    z-index: 1;
+    transform-origin: bottom center;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .categoria-tag-tab-fila {
+    display: flex;
+    align-items: flex-end;
+    position: relative;
+    z-index: 2;
+  }
+  .categoria-tag-numero {
+    background-color: rgb(var(--color-surface));
+    min-width: 2.6rem;
+    min-height: 1.9rem;
+    padding: 0.5rem 0.85rem 0.35rem;
+    display: flex;
+    align-items: center;
+    font-family: theme('fontFamily.mono');
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    color: rgb(var(--color-ink) / 0.6);
+  }
+  .categoria-tag-corte {
+    width: 1rem;
+    align-self: stretch;
+    background-color: rgb(var(--color-surface));
+    /* Mismo triángulo que el SVG de la referencia (`M 0 40 L 24 40 L 0 0 Z`), hecho
+       con clip-path: borde vertical a la izquierda, horizontal abajo, hipotenusa de
+       la esquina superior-izquierda a la inferior-derecha. */
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+  }
+
+  .categoria-tag-plate {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    min-height: 4.5rem;
+    margin-top: -1px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.3rem;
+    background-color: rgb(var(--color-surface));
+    box-shadow:
+      inset 0 0 0 1px rgb(var(--color-ink) / 0.08),
+      0 8px 18px rgb(0 0 0 / 0.1);
+    padding: 0.3rem 1.1rem 2rem;
+    transition: box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .categoria-tag-nombre {
+    font-family: theme('fontFamily.headline');
+    font-size: 1.1rem;
+    line-height: 1.15;
+    color: rgb(var(--color-ink));
+  }
+  .categoria-tag-cantidad {
+    font-family: theme('fontFamily.mono');
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* ABIERTO: la carpeta se inclina hacia el visitante y su sombra se profundiza, como
+     si se despegara de la pila — no se hunde. El stack sale en abanico: cada
+     estampilla con su propio ángulo/escala/altura (la del medio sube más y crece).
+     En desktop lo dispara el hover/foco, en táctil el primer toque (ver script, que
+     pone data-estado). */
+  @media (hover: hover) {
+    .categoria-tag:hover .categoria-tag-body,
+    .categoria-tag:focus-within .categoria-tag-body {
+      transform: rotateX(8deg) translateY(-2px);
+    }
+    .categoria-tag:hover .categoria-tag-plate,
+    .categoria-tag:focus-within .categoria-tag-plate {
+      box-shadow:
+        inset 0 0 0 1px rgb(var(--color-ink) / 0.1),
+        0 20px 34px rgb(0 0 0 / 0.2);
+    }
+    .categoria-tag:hover .categoria-tag-hoja,
+    .categoria-tag:focus-within .categoria-tag-hoja {
+      opacity: 1;
+    }
+    .categoria-tag:hover .categoria-tag-hoja:nth-child(1),
+    .categoria-tag:focus-within .categoria-tag-hoja:nth-child(1) {
+      transform: translateY(-4rem) rotate(-12deg) scale(1);
+    }
+    .categoria-tag:hover .categoria-tag-hoja:nth-child(2),
+    .categoria-tag:focus-within .categoria-tag-hoja:nth-child(2) {
+      transform: translateY(-5rem) rotate(0deg) scale(1.08);
+    }
+    .categoria-tag:hover .categoria-tag-hoja:nth-child(3),
+    .categoria-tag:focus-within .categoria-tag-hoja:nth-child(3) {
+      transform: translateY(-4rem) rotate(12deg) scale(1);
+    }
+  }
+  .categoria-tag[data-estado='abierta'] .categoria-tag-body {
+    transform: rotateX(8deg) translateY(-2px);
+  }
+  .categoria-tag[data-estado='abierta'] .categoria-tag-plate {
+    box-shadow:
+      inset 0 0 0 1px rgb(var(--color-ink) / 0.1),
+      0 20px 34px rgb(0 0 0 / 0.2);
+  }
+  .categoria-tag[data-estado='abierta'] .categoria-tag-hoja {
+    opacity: 1;
+  }
+  .categoria-tag[data-estado='abierta'] .categoria-tag-hoja:nth-child(1) {
+    transform: translateY(-4rem) rotate(-12deg) scale(1);
+  }
+  .categoria-tag[data-estado='abierta'] .categoria-tag-hoja:nth-child(2) {
+    transform: translateY(-5rem) rotate(0deg) scale(1.08);
+  }
+  .categoria-tag[data-estado='abierta'] .categoria-tag-hoja:nth-child(3) {
+    transform: translateY(-4rem) rotate(12deg) scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .categoria-tag-hoja,
+    .categoria-tag-body,
+    .categoria-tag-plate {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  /*
+   * Un solo tag abierto a la vez en toda la grilla, y un solo listener de Escape —
+   * mismo criterio que CarpetaNumero.astro/ColeccionEstampillas.astro. Sin el modal
+   * ni el dial de la carpeta: acá cada tag YA es el link a /category/[slug], así que
+   * no hace falta nada más que decidir cuándo el primer toque abre en vez de navegar.
+   */
+  const grid = document.querySelector<HTMLElement>('[data-categorias-hover]');
+
+  if (grid && document.documentElement.classList.contains('js')) {
+    const conHover = window.matchMedia('(hover: hover)').matches;
+    let abierto: HTMLElement | null = null;
+
+    function cerrar(tag: HTMLElement) {
+      delete tag.dataset.estado;
+      tag.setAttribute('aria-expanded', 'false');
+      if (abierto === tag) abierto = null;
+    }
+
+    function abrir(tag: HTMLElement) {
+      if (abierto && abierto !== tag) cerrar(abierto);
+      tag.dataset.estado = 'abierta';
+      tag.setAttribute('aria-expanded', 'true');
+      abierto = tag;
+    }
+
+    if (!conHover) {
+      const tags = Array.from(grid.querySelectorAll<HTMLElement>('[data-tag-categoria]'));
+      for (const tag of tags) {
+        tag.addEventListener('click', (ev) => {
+          if (tag.dataset.estado !== 'abierta') {
+            // Primer toque: solo abre el stack, no navega todavía.
+            ev.preventDefault();
+            abrir(tag);
+          }
+          // Segundo toque sobre el mismo tag: el link navega con normalidad.
+        });
+      }
+    }
+
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && abierto) cerrar(abierto);
+    });
+  }
+</script>

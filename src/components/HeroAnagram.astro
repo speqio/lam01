@@ -1,34 +1,54 @@
 ---
 /**
- * Efecto "anagrama tipográfico" para el hero de la home: un set de frases literarias
- * se van reordenando letra por letra usando GSAP Flip — las letras que ya estaban en
- * pantalla se mueven a su nueva posición (no se destruyen y recrean), y solo las que
- * sobran/faltan hacen fade in/out. El emparejamiento "qué letra vieja se convierte en
- * cuál letra nueva" lo resuelve @algorithm.ts/lcs (longest common subsequence) sobre
- * los códigos ASCII de ambas palabras — el mismo mecanismo del CodePen original.
+ * Efecto "anagrama tipográfico": un set de frases literarias se van reordenando letra
+ * por letra usando GSAP Flip — las letras que ya estaban en pantalla se mueven a su
+ * nueva posición (no se destruyen y recrean), y solo las que sobran/faltan hacen fade
+ * in/out. El emparejamiento "qué letra vieja se convierte en cuál letra nueva" lo
+ * resuelve @algorithm.ts/lcs (longest common subsequence) sobre los códigos ASCII de
+ * ambas palabras — el mismo mecanismo del CodePen original.
+ *
+ * Dos variantes del mismo componente, no dos componentes: `hero` (grande, centrado,
+ * usado en la portada del home en mobile) y `header` (chico, alineado a la derecha,
+ * vive dentro de Header.astro en desktop). El script corre sobre TODAS las instancias
+ * en la página (`querySelectorAll('.hero-anagram-title')`, cada una con su propio
+ * estado de animación) en vez de buscar un id único: Astro deduplica el contenido de
+ * un <script> idéntico y solo lo incluye una vez por página, así que si ambas
+ * variantes llegaran a convivir en el DOM (una oculta por CSS según breakpoint) un
+ * `getElementById` solo habría animado la primera instancia encontrada.
  *
  * Es un componente 100% Astro/vanilla JS (sin React): no hay estado de UI que React
- * necesite manejar, es una animación DOM directa sobre un único <h1> — encaja mejor
- * con un script nativo que con una isla. (Ojo: no escribir la etiqueta script con sus
- * ángulos en este comentario — el pre-escaneo de dependencias de Vite la toma por un
- * bloque de script real y `astro dev` deja de arrancar. `astro build` no se entera.)
+ * necesite manejar, es una animación DOM directa sobre un único <h1> por instancia —
+ * encaja mejor con un script nativo que con una isla. (Ojo: no escribir la etiqueta
+ * script con sus ángulos en este comentario — el pre-escaneo de dependencias de Vite
+ * la toma por un bloque de script real y `astro dev` deja de arrancar. `astro build`
+ * no se entera.)
  */
+
+interface Props {
+  variant?: 'hero' | 'header';
+}
+
+const { variant = 'hero' } = Astro.props;
 ---
 
-<div class="w-full overflow-hidden py-6">
+<div
+  class:list={[
+    'hero-anagram-wrap',
+    variant === 'hero' ? 'w-full overflow-hidden py-1' : 'w-max origin-left scale-[0.42]',
+  ]}
+>
   <h1
-    id="hero-anagram-title"
-    class="relative min-h-[4.5rem] w-full text-center font-normal leading-none text-ink text-[min(9vw,6.5rem)] sm:min-h-[7rem] lg:min-h-[9.5rem] lg:text-[min(9vw,9rem)]"
+    class="hero-anagram-title relative min-h-[2.25rem] w-full text-center font-light leading-none text-ink text-[min(4.5vw,3rem)] sm:min-h-[3.25rem] lg:min-h-[4rem] lg:text-[min(4vw,3.75rem)]"
   ></h1>
 </div>
 
 <style is:global>
-  #hero-anagram-title .char {
+  .hero-anagram-title .char {
     position: relative;
     display: inline-block;
   }
 
-  #hero-anagram-title .out {
+  .hero-anagram-title .out {
     display: none;
   }
 </style>
@@ -47,9 +67,9 @@
     'literatura',
   ];
 
-  const title = document.getElementById('hero-anagram-title');
+  const titles = document.querySelectorAll<HTMLElement>('.hero-anagram-title');
 
-  if (title) {
+  titles.forEach((title) => {
     const nameMap: Record<string, string> = { ' ': 'space', '.': 'dot' };
     const charMap: Record<string, string> = { ' ': '&nbsp;' };
 
@@ -63,7 +83,7 @@
       const doTheFlip = () => {
         round++;
 
-        const state = Flip.getState('#hero-anagram-title .char');
+        const state = Flip.getState(title.querySelectorAll('.char'));
 
         const counts: Record<string, number> = {};
         const currentChars = [...title.querySelectorAll<HTMLElement>('.char')];
@@ -140,7 +160,7 @@
             duration: 1,
             ease: 'power3.inOut',
             absolute: true,
-            targets: '#hero-anagram-title .char',
+            targets: title.querySelectorAll('.char'),
             scale: true,
             toggleClass: 'flipping',
             onEnter: (elements) =>
@@ -190,5 +210,6 @@
     }
 
     start();
-  }
+  });
 </script>
+

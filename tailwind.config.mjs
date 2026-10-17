@@ -17,9 +17,10 @@ export default {
         headline: ['Lekton', 'monospace'],
       },
       spacing: {
-        // Regla global de espaciado responsivo: Header.astro es un masthead ABSOLUTO
-        // (no empuja el contenido, flota encima — `absolute inset-x-0 top-0`, alto
-        // h-20/5rem) y solo aparece en md+ (`hidden md:block`; en mobile la nav vive
+        // Regla global de espaciado responsivo: Header.astro es un masthead FIJO
+        // (no empuja el contenido, flota encima — `fixed inset-x-0 top-0`, alto
+        // h-20/5rem, se contrae a 3.5rem al scrollear) y solo aparece en md+
+        // (`hidden md:block`; en mobile la nav vive
         // abajo, MobileFloatingNav.astro). Cualquier bloque que empiece con texto
         // cerca del techo de la página (típicamente un PageHeader.astro) necesita
         // este mismo despeje SOLO en md+ para no quedar tapado/pegado al masthead —

@@ -436,13 +436,19 @@ const { categorias, compact = false } = Astro.props;
       }, 600);
     }
 
+    // SOLO gesto lateral de verdad (trackpad/mouse con rueda horizontal, deltaX):
+    // antes esto escuchaba `onChangeY` —la rueda vertical normal, la que tiene
+    // cualquier mouse— con `preventDefault: true` fijo, así que CUALQUIER scroll
+    // vertical sobre el carrusel quedaba secuestrado en vez de bajar la página. Sin
+    // `preventDefault` estático (se llama a mano, solo para el gesto que sí se va a
+    // usar) el scroll vertical normal pasa de largo sin que el carrusel lo toque.
     Observer.create({
       target: stage,
       type: 'wheel',
-      preventDefault: true,
-      onChangeY: (self) => {
+      onChangeX: (self) => {
+        self.event.preventDefault();
         if (wheelLocked) return;
-        stepBy(self.deltaY > 0 ? 1 : -1);
+        stepBy(self.deltaX > 0 ? 1 : -1);
       },
     });
 

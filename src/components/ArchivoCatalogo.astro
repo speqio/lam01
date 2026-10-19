@@ -122,6 +122,44 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
   { key: 'categoria', label: 'Categoría', ariaLabel: 'Filtrar por categoría', opciones: categorias },
   { key: 'numero', label: 'Número', ariaLabel: 'Filtrar por número', opciones: numeros },
 ];
+
+/* Cada fila del menú es una opción o, solo en Número, la cabecera de un grupo de cinco
+   números ("36–40") que despliega sus opciones. Sin grupos, el menú de Número crecía una
+   fila por número. */
+type FilaMenu =
+  | { tipo: 'cabecera'; grupo: number; etiqueta: string }
+  | { tipo: 'opcion'; opcion: FiltroOpcion; grupo?: number };
+
+const TAMANO_GRUPO_NUMERO = 5;
+
+function indiceDeNumero(slug: string) {
+  const match = slug.match(/(\d+)/);
+  return match ? parseInt(match[0], 10) : 0;
+}
+
+function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
+  if (key !== 'numero') return opciones.map((opcion): FilaMenu => ({ tipo: 'opcion', opcion }));
+
+  const grupos = new Map<number, FiltroOpcion[]>();
+  for (const opcion of opciones) {
+    const grupo = Math.max(0, Math.floor((indiceDeNumero(opcion.slug) - 1) / TAMANO_GRUPO_NUMERO));
+    grupos.set(grupo, [...(grupos.get(grupo) ?? []), opcion]);
+  }
+
+  // Del grupo más nuevo al más viejo, y dentro de cada grupo también de más nuevo a más viejo.
+  return [...grupos.keys()].sort((a, b) => b - a).flatMap((grupo): FilaMenu[] => {
+    const desde = grupo * TAMANO_GRUPO_NUMERO + 1;
+    const cabecera: FilaMenu = {
+      tipo: 'cabecera',
+      grupo,
+      etiqueta: `${desde}–${desde + TAMANO_GRUPO_NUMERO - 1}`,
+    };
+    const delGrupo = (grupos.get(grupo) ?? []).sort(
+      (a, b) => indiceDeNumero(b.slug) - indiceDeNumero(a.slug)
+    );
+    return [cabecera, ...delGrupo.map((opcion): FilaMenu => ({ tipo: 'opcion', opcion, grupo }))];
+  });
+}
 ---
 
 {
@@ -169,7 +207,12 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
         aria-label="Filtrar el archivo"
       >
         {dropdowns.map((dropdown) => (
-          <div class="archivo-catalogo-dropdown relative" data-dropdown={dropdown.key} data-value="all">
+          <div
+            class="archivo-catalogo-dropdown relative"
+            data-dropdown={dropdown.key}
+            data-value="all"
+            data-agrupado={dropdown.key === 'numero' ? 'true' : undefined}
+          >
             <button
               type="button"
               class={triggerClass}
@@ -192,33 +235,49 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
                 <path d="M6 9l6 6 6-6" />
               </svg>
             </button>
-            <ul class="archivo-catalogo-dropdown-menu" role="listbox" aria-label={dropdown.ariaLabel} hidden>
-              <li role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected="true"
-                  data-value="all"
-                  class="archivo-catalogo-dropdown-option"
-                >
-                  {dropdown.label}
-                </button>
-              </li>
-              {dropdown.opciones.map((opcion) => (
-                <li role="presentation">
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected="false"
-                    data-value={opcion.slug}
-                    data-fuera={opcion.fuera ? 'true' : undefined}
-                    class="archivo-catalogo-dropdown-option"
-                  >
-                    {opcion.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div class="archivo-catalogo-dropdown-menu" hidden>
+              <input
+                type="search"
+                class="archivo-catalogo-dropdown-buscar"
+                data-dropdown-buscar
+                placeholder={dropdown.label.toLowerCase()}
+                aria-label={`Buscar ${dropdown.label.toLowerCase()}`}
+                autocomplete="off"
+              />
+              <ul role="listbox" aria-label={dropdown.ariaLabel}>
+              {filasDe(dropdown.key, dropdown.opciones).map((fila) =>
+                fila.tipo === 'cabecera' ? (
+                  <li role="presentation">
+                    <button
+                      type="button"
+                      class="archivo-catalogo-dropdown-grupo"
+                      data-grupo-cabecera={fila.grupo}
+                      aria-expanded="false"
+                    >
+                      {fila.etiqueta}
+                    </button>
+                  </li>
+                ) : (
+                  <li role="presentation">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected="false"
+                      data-value={fila.opcion.slug}
+                      data-fuera={fila.opcion.fuera ? 'true' : undefined}
+                      data-grupo={fila.grupo}
+                      class="archivo-catalogo-dropdown-option"
+                    >
+                      {fila.opcion.label}
+                    </button>
+                  </li>
+                )
+              )}
+              </ul>
+              <p class="archivo-catalogo-dropdown-pista" data-dropdown-pista hidden>
+                Escribe para ver más opciones
+              </p>
+            </div>
           </div>
         ))}
 
@@ -325,8 +384,6 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
     top: calc(100% + 0.5rem);
     z-index: 20;
     min-width: 100%;
-    max-height: 16rem;
-    overflow-y: auto;
     background: rgb(var(--color-surface));
     border: 1px solid rgb(var(--color-ink) / 0.15);
     border-radius: 0.75rem;
@@ -358,6 +415,74 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
 
   .archivo-catalogo-dropdown-option[aria-selected='true'] {
     color: rgb(var(--color-accent));
+  }
+
+  /* Buscador del menú de Año/Categoría/Número. Sin tope de alto: el menú no crece con el
+     catálogo porque solo muestra unas pocas opciones a la vez (ver MAX_OPCIONES_MENU). */
+  .archivo-catalogo-dropdown-buscar {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.35rem;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: transparent;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: rgb(var(--color-ink));
+  }
+
+  .archivo-catalogo-dropdown-buscar:focus {
+    outline: none;
+  }
+
+  /* Cabecera de un grupo de números: despliega sus opciones al pulsarla. */
+  .archivo-catalogo-dropdown-grupo {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: rgb(var(--color-ink));
+    background: transparent;
+  }
+
+  .archivo-catalogo-dropdown-grupo:hover,
+  .archivo-catalogo-dropdown-grupo:focus-visible {
+    background: rgb(var(--color-ink) / 0.08);
+    outline: none;
+  }
+
+  .archivo-catalogo-dropdown-grupo::after {
+    content: '›';
+    transition: transform 200ms ease;
+  }
+
+  .archivo-catalogo-dropdown-grupo[aria-expanded='true']::after {
+    transform: rotate(90deg);
+  }
+
+  /* Las opciones dentro de un grupo van sangradas bajo su cabecera. */
+  .archivo-catalogo-dropdown-option[data-grupo] {
+    padding-left: 1.5rem;
+  }
+
+  .archivo-catalogo-dropdown-buscar::placeholder {
+    color: rgb(var(--color-ink-muted) / 0.7);
+  }
+
+  .archivo-catalogo-dropdown-pista {
+    padding: 0.5rem 0.75rem 0.25rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(var(--color-ink-muted));
   }
 </style>
 
@@ -392,10 +517,61 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
     vacioMsg?.classList.toggle('hidden', visibles > 0);
   }
 
+  /* Cuántas opciones muestra un menú a la vez. Sin tope, cada número nuevo alargaba la
+     lista con scroll; con el tope el menú tiene siempre el mismo alto y el resto se
+     alcanza escribiendo en el buscador. */
+  const MAX_OPCIONES_MENU = 8;
+
+  const sinTildes = (texto: string) =>
+    texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('es');
+
+  /* Decide qué filas del menú se ven. Con texto escrito, muestra las coincidencias (sin
+     cabeceras de grupo, hasta MAX_OPCIONES_MENU). Sin texto, en los menús con grupos
+     (Número) muestra solo las cabeceras y las opciones del grupo que está desplegado;
+     en los demás, las primeras MAX_OPCIONES_MENU. */
+  function filtrarOpciones(dropdown: HTMLElement, texto: string) {
+    const q = sinTildes(texto.trim());
+    const agrupado = dropdown.dataset.agrupado === 'true';
+    const topeAplica = !(agrupado && q === '');
+
+    dropdown.querySelectorAll<HTMLElement>('[data-grupo-cabecera]').forEach((cabecera) => {
+      const fila = cabecera.parentElement as HTMLElement | null;
+      if (fila) fila.hidden = q !== '';
+    });
+
+    let mostradas = 0;
+    let coincidencias = 0;
+    dropdown.querySelectorAll<HTMLButtonElement>('.archivo-catalogo-dropdown-option').forEach((op) => {
+      const fila = op.parentElement as HTMLElement | null;
+      if (!fila) return;
+      const coincide = sinTildes(op.textContent ?? '').includes(q);
+      if (coincide) coincidencias += 1;
+      const grupo = op.dataset.grupo;
+      const grupoCerrado =
+        agrupado &&
+        q === '' &&
+        dropdown.querySelector(`[data-grupo-cabecera="${grupo}"][aria-expanded="true"]`) === null;
+      const oculta = !coincide || grupoCerrado || (topeAplica && mostradas >= MAX_OPCIONES_MENU);
+      fila.hidden = oculta;
+      if (!oculta) mostradas += 1;
+    });
+
+    const pista = dropdown.querySelector<HTMLElement>('[data-dropdown-pista]');
+    if (pista) pista.hidden = !(topeAplica && coincidencias > MAX_OPCIONES_MENU);
+  }
+
   function closeDropdown(dropdown: HTMLElement) {
     dropdown.querySelector<HTMLButtonElement>('[data-dropdown-trigger]')?.setAttribute('aria-expanded', 'false');
     const menu = dropdown.querySelector<HTMLElement>('.archivo-catalogo-dropdown-menu');
     if (menu) menu.hidden = true;
+    // Al cerrar, el buscador vuelve vacío y los grupos se pliegan: la próxima vez el menú
+    // abre como al principio.
+    const buscar = dropdown.querySelector<HTMLInputElement>('[data-dropdown-buscar]');
+    if (buscar) buscar.value = '';
+    dropdown
+      .querySelectorAll<HTMLElement>('[data-grupo-cabecera]')
+      .forEach((cabecera) => cabecera.setAttribute('aria-expanded', 'false'));
+    filtrarOpciones(dropdown, '');
   }
 
   function closeAllDropdowns(except?: HTMLElement) {
@@ -418,12 +594,21 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
       closeAllDropdowns(dropdown);
       trigger.setAttribute('aria-expanded', String(!isOpen));
       menu.hidden = isOpen;
+      if (!isOpen) dropdown.querySelector<HTMLInputElement>('[data-dropdown-buscar]')?.focus();
     });
 
+    // La etiqueta de origen ("Año", "Categoría", "Número") se guarda antes de cualquier
+    // elección: es lo que vuelve a mostrarse al quitar el filtro.
+    const etiquetaBase = label.textContent ?? '';
+
     const elegir = (option: HTMLButtonElement) => {
-      dropdown.dataset.value = option.dataset.value ?? 'all';
-      label.textContent = option.textContent;
-      options.forEach((o) => o.setAttribute('aria-selected', String(o === option)));
+      // Tocar otra vez la opción ya elegida quita el filtro. Así no hace falta una fila
+      // "Todas" dentro del menú.
+      const valor = option.dataset.value ?? 'all';
+      const quitar = valor === dropdown.dataset.value;
+      dropdown.dataset.value = quitar ? 'all' : valor;
+      label.textContent = quitar ? etiquetaBase : option.textContent;
+      options.forEach((o) => o.setAttribute('aria-selected', String(!quitar && o === option)));
       closeDropdown(dropdown);
       aplicarFiltros();
     };
@@ -442,6 +627,26 @@ const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones
         elegir(option);
       });
     });
+
+    // Buscador: filtra mientras se escribe; Enter elige la primera opción visible.
+    const buscar = dropdown.querySelector<HTMLInputElement>('[data-dropdown-buscar]');
+    if (buscar) {
+      buscar.addEventListener('input', () => filtrarOpciones(dropdown, buscar.value));
+      buscar.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        const primera = options.find((o) => o.parentElement?.hidden === false && o.dataset.value !== 'all');
+        primera?.click();
+      });
+    }
+    // Cabeceras de grupo (Número): despliegan o pliegan sus opciones.
+    dropdown.querySelectorAll<HTMLButtonElement>('[data-grupo-cabecera]').forEach((cabecera) => {
+      cabecera.addEventListener('click', () => {
+        cabecera.setAttribute('aria-expanded', String(cabecera.getAttribute('aria-expanded') !== 'true'));
+        filtrarOpciones(dropdown, buscar?.value ?? '');
+      });
+    });
+    filtrarOpciones(dropdown, '');
 
     /* Al cargar, aplica el filtro que venga en la URL. Es lo que hace que el salto desde
        el home llegue a /archivo ya filtrado, y de paso hace enlazable cualquier filtro. */

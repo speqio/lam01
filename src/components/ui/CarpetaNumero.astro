@@ -1,30 +1,20 @@
 ---
-import ColeccionEstampillas, { type EstampillaItem } from './ColeccionEstampillas.astro';
+import type { EstampillaItem } from './ColeccionEstampillas.astro';
 
 /**
  * CARPETA DE NÚMERO — la pieza de /numeros. Una carpeta de archivo plana y negra, con
  * dibujada entera con CSS y un `path` (ningún asset, ninguna línea de código del
  * componente de Framer que sirvió de referencia).
  *
- * TRES ESTADOS, NO DOS:
+ * DOS ESTADOS:
  * 1. Cerrada.
- * 2. Abierta: las estampillas del número se abren en abanico por el borde superior. En
- *    desktop basta pasar por encima (`@media (hover: hover)`, CSS puro); donde no hay
- *    hover, la abre el primer toque.
- * 3. Dial: al pulsar la carpeta ya abierta, el fondo se vuelve borroso y aparece la
- *    columna de estampillas con su dial vertical.
- *    En desktop el hover ya dejó la carpeta abierta, así que el primer clic va derecho
- *    al dial; en táctil hacen falta los dos toques, que es justamente lo que evita
- *    abrir el dial sin querer al scrollear.
+ * 2. Abierta: las estampillas del número asoman en abanico por el borde superior. En
+ *    desktop basta pasar por encima (`@media (hover: hover)`, CSS puro).
  *
- * EL TELÓN Y LA VENTANA SON `fixed` Y CUELGAN DEL ARTICLE, que no tiene transform
- * propio: un `fixed` dentro de un ancestro con transform se resuelve contra ese ancestro
- * en vez de contra la ventana. Es la misma razón y la misma estructura que el foco de
- * una estampilla, y por eso las animaciones de la carpeta viven en sus piezas y nunca
- * en el article.
- *
- * SIN JS la carpeta es un link al número, no un botón muerto, y la columna de
- * estampillas se sirve igual, abierta, debajo. Mismo criterio que .entry-card-reveal.
+ * El clic es un link común a la página del número (`/numero-NN`, ver
+ * views/NumeroPagina.astro), que tiene su propia diagramación para desktop y mobile. Ya
+ * no hay ventana ni telón con la colección: esa versión quedó retirada (ver
+ * docs/piezas-guardadas.md).
  */
 interface Props {
   /** El número suelto, para la lengüeta ("28"). */
@@ -37,14 +27,13 @@ interface Props {
   href: string;
   /** Fecha ya formateada ("oct·26"). */
   fecha: string;
+  /** Solo las primeras tres asoman en el abanico. */
   items: EstampillaItem[];
   /** Rango al que pertenece, para el filtro por chips de /numeros. */
   rangoId?: number;
   /**
-   * Solo la tapa: la carpeta como imagen del número, sin las estampillas asomadas, sin
-   * el abanico del hover y sin la ventana con la colección. Es lo que usa la página de
-   * un número, donde las entradas ya están listadas arriba: abrir ahí una segunda
-   * colección sería mostrar dos veces lo mismo.
+   * Solo la tapa: sin las estampillas asomadas y sin el abanico del hover. Es lo que usa
+   * la página de un número, donde las entradas ya están listadas arriba.
    */
   soloTapa?: boolean;
   /**
@@ -70,31 +59,21 @@ const {
   sinDatos = false,
 } = Astro.props;
 
-const ventanaId = `carpeta-${numero}-contenido`;
-
 /* Lo que asoma: las tres primeras entradas del número. Más que eso no se distingue
-   detrás de la tapa, y cada una es un nodo más por carpeta en una página que ya trae
-   todas las entradas del sitio. */
+   detrás de la tapa. */
 const asoman = soloTapa ? [] : items.slice(0, 3);
 ---
 
 <article
   class:list={['carpeta', soloTapa && 'carpeta--sola', sinDatos && 'carpeta--sin-datos']}
-  data-carpeta={soloTapa ? undefined : ''}
   data-numero-rango={rangoId}
+  data-numero={numero}
 >
-  <a
-    class="carpeta-tapa"
-    href={href}
-    data-abrir-carpeta={soloTapa ? undefined : ''}
-    aria-expanded={soloTapa ? undefined : 'false'}
-    aria-controls={soloTapa ? undefined : ventanaId}
-  >
+  <a class="carpeta-tapa" href={href}>
     <span class="carpeta-pieza">
-      {/* Las estampillas guardadas: asoman en abanico cuando la carpeta se abre. Van
-          detrás del cuerpo, que es lo que las tapa cuando está cerrada, y llevan el
-          mismo dentado que en la hoja (`.estampilla-perforada`, global.css) para que lo
-          que sobresale se lea como una estampilla y no como un papel cualquiera. */}
+      {/* Las estampillas guardadas: asoman en abanico al pasar por encima. Van detrás del
+          cuerpo, que es lo que las tapa cuando está cerrada, y llevan el mismo dentado que
+          en la hoja (`.estampilla-perforada`, global.css). */}
       <span class="carpeta-hojas" aria-hidden="true">
         {asoman.map((item, i) => (
           <span
@@ -106,7 +85,7 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
         ))}
       </span>
 
-      <span class="carpeta-cuerpo" data-cuerpo>
+      <span class="carpeta-cuerpo">
         {portada && (
           <span class="carpeta-portada">
             <img src={portada} alt="" loading="lazy" />
@@ -121,44 +100,8 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
           </span>
         )}
       </span>
-
     </span>
   </a>
-
-  {!soloTapa && <div class="carpeta-telon" data-telon-carpeta aria-hidden="true" />}
-
-  {!soloTapa && (
-
-  <div
-    class="carpeta-ventana"
-    id={ventanaId}
-    data-ventana
-    role="dialog"
-    aria-modal="true"
-    aria-label={titulo}
-  >
-    <div class="carpeta-ventana-caja">
-      <header class="carpeta-ventana-cabecera">
-        <div>
-          <span class="carpeta-ventana-fecha">{fecha}</span>
-          <h2 class="carpeta-ventana-titulo">{titulo}{subtitulo ? `: ${subtitulo}` : ''}</h2>
-        </div>
-        <button class="carpeta-cerrar" type="button" data-cerrar-carpeta>
-          <span class="sr-only">Cerrar el número {numero}</span>
-          <span aria-hidden="true">✕</span>
-        </button>
-      </header>
-
-      {
-        items.length > 0 ? (
-          <ColeccionEstampillas items={items} columnas={4} />
-        ) : (
-          <p class="carpeta-vacio">Este número todavía no tiene entradas cargadas.</p>
-        )
-      }
-    </div>
-  </div>
-  )}
 </article>
 
 <style>
@@ -166,14 +109,11 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
     /* La carpeta es casi negra sobre el canvas, apenas más oscura: la forma la dibujan
        la línea interior y la lengüeta, no el relleno. */
     --carpeta-papel: 8 8 8;
+    --carpeta-radio: 14px;
   }
 
   .carpeta-tapa {
     display: block;
-  }
-
-  .carpeta {
-    --carpeta-radio: 14px;
   }
 
   .carpeta-pieza {
@@ -193,8 +133,7 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
     overflow: hidden;
     /* Esquinas redondeadas de la tapa. Van en una custom property porque la portada, el
        degradado y el filo interior se recortan todos contra este mismo radio: el
-       `overflow: hidden` de aca es lo que redondea la foto que va a sangre adentro, asi
-       que cambiar el numero en un solo lugar alcanza. */
+       `overflow: hidden` de acá es lo que redondea la foto que va a sangre adentro. */
     border-radius: var(--carpeta-radio);
     padding: 1rem 1.1rem;
     background-color: rgb(var(--carpeta-papel));
@@ -268,7 +207,7 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
     color: rgb(255 255 255 / 0.75);
   }
 
-  /* LO GUARDADO: las estampillas, detrás del cuerpo, que las tapa cuando está cerrada. */
+  /* Las estampillas, detrás del cuerpo, que las tapa cuando está cerrada. */
   .carpeta-hojas {
     position: absolute;
     inset: 8% 10% 12%;
@@ -294,9 +233,7 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
     object-fit: cover;
   }
 
-  /* ABIERTA: las estampillas salen en abanico por el borde superior. En desktop lo hace
-     el hover y en táctil el primer toque, que pone data-estado en el article — las dos
-     rutas terminan en la misma regla. */
+  /* ABIERTA: las estampillas salen en abanico por el borde superior, con el hover. */
   @media (hover: hover) {
     .carpeta:hover .carpeta-hoja,
     .carpeta:focus-within .carpeta-hoja {
@@ -307,17 +244,10 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
       transform: translateY(4px);
     }
   }
-  .carpeta[data-estado='abierta'] .carpeta-hoja {
-    transform: translateY(calc(-16% - var(--h) * 6%)) rotate(var(--giro));
-  }
-  .carpeta[data-estado='abierta'] .carpeta-cuerpo {
-    transform: translateY(4px);
-  }
 
   /* La tapa sola no se mueve al pasar por encima: no hay estampillas que asomar, y el
      cuerpo levantandose sin nada detras se lee como un salto sin motivo. Va despues de
-     las reglas de hover y con su misma especificidad (dos clases y la pseudoclase), o no
-     las gana. */
+     las reglas de hover y con su misma especificidad, o no las gana. */
   .carpeta--sola:hover .carpeta-cuerpo,
   .carpeta--sola:focus-within .carpeta-cuerpo {
     transform: none;
@@ -329,196 +259,4 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
       transition: none;
     }
   }
-
-
-  /* SIN JS no hay nada que abrir: el telón no existe y la columna de estampillas se
-     sirve ahí mismo, debajo de su carpeta. Las reglas de abajo —fija y oculta— viven
-     bajo `html.js`, la clase que BaseLayout pone antes del primer paint. */
-  .carpeta-telon {
-    display: none;
-  }
-  .carpeta-ventana {
-    padding: 1.5rem 0 2.5rem;
-  }
-
-  :global(html.js) .carpeta-telon,
-  :global(html.js) .carpeta-ventana {
-    position: fixed;
-    inset: 0;
-    visibility: hidden;
-    opacity: 0;
-  }
-  :global(html.js) .carpeta-telon {
-    display: block;
-    z-index: 40;
-    background-color: rgb(var(--color-canvas) / 0.72);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-  }
-  :global(html.js) .carpeta-ventana {
-    z-index: 41;
-    display: grid;
-    place-items: center;
-    padding: 1.5rem 0;
-    /* Solo la caja recibe clicks; fuera de ella el clic llega al telón, que cierra. */
-    pointer-events: none;
-  }
-
-  .carpeta-ventana-caja {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-  }
-  :global(html.js) .carpeta-ventana-caja {
-    max-height: 90vh;
-    width: min(96vw, 1280px);
-    /* En pantallas chicas la tira se desplaza sola por dentro; acá no hay barras. */
-    overflow: hidden;
-    pointer-events: auto;
-  }
-
-  @media (min-width: 768px) {
-    :global(html.js) .carpeta-ventana-caja {
-      /* En desktop la hoja ocupa el alto que necesite: sin tope ni barra vertical. La
-         grilla de la colección ya se reparte en cuatro columnas, así que lo que crece
-         es manejable y una barra dentro de una ventana flotante sobraba. */
-      max-height: none;
-      overflow: visible;
-    }
-  }
-
-  .carpeta-ventana-cabecera {
-    display: flex;
-    width: 100%;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 2rem;
-  }
-  .carpeta-ventana-fecha {
-    display: block;
-    font-family: theme('fontFamily.mono');
-    font-size: 0.72rem;
-    letter-spacing: 0.18em;
-    color: rgb(var(--color-ink-muted));
-  }
-  .carpeta-ventana-titulo {
-    font-family: theme('fontFamily.headline');
-    font-size: 1.5rem;
-    line-height: 1.1;
-    color: rgb(var(--color-ink));
-  }
-  .carpeta-cerrar {
-    padding: 0.4rem 0.6rem;
-    font-size: 1rem;
-    line-height: 1;
-    color: rgb(var(--color-ink-muted));
-    transition: color 0.2s;
-  }
-  .carpeta-cerrar:hover {
-    color: rgb(var(--color-ink));
-  }
-
-  .carpeta-vacio {
-    font-family: theme('fontFamily.sans');
-    color: rgb(var(--color-ink-muted));
-  }
 </style>
-
-<script>
-  import { gsap } from 'gsap';
-
-  /* Una carpeta en el dial por vez en toda la página, y un solo listener de Escape para
-     todas: en /numeros hay treinta carpetas, y treinta listeners sobre document
-     reaccionando a cada tecla no se justifican para una sola salida. Mismo criterio que
-     en ColeccionEstampillas.astro. */
-  const carpetas = Array.from(document.querySelectorAll<HTMLElement>('[data-carpeta]'));
-
-  if (carpetas.length > 0 && document.documentElement.classList.contains('js')) {
-    const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    /* Dónde hay hover de verdad. En un dispositivo con hover la carpeta ya se abrió sola
-       al pasar por encima (CSS), así que el clic va derecho al dial; en uno táctil el
-       primer toque la abre y el segundo abre el dial, que es lo que evita caer en el
-       dial sin querer mientras se scrollea. */
-    const conHover = window.matchMedia('(hover: hover)').matches;
-    const dur = reducido ? 0 : 0.4;
-    let enDial: HTMLElement | null = null;
-    let desplegada: HTMLElement | null = null;
-
-    function capas(carpeta: HTMLElement) {
-      return [
-        carpeta.querySelector<HTMLElement>('[data-telon-carpeta]'),
-        carpeta.querySelector<HTMLElement>('[data-ventana]'),
-      ].filter(Boolean) as HTMLElement[];
-    }
-
-    function desplegar(carpeta: HTMLElement) {
-      if (desplegada && desplegada !== carpeta) delete desplegada.dataset.estado;
-      carpeta.dataset.estado = 'abierta';
-      desplegada = carpeta;
-    }
-
-    function cerrarDial(carpeta: HTMLElement) {
-      carpeta
-        .querySelector<HTMLElement>('[data-abrir-carpeta]')
-        ?.setAttribute('aria-expanded', 'false');
-      if (enDial === carpeta) enDial = null;
-      /* La carpeta vuelve a cerrarse del todo, también en desktop: si no, al salir del
-         dial quedaba con las estampillas asomadas aunque el puntero ya no estuviera
-         encima, porque ese estado lo había fijado el clic y no el hover. */
-      if (desplegada === carpeta) {
-        delete carpeta.dataset.estado;
-        desplegada = null;
-      }
-      gsap.to(capas(carpeta), { autoAlpha: 0, duration: dur * 0.7, ease: 'power2.in' });
-    }
-
-    function abrirDial(carpeta: HTMLElement) {
-      if (enDial && enDial !== carpeta) cerrarDial(enDial);
-      carpeta
-        .querySelector<HTMLElement>('[data-abrir-carpeta]')
-        ?.setAttribute('aria-expanded', 'true');
-      enDial = carpeta;
-      /* Detrás del telón la carpeta no se ve, y dejarla con el abanico abierto era
-         justamente lo que la hacía reaparecer asomada al cerrar. */
-      delete carpeta.dataset.estado;
-      desplegada = null;
-
-      gsap.to(capas(carpeta), { autoAlpha: 1, duration: dur, ease: 'power2.out' });
-      gsap.fromTo(
-        carpeta.querySelector('[data-ventana]'),
-        { y: reducido ? 0 : 20 },
-        { y: 0, duration: dur, ease: 'power3.out' }
-      );
-    }
-
-    for (const carpeta of carpetas) {
-      carpeta.querySelector('[data-abrir-carpeta]')?.addEventListener('click', (ev) => {
-        // Con JS la carpeta se abre acá; sin JS el mismo <a> navega al número.
-        ev.preventDefault();
-        if (enDial === carpeta) {
-          cerrarDial(carpeta);
-          return;
-        }
-        if (!conHover && carpeta.dataset.estado !== 'abierta') {
-          desplegar(carpeta);
-          return;
-        }
-        desplegar(carpeta);
-        abrirDial(carpeta);
-      });
-      carpeta.querySelector('[data-cerrar-carpeta]')?.addEventListener('click', () => {
-        cerrarDial(carpeta);
-      });
-      carpeta.querySelector('[data-telon-carpeta]')?.addEventListener('click', () => {
-        cerrarDial(carpeta);
-      });
-    }
-
-    document.addEventListener('keydown', (ev) => {
-      // El Escape de la colección corre primero y cierra la estampilla si hay una
-      // abierta; este cierra el dial de la carpeta. Cada uno mira su propio estado.
-      if (ev.key === 'Escape' && enDial) cerrarDial(enDial);
-    });
-  }
-</script>

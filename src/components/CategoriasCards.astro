@@ -1,6 +1,5 @@
 ---
 import { normalizeTitleText } from '../lib/text';
-import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
 
 /**
  * Rueda de categorías: cards en perspectiva 3D que rotan alrededor de un pivote muy
@@ -84,19 +83,6 @@ const { categorias, compact = false } = Astro.props;
           {normalizeTitleText(categorias[0].nombre)}
         </h3>
       </div>
-
-      {
-        categorias.length > 1 && (
-          <div class={`categorias-wheel-dial ${dialWrap}`}>
-            <span class={dialCount} data-dial-count>
-              {`01 / ${String(categorias.length).padStart(2, '0')}`}
-            </span>
-            <div class={`${dialTrack} categorias-wheel-dial-track`} data-dial-track>
-              <div class={dialThumb} data-dial-thumb />
-            </div>
-          </div>
-        )
-      }
     </div>
   )
 }
@@ -214,20 +200,6 @@ const { categorias, compact = false } = Astro.props;
     letter-spacing: 0.02em;
   }
 
-  .categorias-wheel-dial {
-    width: min(70%, 16rem);
-    margin: 1.5rem auto 0;
-    /* El área de arrastre real es toda la fila (ver JS: se escucha en este
-       elemento, no solo en la barra de 3px) — así el hit target no queda
-       limitado al alto visual de la barra, como un slider nativo. */
-    cursor: grab;
-    touch-action: pan-y;
-  }
-
-  .categorias-wheel-dial:active {
-    cursor: grabbing;
-  }
-
   @media (min-width: 768px) {
     .categorias-wheel-stage {
       height: 26rem;
@@ -311,13 +283,6 @@ const { categorias, compact = false } = Astro.props;
 
     const outer = stage.closest('.categorias-wheel-outer');
     const titleEl = outer?.querySelector<HTMLElement>('#categorias-wheel-title') ?? null;
-    const thumb = outer?.querySelector<HTMLElement>('[data-dial-thumb]') ?? null;
-    const countEl = outer?.querySelector<HTMLElement>('[data-dial-count]') ?? null;
-    const dialTrackEl = thumb?.parentElement ?? null;
-    const dialRow = outer?.querySelector<HTMLElement>('.categorias-wheel-dial') ?? null;
-    if (thumb && dialTrackEl) {
-      thumb.style.width = `${100 / total}%`;
-    }
 
     const pos = { value: 0 };
     let lastActiveIndex = 0;
@@ -351,18 +316,6 @@ const { categorias, compact = false } = Astro.props;
       } else if (titleEl && !titleEl.textContent) {
         titleEl.textContent = cards[activeIndex].dataset.nombre ?? '';
       }
-
-      if (thumb && dialTrackEl && countEl) {
-        // total-1 (no total): el thumb ocupa 1/total del track, así que su posición
-        // debe ir de 0 a (trackWidth - thumbWidth) interpolando sobre los "total-1"
-        // pasos entre el primer y el último ítem — con `total` en el divisor nunca
-        // llegaba al extremo derecho en el último ítem, dejando un espacio vacío.
-        const ratio = total > 1 ? activeIndex / (total - 1) : 0;
-        const trackWidth = dialTrackEl.clientWidth;
-        const thumbWidth = trackWidth / total;
-        gsap.to(thumb, { x: ratio * (trackWidth - thumbWidth), duration: 0.2, ease: 'power2.out', overwrite: true });
-        countEl.textContent = `${String(activeIndex + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
-      }
     }
 
     const snapTo = gsap.quickTo(pos, 'value', {
@@ -372,48 +325,6 @@ const { categorias, compact = false } = Astro.props;
     });
 
     render();
-
-    // Arrastrar sobre la barra de paginación mueve el carrusel 1:1, igual que la
-    // rueda/el drag sobre las cards — la posición del puntero dentro del track
-    // (no un delta) define directamente `pos.value`, ya que acá lo natural es
-    // "ir a donde toqué", no "empujar una cantidad relativa".
-    let dialDragging = false;
-
-    function posFromPointer(clientX: number) {
-      if (!dialTrackEl) return null;
-      const rect = dialTrackEl.getBoundingClientRect();
-      const ratio = gsap.utils.clamp(0, 1, (clientX - rect.left) / rect.width);
-      // total-1, coherente con cómo se posiciona el thumb en render(): el extremo
-      // izquierdo del track es el ítem 0, el extremo derecho es el último.
-      return gsap.utils.clamp(0, total - 1, ratio * (total - 1));
-    }
-
-    function endDialDrag() {
-      if (!dialDragging) return;
-      dialDragging = false;
-      snapTo(gsap.utils.clamp(0, total - 1, Math.round(pos.value)));
-    }
-
-    dialRow?.addEventListener('pointerdown', (e) => {
-      const target = posFromPointer(e.clientX);
-      if (target === null) return;
-      gsap.killTweensOf(pos);
-      dialDragging = true;
-      dialRow.setPointerCapture(e.pointerId);
-      pos.value = target;
-      render();
-    });
-
-    dialRow?.addEventListener('pointermove', (e) => {
-      if (!dialDragging) return;
-      const target = posFromPointer(e.clientX);
-      if (target === null) return;
-      pos.value = target;
-      render();
-    });
-
-    dialRow?.addEventListener('pointerup', endDialDrag);
-    dialRow?.addEventListener('pointercancel', endDialDrag);
 
     // "Lockeo" categoría a categoría: a diferencia de otros carruseles del sitio
     // (que arrastran 1:1 y pueden recorrer varios ítems en un solo gesto), acá cada

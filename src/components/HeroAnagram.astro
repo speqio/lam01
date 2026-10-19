@@ -29,18 +29,26 @@ interface Props {
 }
 
 const { variant = 'hero' } = Astro.props;
+
+// En el header el wrapper ES el enlace al home: no se envuelve en una caja aparte. Una
+// caja `inline-block` alrededor crea una línea de texto en el contenedor del header, y su
+// línea base cambia mientras Flip saca las letras del flujo (absolute), lo que desplazaba
+// todo el anagrama al terminar cada ciclo.
+const Wrapper = variant === 'header' ? 'a' : 'div';
+const enlaceInicio = variant === 'header' ? { href: '/', 'aria-label': 'La Antorcha Magacín, ir al inicio' } : {};
 ---
 
-<div
+<Wrapper
   class:list={[
     'hero-anagram-wrap',
-    variant === 'hero' ? 'w-full overflow-hidden py-1' : 'w-max origin-left scale-[0.42]',
+    variant === 'hero' ? 'w-full overflow-hidden py-1' : 'block w-max origin-left scale-[0.42]',
   ]}
+  {...enlaceInicio}
 >
   <h1
     class="hero-anagram-title relative min-h-[2.25rem] w-full text-center font-light leading-none text-ink text-[min(4.5vw,3rem)] sm:min-h-[3.25rem] lg:min-h-[4rem] lg:text-[min(4vw,3.75rem)]"
   ></h1>
-</div>
+</Wrapper>
 
 <style is:global>
   .hero-anagram-title .char {

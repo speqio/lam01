@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 All routes live in `src/pages/`, one `.astro` file per route (no nested layouts beyond `BaseLayout`/`PostLayout`, no route groups):
 
-- `/` (`index.astro`) — the home page; composes `HeroAnagram`, `HoverRevealHero` (latest número), the "últimas entradas" section (`ColeccionEstampillas.astro`, see below — the 16 latest entradas), `CategoriasCards`, and `ArchivoExplorer`, pulling from all four content collections in one frontmatter block.
+- `/` (`index.astro`) — the home page; composes `HeroAnagram` (mobile only — on desktop it lives inside `Header.astro` instead, see below), `HoverRevealHero` (latest número), the "últimas entradas" section (`ColeccionEstampillas.astro`, see below — the 16 latest entradas), `CategoriasCards`, and `ArchivoExplorer`, pulling from all four content collections in one frontmatter block.
 - `/numeros` — grid of all números as **folders** (`CarpetaNumero.astro`, see below), with range-filter chips (inline `<button>`s, not `FilterChip.astro`; no JS filtering logic beyond a small inline toggle script that hides non-matching folders). This page is the only one that loads *every* entrada: it groups them by número with lookup maps built from the three collections, rather than the usual per-item `getEntry` (see "No joins" below) — hundreds of reads for the same handful of autores/categorías is the one case where that pattern doesn't apply.
 - `/[slug]` — **entradas and números share one root route** (`src/pages/[slug].astro`, same URL scheme as the old WordPress site laantorchamagacin.com so links and SEO survive the DNS switch: `/nombre-de-la-entrada`, `/numero-01`; **no** `/entrada/…` or `/numero/…` aliases, one URL per content item). It only picks the view: `src/views/NumeroPagina.astro` / `src/views/EntradaPagina.astro` hold the markup. The build **fails on purpose** if a slug collides with a fixed page (`/archivo`, `/contacto`…), with another slug, or is the internal `sin-numero` (excluded from public routes). Never link to `/entrada/…`; link to `/<slug>`. A número page (`/numero-NN`): one número's detail page: uses `NumeroSequence.astro` for the entry listing (mobile carousel + desktop sequence, see below).
 - `/categorias` — flat list of all categorías as filter pills, each linking to `/category/[slug]`.
@@ -120,19 +120,23 @@ before touching it:
 folder drawn entirely in CSS (no assets), with the número's portada full-bleed behind a
 dark bottom gradient. The gradient and its text are **literal black/white, not tokens**:
 in light theme the tokens invert and the scrim turned white, leaving the title unreadable
-over the photo. Three states, not two: closed → open (the stored stamps fan out of the
-top; CSS `:hover` where there is hover, first tap where there isn't) → the blurred stage
-with that número's sheet of stamps. The state is cleared when the stage opens *and* when
-it closes, or the folder stays fanned out behind the backdrop and reappears that way.
+over the photo. Two states: closed → open (the stored stamps fan out of the top, CSS
+`:hover` where there is hover). The click is a plain link to `/numero-NN`, which renders
+its own desktop/mobile layout (`views/NumeroPagina.astro`); the blurred stage with the
+sheet of stamps was retired (see `docs/piezas-guardadas.md`).
 
 **Piezas guardadas (`docs/piezas-guardadas.md`).** Un componente que sale de su página
 pero puede volver se **deja en el repositorio y se anota ahí**, con el bloque exacto que
 hay que pegar y lo que tiene que seguir en pie para que funcione —no se borra el
-componente, solo su uso—. Hoy hay dos: el **carrusel de categorías del home**
-(`CategoriasCards.astro`, fuera desde 2026-10-14; su `CATEGORIA_IMAGENES` y las diez
-ilustraciones de `public/images/categorias/` siguen en pie y **no hay que borrarlas** aunque
-un barrido de huérfanas las marque, porque sus rutas viven en el código) y el hero de
-partículas (`HoverRevealHero.particulas.astro.bak`).
+componente, solo su uso—. El **carrusel de categorías del home** (`CategoriasCards.astro`)
+es el caso de referencia: salió el 2026-10-14, volvió a probarse con dos reemplazos
+(`CategoriasScrollReveal.astro`, una lista con reveal en scroll; `CategoriasHoverStack.astro`,
+una grilla de carpetas con stack de estampillas al hover) y ninguno terminó de funcionar
+bien, así que el carrusel en rueda volvió a ser la versión activa el 2026-10-17 — los dos
+reemplazos quedan guardados, no borrados, por si alguno se retoma. Su `CATEGORIA_IMAGENES`
+y las diez ilustraciones de `public/images/categorias/` siguen en pie y **no hay que
+borrarlas** aunque un barrido de huérfanas las marque, porque sus rutas viven en el código.
+También está guardado el hero de partículas (`HoverRevealHero.particulas.astro.bak`).
 
 ### Design system
 
@@ -151,7 +155,7 @@ partículas (`HoverRevealHero.particulas.astro.bak`).
 
 `src/lib/cardStyles.ts` (older language, kept for the pages that still use it) centralizes the Tailwind classes for the "entry card" anatomy (image on the left with an overlaid category badge, text on the right) that recurs across `EntryCard.tsx`, `NumeroSequence.astro` and `UltimasEntradasCarousel.astro` — reuse these rather than re-deriving the layout in a new component. `cardBadge` alone (solid accent background, canvas text) is reused well beyond that specific anatomy too — `EntradasCarousel3D.astro`, `ArchivoCascade.astro`, `CategoriasCards.astro` — since the badge itself is independent of where the image ends up mounted. `cardShell` is deliberately *not* where the reveal-on-scroll hook (`entry-card-reveal`, see below) lives — `numeros.astro` reuses `cardShell` as static markup with no reveal script, so that class only goes on `EntryCard.tsx`'s own `<a>`, not into the shared constant (putting it there once hid `/numeros`' cards forever, since nothing there ever un-hides them; that page now renders folders, but the trap is the same anywhere `cardShell` is reused as static markup).
 
-`src/lib/dialNav.ts` centralizes the Tailwind classes for the "01 / N" pagination dial (thin track + proportional thumb + counter) used by `NumeroSequence.astro`'s mobile carousel and `CategoriasCards.astro`'s fan — only the classes live here, the scroll/drag-driven JS that moves the thumb stays in each component since it depends on that component's own scroll/position source.
+`src/lib/dialNav.ts` centralizes the Tailwind classes for the "01 / N" pagination dial (thin track + proportional thumb + counter) used by `NumeroSequence.astro`'s mobile carousel (the home's category wheel no longer has one) — only the classes live here, the scroll/drag-driven JS that moves the thumb stays in each component since it depends on that component's own scroll/position source.
 
 `src/lib/text.ts` exports two helpers worth knowing before writing new UI text:
 - `normalizeTitleText` sentence-cases a title in JS instead of relying on CSS `text-transform: uppercase`. This exists because on some mobile browsers, uppercasing an accented character via CSS breaks the glyph composition with this font and silently drops the accent (e.g. "reseña" renders "RESENA"). Any new UI that displays a title/category name in caps should follow this pattern rather than reaching for `uppercase` in Tailwind.
@@ -166,6 +170,7 @@ All interface copy (buttons, headings, hints, empty states, meta descriptions �
 GSAP is the sole animation/interaction library across the codebase (no Framer Motion, no Three.js — both were removed at some point; don't reintroduce either). Recurring idioms worth knowing before adding a new interactive component:
 
 - **`Observer`** (from `gsap/Observer`) for wheel/touch/pointer gesture capture, always targeting the specific interactive element rather than `window`, so the gesture doesn't hijack page scroll when the user isn't directly over the component. Almost every carousel/draggable component in the site (`NumeroSequence`, `UltimasEntradasCarousel`, `ArchivoHelix`, `CategoriasCards`) uses `Observer` with separate `type: 'wheel'` and `type: 'touch,pointer'` instances rather than raw DOM event listeners.
+  - **For a `type: 'wheel'` Observer meant to drive horizontal navigation, bind `onChangeX` and read `self.deltaX` — never `onChangeY`/`self.deltaY` with a static `preventDefault: true`.** `CategoriasCards.astro` originally did the latter (mapping vertical wheel delta to horizontal steps, a common carousel pattern since few mice have a horizontal wheel) and it silently hijacked ordinary page scrolling: any mouse-wheel scroll over the carousel — which is overwhelmingly a `deltaY`-only gesture — got captured and converted into carousel navigation instead of scrolling the page, with no way to scroll past it. The fix: listen on `onChangeX` only (so a plain vertical wheel never fires the handler at all and the browser's native scroll goes through untouched) and call `self.event.preventDefault()` by hand inside that handler instead of passing a static `preventDefault: true` to `Observer.create` — a real lateral gesture (trackpad two-finger horizontal swipe, a mouse with a horizontal wheel, or the `touch,pointer` Observer's own drag handling) still drives the carousel.
 - **`gsap.quickTo`** for "chase a moving target" easing (e.g. a value that snaps toward wherever the user last dragged to) instead of a hand-rolled `+= (target - current) * factor` lerp — framerate-independent and can be re-targeted every frame without restarting.
 - **`gsap.ticker.add(fn)`** instead of a raw recursive `requestAnimationFrame` loop for anything that needs continuous per-frame updates (e.g. `ArchivoHelix`'s ambient spiral drift).
 - **`ScrollTrigger`** with `once: true` for simple reveal-on-scroll (see `EntryCard.tsx`). The hidden initial state (`opacity:0`, `translateY(24px)`) is set by CSS (`.entry-card-reveal` class, rule in `global.css` gated on `html.js` + `prefers-reduced-motion: no-preference`), never by a `gsap.set()` inside the component's effect — `EntryCard.tsx` is a `client:visible` React island, so hydration can lag well behind first paint; if JS set the hidden state, an already-painted, fully-visible card would visibly snap to hidden before animating back in. `BaseLayout.astro` adds the `js` class to `<html>` synchronously in a blocking `is:inline` `<head>` script (same pattern as the dark/light theme flash-prevention script right above it) so the hidden CSS rule is in effect before the very first paint; no-JS visitors never get the `js` class, so cards simply render complete. This is the general rule for any future entrance animation: put the *hidden* starting state in CSS gated behind a pre-paint JS marker, and let the animation library only ever reveal, never hide, what's already on screen.
@@ -190,6 +195,10 @@ The header/mobile search (`src/components/ui/SearchModal.tsx`, a React island in
 ### Navigation
 
 `src/data/navItems.ts` is the single source of truth for the main nav — both `Header.astro` (desktop top bar) and `MobileFloatingNav.astro` (mobile fixed bottom bar, with active-route highlighting via `Astro.url.pathname`) map over the same list rather than hardcoding links twice.
+
+**`Header.astro` (desktop only, `hidden md:block`)** is a three-column grid: `HeroAnagram` (`variant="header"`, see below) on the left, the nav menu centered, `SearchModal` + `ThemeToggle` on the right. It's `position: fixed` (not `absolute` — an earlier version was `absolute` and scrolled away with the page instead of staying anchored to the viewport) and contracts into a compact nav bar past `window.scrollY > 24` (a plain `scroll` listener toggling `data-compacto`, height goes from `h-20` to a shorter bar via a CSS rule scoped by that attribute). The contracted state stays **fully transparent** on purpose (only `backdrop-filter: blur` changes) — an earlier version added an opaque `surface` background on contraction and that was reverted because a solid bar interrupts reading the content scrolling underneath it.
+
+`HeroAnagram.astro` (the GSAP-Flip letter-reorder effect) takes a `variant` prop: `'hero'` (large, centered, the mobile-only home hero) or `'header'` (small, scaled down via `transform: scale()` + `origin-left`, anchored in `Header.astro`). Both variants share the same `<h1>` markup/sizing classes — the `header` variant does NOT get its own smaller font-size/line-height, it reuses the `hero` sizing and just scales the whole box down with `transform`. This matters because the GSAP Flip animation measures real rendered geometry: changing font-size/line-height per variant changes what Flip measures and visibly breaks the animation's fluidity, while a `transform: scale()` on the outer wrapper doesn't. The component's own `<script>` queries `document.querySelectorAll('.hero-anagram-title')` (a shared class, not an `id`) and runs one independent animation instance per match, because Astro deduplicates identical inline `<script>` content and only emits it once per page — with two instances of the component on a page (mobile hero + desktop header), an `id`-based `getElementById` lookup would only ever animate the first one found in the DOM.
 
 ### Routing
 

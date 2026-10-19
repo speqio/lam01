@@ -430,11 +430,12 @@ const conDial = disposicion === 'tira' || dialVertical;
     height: 7rem;
   }
 
-  /* El dial queda FUERA del difuminado: el degradado de los bordes del carril cubria
-     tambien la paginacion y se leia atenuada, como si estuviera deshabilitada. */
+  /* El dial va POR ENCIMA del difuminado (55): el degradado de arriba y abajo cubre el
+     ancho entero de la colección, dial incluido, y con z-index 6 la paginación quedaba
+     atenuada, como si estuviera deshabilitada. Sigue por debajo del telón del foco (60). */
   .coleccion--bucle [data-dial] {
     position: relative;
-    z-index: 6;
+    z-index: 58;
   }
   :global(html.js) .coleccion--bucle .estampilla-hueco {
     position: absolute;

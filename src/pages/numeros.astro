@@ -118,9 +118,7 @@ const chipClass =
     )
   }
 
-  {/* Grilla de carpetas verticales. El número abierto no vive acá: es una ventana fija
-      centrada en la pantalla (ver CarpetaNumero.astro), así que la grilla no se
-      recompone al abrir ninguna. */}
+  {/* Grilla de carpetas verticales. Cada una es un link a la página de su número. */}
   <div class="grid grid-cols-2 gap-x-8 gap-y-14 md:grid-cols-3 md:gap-x-12 md:gap-y-20 xl:grid-cols-4">
     {
       numerosOrdenados.map((numero) => {

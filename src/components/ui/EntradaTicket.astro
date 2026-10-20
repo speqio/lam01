@@ -1,5 +1,5 @@
 ---
-import { normalizeTitleText } from '../../lib/text';
+import { formatearTitulo, normalizeTitleText } from '../../lib/text';
 import {
   ticketShell,
   ticketNotchedEdges,
@@ -77,7 +77,7 @@ const normalizedTitle = normalizeTitleText(title);
 
   <div class={ticketBody}>
     <span class={ticketBadgeText}>{categoryName}</span>
-    <h3 class={ticketTitle}>{normalizedTitle}</h3>
+    <h3 class={ticketTitle} set:html={formatearTitulo(normalizedTitle).html}></h3>
     <p class={ticketMeta}>Por {authorName}</p>
     {translatorName && <p class={ticketMeta}>Traducción de {translatorName}</p>}
     <span class={ticketCta}>Leer entrada</span>

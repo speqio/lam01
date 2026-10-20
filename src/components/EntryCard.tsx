@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { normalizeTitleText } from '../lib/text';
+import { formatearTitulo, normalizeTitleText } from '../lib/text';
 import {
   cardShell,
   cardImageWrap,
@@ -88,7 +88,7 @@ export default function EntryCard({
       </div>
 
       <div className={cardBody}>
-        <h2 className={cardTitle}>{normalizedTitle}</h2>
+        <h2 className={cardTitle} dangerouslySetInnerHTML={{ __html: formatearTitulo(normalizedTitle).html }} />
         <p className="font-mono text-[10px] uppercase tracking-widest text-ink-muted">
           Por {authorName}
         </p>

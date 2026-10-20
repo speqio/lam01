@@ -1,5 +1,5 @@
 ---
-import { normalizeTitleText, splitNumeroTitle } from '../lib/text';
+import { formatearTitulo, normalizeTitleText, splitNumeroTitle } from '../lib/text';
 import { dialWrap, dialCount, dialTrack, dialThumb } from '../lib/dialNav';
 import {
   ticketNotchedEdges,
@@ -136,7 +136,7 @@ const { titulo: tituloPrincipal, subtitulo } = tituloLiteral
               </div>
               <div class={ticketBody}>
                 <span class={ticketBadgeText}>{item.categoriaNombre}</span>
-                <h3 class={ticketTitle}>{normalizeTitleText(item.titulo)}</h3>
+                <h3 class={ticketTitle} set:html={formatearTitulo(normalizeTitleText(item.titulo)).html}></h3>
                 <p class={ticketMeta}>Por {item.autorNombre}</p>
                 {item.translatorName && <p class={ticketMeta}>Traducción de {item.translatorName}</p>}
                 <span class={ticketCta}>Leer entrada</span>

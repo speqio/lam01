@@ -4,7 +4,7 @@ import PostLayout from '../layouts/PostLayout.astro';
 import EntradaGaleria from '../components/EntradaGaleria.astro';
 import EntradaImagen from '../components/EntradaImagen.astro';
 import EntradaBanner from '../components/EntradaBanner.astro';
-import { normalizeTitleText } from '../lib/text';
+import { formatearTitulo, normalizeTitleText } from '../lib/text';
 import { datosPortada } from '../lib/portada';
 
 const { entrada } = Astro.props;
@@ -76,9 +76,7 @@ const { orientacion, maxAncho } = datosPortada(portada);
         </a>
       )
     }
-    <h1 class="font-headline text-5xl leading-[0.9] text-ink md:text-6xl">
-      {tituloEntrada}
-    </h1>
+    <h1 class="font-headline text-5xl leading-[0.9] text-ink md:text-6xl" set:html={formatearTitulo(tituloEntrada).html}></h1>
     <p class="mt-4 font-mono text-xs uppercase tracking-widest text-ink-muted">
       Por{' '}
       {autor && (

@@ -17,6 +17,8 @@
  * Sin GSAP y sin JS: es un banner estático. La estampilla que gira y se arrastra es la del hero
  * de la home (HoverRevealHero.astro) y aquí sería ruido encima del título.
  */
+import { formatearTitulo } from '../lib/text';
+
 interface Referencia {
   id: string;
   nombre: string;
@@ -110,9 +112,7 @@ const esHorizontal = orientacion === 'horizontal';
         </a>
       )
     }
-    <h1 class="font-headline text-4xl leading-[0.95] text-ink sm:text-5xl md:text-5xl lg:text-6xl">
-      {titulo}
-    </h1>
+    <h1 class="font-headline text-4xl leading-[0.95] text-ink sm:text-5xl md:text-5xl lg:text-6xl" set:html={formatearTitulo(titulo).html}></h1>
     <p class="mt-4 font-mono text-xs uppercase tracking-widest text-ink-muted">
       Por{' '}
       {autor && (

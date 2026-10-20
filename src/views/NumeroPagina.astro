@@ -1,19 +1,11 @@
 ---
 import { getCollection, getEntry } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import CarpetaNumero from '../components/ui/CarpetaNumero.astro';
-import ColeccionEstampillas from '../components/ui/ColeccionEstampillas.astro';
+import MinimapaEstampillas from '../components/ui/MinimapaEstampillas.astro';
 import type { EstampillaItem } from '../components/ui/ColeccionEstampillas.astro';
-import { normalizeTitleText, splitNumeroTitle } from '../lib/text';
+import { splitNumeroTitle } from '../lib/text';
 
 const { numero } = Astro.props;
-
-/* El índice sale del slug (`numero-31`) y no del título, que puede traer subtítulo: es el
-   mismo criterio de /numeros y del home. Con él se ordena y se eligen los anteriores, sin
-   depender de `fecha`, que puede traer una errata (numero-26 está fechado en 2026 cuando
-   sus entradas son de 2025). */
-const indiceDe = (id: string) => Number(id.match(/(\d+)/)?.[0] ?? 0);
-const indiceNumero = indiceDe(numero.id);
 
 const todasLasEntradas = await getCollection('entradas');
 const entradasDelNumero = todasLasEntradas.filter((entrada) => entrada.data.numero === numero.id);
@@ -44,57 +36,7 @@ const items: EstampillaItem[] = entradasConRelaciones.map(
   })
 );
 
-/* La fecha corta de la tapa ("sept·26"), el mismo formato que en /numeros: la carpeta se
-   tiene que leer igual acá que allá. */
-const fechaCorta = (fecha: Date) =>
-  `${fecha
-    .toLocaleDateString('es-ES', { month: 'short', timeZone: 'UTC' })
-    .replace('.', '')}·${fecha.toLocaleDateString('es-ES', { year: '2-digit', timeZone: 'UTC' })}`;
-
-/**
- * LOS TRES ANTERIORES. Se eligen por índice y no por fecha, y se saltea el hueco del 5
- * (extinto) solo: no se exige que sean correlativos, se toman los tres más altos por
- * debajo de este. En el número 1 no hay ninguno y la sección no se dibuja.
- *
- * A diferencia de la tapa de arriba, estas van COMPLETAS —con sus estampillas asomadas y
- * su ventana—, que es como se comportan en /numeros: acá son una invitación a seguir
- * mirando, así que tienen que dejar ver qué hay dentro.
- */
-const otrosNumeros = (await getCollection('numeros'))
-  .filter((n) => n.id !== 'sin-numero' && indiceDe(n.id) < indiceNumero)
-  .sort((a, b) => indiceDe(b.id) - indiceDe(a.id))
-  .slice(0, 3);
-
-const autores = new Map((await getCollection('autores')).map((a) => [a.id, a.data.nombre]));
-const categorias = new Map((await getCollection('categorias')).map((c) => [c.id, c.data.nombre]));
-
-const anteriores = otrosNumeros.map((otro) => {
-  const { titulo, subtitulo } = splitNumeroTitle(otro.data.titulo);
-  return {
-    id: otro.id,
-    indice: indiceDe(otro.id),
-    titulo,
-    subtitulo,
-    portada: otro.data.portada,
-    fecha: fechaCorta(otro.data.fecha),
-    items: todasLasEntradas
-      .filter((entrada) => entrada.data.numero === otro.id)
-      .sort((a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf())
-      .map((entrada) => ({
-        title: normalizeTitleText(entrada.data.titulo),
-        authorName: autores.get(entrada.data.autor),
-        translatorName: entrada.data.traducidoPor
-          ? autores.get(entrada.data.traducidoPor)
-          : undefined,
-        categoryName: categorias.get(entrada.data.categoria),
-        slug: entrada.id,
-        coverImage: entrada.data.portada,
-      })),
-  };
-});
-
-/* La fecha larga del encabezado ("septiembre de 2026"), la que se lee al lado de la
-   tapa. La corta ("sept·26") es la de las carpetas de abajo. */
+/* La fecha larga del encabezado ("septiembre de 2026"). */
 const formattedDate = numero.data.fecha.toLocaleDateString('es-ES', {
   year: 'numeric',
   month: 'long',
@@ -103,110 +45,50 @@ const formattedDate = numero.data.fecha.toLocaleDateString('es-ES', {
 
 const { titulo: tituloPagina, subtitulo: subtituloPagina } = splitNumeroTitle(numero.data.titulo);
 const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : tituloPagina;
+
+/* En desktop el número se resume en una sola línea sobre la ficha, para que la página
+   entre en pantalla sin encabezado grande. */
+const kicker = `${tituloCompleto} · ${formattedDate}`;
 ---
 
 <BaseLayout
   title={numero.data.metaTitulo || `${tituloCompleto} — La Antorcha Magacín`}
   description={numero.data.metaDescripcion || numero.data.descripcion}
 >
-  {/*
-    LA TAPA DICE DE QUÉ NÚMERO SE TRATA. Por eso no hay encabezado de texto: la carpeta
-    ya lleva su fecha y su título, y repetirlos al lado era decir dos veces lo mismo.
-
-    UNA SOLA COPIA DE CADA PIEZA, COLOCADA POR GRILLA. En pantallas chicas se leen en el
-    orden del documento (tapa, carrusel, anteriores); en desktop la grilla manda la tapa
-    y los anteriores a la columna izquierda y el carrusel a la derecha, ocupando las dos
-    filas. Es la razón de colocar por `col-start`/`row-start` en vez de envolver: con dos
-    envoltorios, uno por lado, el orden en mobile saldría tapa → anteriores → carrusel.
-  */}
   {/* `md:mt-header-clear` (tailwind.config.mjs): el masthead flota encima del contenido
-      y solo existe en md+, así que sin este despeje la tapa le quedaba debajo. Es el
-      mismo token que usa PageHeader en el resto de las páginas. */}
-  <section class="md:mt-header-clear md:grid md:grid-cols-2 md:items-start md:gap-10 lg:gap-16">
-    {/* El encabezado, la tapa y la descripción comparten celda: son el mismo bloque, el
-        que dice de qué número se trata. En celdas separadas de la misma fila se
-        superponían, porque las dos arrancaban arriba y la segunda solo podía empujarse
-        con relleno.
-
-        El dato va UNA sola vez: acá, en la diagramación, y no encima de la portada
-        (`sinDatos`), donde competía con la foto y repetía lo mismo a diez píxeles. */}
-    <div class="flex flex-col items-center md:col-start-1 md:row-start-1 md:items-start">
+      y solo existe en md+, así que sin este despeje el contenido le quedaba debajo. */}
+  <section class="md:mt-header-clear">
+    {/* Encabezado de texto solo en mobile. En desktop el número va en el kicker del
+        minimapa. */}
+    <div class="flex flex-col items-center md:hidden">
       <p class="font-mono text-xs uppercase tracking-widest text-ink-muted">{formattedDate}</p>
-      <h1 class="mt-1 font-headline leading-[0.9] text-ink text-[2.6rem] md:text-5xl lg:text-6xl">
+      <h1 class="mt-1 font-headline leading-[0.9] text-ink text-[2.6rem]">
         {tituloPagina}
       </h1>
       {
         subtituloPagina && (
-          <p class="mt-1 font-serif italic leading-tight text-ink/70 text-xl md:text-2xl">
+          <p class="mt-1 font-serif italic leading-tight text-ink/70 text-xl">
             {subtituloPagina}
           </p>
         )
       }
 
-      {/* Más grande que las de abajo, a propósito: es el número que se está mirando, y
-          las anteriores son la invitación a seguir. */}
-      <div class="mt-7 hidden w-56 sm:w-64 lg:w-72 md:block">
-        <CarpetaNumero
-          numero={indiceNumero}
-          titulo={tituloPagina}
-          subtitulo={subtituloPagina}
-          portada={numero.data.portada}
-          href={`/${numero.id}`}
-          fecha={fechaCorta(numero.data.fecha)}
-          items={[]}
-          soloTapa
-          sinDatos
-        />
-      </div>
-
       {
         numero.data.descripcion && (
-          <p class="mt-6 max-w-md whitespace-pre-line text-center font-serif text-ink-muted md:text-left">
+          <p class="mt-6 max-w-md whitespace-pre-line text-center font-serif text-ink-muted">
             {numero.data.descripcion}
           </p>
         )
       }
     </div>
 
-    {/* El carrusel: tira horizontal en pantallas chicas y columna vertical en desktop. Las
-        dos usan scroll nativo, así que no capturan ningún gesto. Son dos colecciones y no
-        una que se adapte porque la columna necesita su propio eje y su propio dial. */}
-    <div class="mt-10 flex min-w-0 items-center md:col-start-2 md:row-span-2 md:row-start-1 md:mt-0">
-      <div class="w-full md:hidden">
-        <ColeccionEstampillas items={items} disposicion="tira" />
-      </div>
-      <div class="hidden w-full md:block">
-        <ColeccionEstampillas items={items} disposicion="bucle" />
-      </div>
+    {/* Mobile: tira horizontal con scroll nativo. Desktop: minimapa de tres columnas. */}
+    <div class="mt-8 min-w-0 md:hidden">
+      <MinimapaEstampillas items={items} kicker={kicker} variante="movil" />
     </div>
-
-    {
-      anteriores.length > 0 && (
-        <section class="mt-16 md:col-start-1 md:row-start-2 md:mt-12">
-          <h2 class="mb-5 text-center font-mono text-xs uppercase tracking-widest text-ink-muted md:text-left">
-            Números anteriores
-          </h2>
-          {/* Centradas mientras el carrusel es horizontal (pantallas chicas): ahí la
-              página entera se lee por el eje central, con la tapa y el título centrados,
-              y la fila pegada a la izquierda rompía esa línea. En desktop, donde esta
-              columna convive con el carrusel vertical a la derecha, vuelve a alinearse a
-              la izquierda con el resto de su columna. */}
-          <div class="mx-auto grid max-w-sm grid-cols-3 gap-4 md:mx-0 md:max-w-md md:gap-5">
-            {anteriores.map((otro) => (
-              <CarpetaNumero
-                numero={otro.indice}
-                titulo={otro.titulo}
-                subtitulo={otro.subtitulo}
-                portada={otro.portada}
-                href={`/${otro.id}`}
-                fecha={otro.fecha}
-                items={otro.items}
-              />
-            ))}
-          </div>
-        </section>
-      )
-    }
+    <div class="hidden min-w-0 md:block">
+      <MinimapaEstampillas items={items} kicker={kicker} variante="escritorio" />
+    </div>
   </section>
 
   {

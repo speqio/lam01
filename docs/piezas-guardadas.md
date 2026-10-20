@@ -235,3 +235,116 @@ home, con partículas detrás del título. Se reemplazó por la estampilla 3D qu
 como `.bak` al lado del componente que lo sustituyó, que es la otra convención que usa
 este repositorio para lo mismo; se restaura renombrándolo y apuntando el import de
 `src/pages/index.astro` a él.
+
+---
+
+## Bucle vertical de estampillas (`disposicion="bucle"`)
+
+Dejó de usarse en `/numero-NN` el 2026-10-20, cuando la página pasó a un carrusel horizontal
+también en desktop. La disposición **sigue en `ColeccionEstampillas.astro`** (no se borró):
+es una rueda con transformaciones que captura el gesto de la rueda y tiene su propio
+difuminado vertical. Para volver a usarla, pegar en `src/views/NumeroPagina.astro`, en el
+lugar donde ahora va el carrusel único:
+
+```astro
+<div class="mt-10 flex min-w-0 items-center md:col-start-2 md:row-span-2 md:row-start-1 md:mt-0">
+  <div class="w-full md:hidden">
+    <ColeccionEstampillas items={items} disposicion="tira" />
+  </div>
+  <div class="hidden w-full md:block">
+    <ColeccionEstampillas items={items} disposicion="bucle" />
+  </div>
+</div>
+```
+
+Y que siga en pie:
+- La grilla de dos columnas de la página (`md:grid md:grid-cols-2` en la `<section>`,
+  `md:col-start-1 md:row-start-1` en el encabezado y `md:row-start-2` en los anteriores).
+  Sin esa grilla la columna no tiene a dónde ir en desktop.
+- Las clases `coleccion--bucle` y `.coleccion-cuerpo` de `ColeccionEstampillas.astro`, y
+  la rama `initBucle` en su `<script>` (ya borrada: su texto está en el historial de git,
+  en los commits posteriores a `54f576f`; buscar `initBucle` con `git log -S`).
+- El difuminado vertical (`coleccion--bucle .coleccion-difuminado`) y el dial vertical,
+  que vienen en el mismo bloque de estilos.
+
+Motivo de la baja: el carrusel vertical no encastraba con la ficha de forma estable, y el
+usuario pidió el horizontal también en desktop, con arrastre del mouse.
+
+---
+
+## Números anteriores en la página de número
+
+Salió de `src/views/NumeroPagina.astro` el 2026-10-20, junto con la portada-carpeta del
+encabezado de desktop: la página de número ahora termina en el minimapa. Para volver a
+ponerla, pegar esto en el frontmatter (después de `titulo` / `tituloCompleto`, y
+reincorporar `CarpetaNumero` y `normalizeTitleText` a los imports):
+
+```ts
+const indiceDe = (id: string) => Number(id.match(/(\d+)/)?.[0] ?? 0);
+const indiceNumero = indiceDe(numero.id);
+
+const fechaCorta = (fecha: Date) =>
+  `${fecha
+    .toLocaleDateString('es-ES', { month: 'short', timeZone: 'UTC' })
+    .replace('.', '')}·${fecha.toLocaleDateString('es-ES', { year: '2-digit', timeZone: 'UTC' })}`;
+
+const otrosNumeros = (await getCollection('numeros'))
+  .filter((n) => n.id !== 'sin-numero' && indiceDe(n.id) < indiceNumero)
+  .sort((a, b) => indiceDe(b.id) - indiceDe(a.id))
+  .slice(0, 3);
+
+const autores = new Map((await getCollection('autores')).map((a) => [a.id, a.data.nombre]));
+const categorias = new Map((await getCollection('categorias')).map((c) => [c.id, c.data.nombre]));
+
+const anteriores = otrosNumeros.map((otro) => {
+  const { titulo, subtitulo } = splitNumeroTitle(otro.data.titulo);
+  return {
+    id: otro.id,
+    indice: indiceDe(otro.id),
+    titulo,
+    subtitulo,
+    portada: otro.data.portada,
+    fecha: fechaCorta(otro.data.fecha),
+    items: todasLasEntradas
+      .filter((entrada) => entrada.data.numero === otro.id)
+      .sort((a, b) => b.data.fecha.valueOf() - a.data.fecha.valueOf())
+      .map((entrada) => ({
+        title: normalizeTitleText(entrada.data.titulo),
+        authorName: autores.get(entrada.data.autor),
+        translatorName: entrada.data.traducidoPor
+          ? autores.get(entrada.data.traducidoPor)
+          : undefined,
+        categoryName: categorias.get(entrada.data.categoria),
+        slug: entrada.id,
+        coverImage: entrada.data.portada,
+      })),
+  };
+});
+```
+
+Y en el marcado, después del carrusel:
+
+```astro
+{
+  anteriores.length > 0 && (
+    <section class="mt-16 md:mt-14">
+      <h2 class="mb-5 text-center font-mono text-xs uppercase tracking-widest text-ink-muted md:text-left">
+        Números anteriores
+      </h2>
+      <div class="mx-auto grid max-w-sm grid-cols-3 gap-4 md:mx-0 md:max-w-md md:gap-5">
+        {anteriores.map((otro) => (
+          <CarpetaNumero
+            numero={otro.indice}
+            titulo={otro.titulo}
+            subtitulo={otro.subtitulo}
+            portada={otro.portada}
+            href={`/${otro.id}`}
+            fecha={otro.fecha}
+            items={otro.items}
+          />
+        ))}
+      </div>
+    </section>
+  )
+}
+```

@@ -28,7 +28,10 @@ export default {
         // (5rem de alto + ~4rem de aire) en vez de repetir el cálculo a mano en cada
         // página; usar como `md:mt-header-clear` (o `md:pt-header-clear`), nunca en
         // mobile.
-        'header-clear': '9rem',
+        // Cálculo: <main> ya aporta py-8 (2rem) arriba, así que 2rem + 4.5rem = 6.5rem desde
+        // el borde superior, contra una barra de 5rem: ~1.5rem de aire libre. Antes era 9rem
+        // y en desktop dejaba ~6rem vacíos debajo del header, que se traducían en scroll.
+        'header-clear': '4.5rem',
       },
       colors: {
         // Los tokens ya no son colores fijos: cada uno lee una variable CSS (definida en

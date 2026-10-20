@@ -1,0 +1,73 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import MinimapaEstampillas from '../components/ui/MinimapaEstampillas.astro';
+import type { EstampillaItem } from '../components/ui/ColeccionEstampillas.astro';
+import { splitNumeroTitle } from '../lib/text';
+
+/**
+ * Vista previa de la variante MÓVIL del minimapa de número, para revisar el diseño sin
+ * depender de un teléfono. Usa el último número (el de índice más alto, sin "sin-numero")
+ * y lo renderiza dentro de una columna del ancho de un teléfono. Solo lectura: no guarda
+ * ni modifica nada. Igual que vista-previa-boletos, es una herramienta interna.
+ */
+const indiceDe = (id: string) => Number(id.match(/(\d+)/)?.[0] ?? 0);
+
+const numeros = (await getCollection('numeros'))
+  .filter((n) => n.id !== 'sin-numero')
+  .sort((a, b) => indiceDe(b.id) - indiceDe(a.id));
+const numero = numeros[0];
+
+const todasLasEntradas = await getCollection('entradas');
+const entradasDelNumero = todasLasEntradas.filter((entrada) => entrada.data.numero === numero.id);
+
+const entradasConRelaciones = await Promise.all(
+  entradasDelNumero.map(async (entrada) => {
+    const autor = await getEntry('autores', entrada.data.autor);
+    const categoria = await getEntry('categorias', entrada.data.categoria);
+    const traductor = entrada.data.traducidoPor
+      ? await getEntry('autores', entrada.data.traducidoPor)
+      : null;
+    return { entrada, autor, categoria, traductor };
+  })
+);
+
+entradasConRelaciones.sort(
+  (a, b) => b.entrada.data.fecha.valueOf() - a.entrada.data.fecha.valueOf()
+);
+
+const items: EstampillaItem[] = entradasConRelaciones.map(
+  ({ entrada, autor, categoria, traductor }) => ({
+    title: entrada.data.titulo,
+    authorName: autor?.data.nombre,
+    translatorName: traductor?.data.nombre,
+    categoryName: categoria?.data.nombre,
+    slug: entrada.id,
+    coverImage: entrada.data.portada,
+  })
+);
+
+const formattedDate = numero.data.fecha.toLocaleDateString('es-ES', {
+  year: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+});
+const { titulo: tituloPagina, subtitulo: subtituloPagina } = splitNumeroTitle(numero.data.titulo);
+const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : tituloPagina;
+const kicker = `${tituloCompleto} · ${formattedDate}`;
+---
+
+<BaseLayout title="Vista previa — minimapa móvil" description="Vista previa interna del minimapa de número en mobile.">
+  <div class="mx-auto w-full max-w-[390px] py-6">
+    <p class="mb-4 text-center font-mono text-[10px] uppercase tracking-widest text-ink-muted">
+      Vista previa · ancho de teléfono (390 px)
+    </p>
+    {
+      items.length > 0 ? (
+        <MinimapaEstampillas items={items} kicker={kicker} variante="movil" />
+      ) : (
+        <p class="text-center font-sans text-ink-muted">Este número todavía no tiene entradas.</p>
+      )
+    }
+  </div>
+</BaseLayout>

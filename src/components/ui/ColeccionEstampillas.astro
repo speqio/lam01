@@ -52,6 +52,7 @@
  * cada una tiene su propio telón, su escenario y su foco.
  */
 import { dialWrap, dialCount, dialTrack, dialThumb } from '../../lib/dialNav';
+import { formatearTitulo } from '../../lib/text';
 
 export interface EstampillaItem {
   title: string;
@@ -169,7 +170,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
                   loading="lazy"
                 />
               ) : (
-                <span class="estampilla-sin-portada">{item.title}</span>
+                <span class="estampilla-sin-portada" set:html={formatearTitulo(item.title).html}></span>
               )}
               {/* El link real: es lo que hace útil el conjunto sin JS, y con JS el
                   script le hace preventDefault para retirarla en vez de navegar. */}
@@ -185,7 +186,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
               estampilla. */}
           <div class="estampilla-datos" data-datos>
             {item.categoryName && <span class="ficha-categoria">{item.categoryName}</span>}
-            <h3 class="ficha-titulo">{item.title}</h3>
+            <h3 class="ficha-titulo" set:html={formatearTitulo(item.title).html}></h3>
             {item.authorName && <p class="ficha-autor">Por {item.authorName}</p>}
             {item.translatorName && (
               <p class="ficha-autor">Traducción de {item.translatorName}</p>
@@ -222,7 +223,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
   }
 
   {
-    disposicion !== 'grilla' && disposicion !== 'bucle' && items.length > 1 && (
+    disposicion !== 'grilla' && items.length > 1 && (
       /* Difuminado en los dos extremos del carril, mismo criterio (y mismo degradado al
          canvas) que las máscaras de la rueda de categorías: sin esto, la estampilla que
          entra o sale del carril se corta contra un borde recto y duro. En la columna va
@@ -362,7 +363,8 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
   }
 
   /* En la columna el carril corre de arriba abajo: el mismo degradado, girado. */
-  .coleccion--columna .coleccion-difuminado {
+  .coleccion--columna .coleccion-difuminado,
+  .coleccion--bucle .coleccion-difuminado {
     top: auto;
     bottom: auto;
     left: 0;
@@ -370,11 +372,13 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     width: auto;
     height: 3.5rem;
   }
-  .coleccion--columna .coleccion-difuminado--inicio {
+  .coleccion--columna .coleccion-difuminado--inicio,
+  .coleccion--bucle .coleccion-difuminado--inicio {
     top: 0;
     background: linear-gradient(to bottom, rgb(var(--color-canvas)), transparent);
   }
-  .coleccion--columna .coleccion-difuminado--fin {
+  .coleccion--columna .coleccion-difuminado--fin,
+  .coleccion--bucle .coleccion-difuminado--fin {
     bottom: 0;
     background: linear-gradient(to top, rgb(var(--color-canvas)), transparent);
   }
@@ -421,6 +425,42 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
   .coleccion--lineal .coleccion-activa {
     margin-left: 1rem;
   }
+
+  /* Las estampillas que no están al frente se atenúan, para que la seleccionada se
+     distinga de las demás. La opacidad va en la estampilla y no en el hueco: la ficha
+     (dentro del hueco) tiene que seguir legible. */
+  .coleccion--lineal:not(.coleccion--columna) .estampilla {
+    transition: opacity 0.3s ease;
+  }
+  .coleccion--lineal:not(.coleccion--columna) .estampilla[data-inactiva] {
+    opacity: 0.45;
+  }
+
+  /* TIRA EN ESCRITORIO: el carrusel a todo el ancho, con el mismo gesto que en mobile
+     (scroll nativo) más arrastre con el mouse. Cada estampilla encastra en el borde
+     izquierdo, así la del borde es la activa y su ficha queda justo debajo, alineada.
+     El margen izquierdo (3rem) deja libre el difuminado lateral, y el derecho permite que
+     la última estampilla llegue también al borde izquierdo. */
+  @media (min-width: 768px) {
+    .coleccion--lineal:not(.coleccion--columna) .coleccion-pliego {
+      padding: 1.5rem calc(100% - var(--est-w)) 2rem 3rem;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline-start: 3rem;
+      cursor: grab;
+      user-select: none;
+    }
+    .coleccion--lineal:not(.coleccion--columna) .estampilla-hueco {
+      scroll-snap-align: start;
+    }
+    .coleccion--lineal:not(.coleccion--columna) .coleccion-pliego.arrastrando {
+      scroll-snap-type: none;
+      cursor: grabbing;
+    }
+    .coleccion--lineal:not(.coleccion--columna) .coleccion-activa {
+      margin-left: 3rem;
+      max-width: 52ch;
+    }
+  }
   .coleccion-activa:empty {
     display: none;
   }
@@ -430,9 +470,17 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
 
   /* El difuminado de la tira solo cubre la altura del carril de estampillas (su padding
      superior, la estampilla y el inferior), no el dial ni la ficha que están debajo. */
-  .coleccion--lineal .coleccion-difuminado {
+  .coleccion--lineal:not(.coleccion--columna) .coleccion-difuminado {
     bottom: auto;
     height: calc(3.5rem + var(--est-h));
+  }
+
+  /* El bucle usa el mismo degradado vertical que la columna, pero más alto: su estampilla
+     va de pie y un fundido corto dejaba ver el corte. Va por encima de las estampillas
+     (55) y por debajo del telón del foco (60). */
+  .coleccion--bucle .coleccion-difuminado {
+    z-index: 55;
+    height: 7rem;
   }
 
   .coleccion--bucle {
@@ -492,8 +540,10 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
   .coleccion--bucle .coleccion-pliego::-webkit-scrollbar {
     display: none;
   }
+  /* El dial va por encima del difuminado (55), para que la paginación no quede atenuada. */
   .coleccion--bucle [data-dial] {
     position: relative;
+    z-index: 58;
   }
 
   .dial-vertical {
@@ -942,6 +992,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     const destino = raiz.querySelector<HTMLElement>('[data-activa]');
     const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let mostrada = -1;
+    const estampillas = Array.from(raiz.querySelectorAll<HTMLElement>('[data-estampilla]'));
 
     return (i: number) => {
       if (!destino || i === mostrada) return;
@@ -949,6 +1000,11 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
       const datos = hueco?.querySelector('[data-datos]');
       if (!datos) return;
       mostrada = i;
+      // Las que no están al frente se atenúan (ver `[data-inactiva]` en los estilos).
+      estampillas.forEach((est, j) => {
+        if (j === i) delete est.dataset.inactiva;
+        else est.dataset.inactiva = '';
+      });
       destino.replaceChildren(datos.cloneNode(true));
       if (!reducido) {
         gsap.fromTo(
@@ -983,12 +1039,16 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
        aquí: cae entre dos estampillas cuando el scroll no llegó a asentarse, y la ficha
        mostraba el texto de la vecina. */
     const indiceArriba = () => {
-      const borde =
-        pliego.getBoundingClientRect().top + (parseFloat(getComputedStyle(pliego).paddingTop) || 0);
+      const cs = getComputedStyle(pliego);
+      const r = pliego.getBoundingClientRect();
+      const borde = vertical
+        ? r.top + (parseFloat(cs.paddingTop) || 0)
+        : r.left + (parseFloat(cs.paddingLeft) || 0);
       let mejor = 0;
       let distancia = Infinity;
       huecos.forEach((hueco, i) => {
-        const d = Math.abs(hueco.getBoundingClientRect().top - borde);
+        const h = hueco.getBoundingClientRect();
+        const d = Math.abs((vertical ? h.top : h.left) - borde);
         if (d < distancia) {
           distancia = d;
           mejor = i;
@@ -996,6 +1056,9 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
       });
       return mejor;
     };
+    // En escritorio la tira también tiene una estampilla "al frente": la del borde izquierdo,
+    // que es la que muestra su ficha al costado. En mobile sigue la proporción del scroll.
+    const enEscritorio = () => !vertical && window.matchMedia('(min-width: 768px)').matches;
 
     let pedido = 0;
     const actualizar = () => {
@@ -1009,7 +1072,8 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
       const largoThumb = largoPista / total;
       const avance = razon * (largoPista - largoThumb);
 
-      const indice = vertical ? indiceArriba() : Math.round(razon * (total - 1));
+      const indice =
+        vertical || enEscritorio() ? indiceArriba() : Math.round(razon * (total - 1));
       mostrar(indice);
 
       gsap.to(thumb, {
@@ -1036,6 +1100,83 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     actualizar();
   }
 
+  /* ARRASTRE CON EL MOUSE (tira, escritorio). El carril sigue siendo scroll nativo: el
+     mouse solo lo mueve mientras se mantiene el botón. El encastre se apaga durante el
+     arrastre y, al soltar, el carril asienta en la estampilla más cercana al borde izquierdo.
+     Touch y trackpad no pasan por acá: ya tienen su propio scroll. Un arrastre no debe
+     terminar en navegación, así que el clic que lo sigue se corta. */
+  function initArrastre(raiz: HTMLElement) {
+    const pliego = raiz.querySelector<HTMLElement>('[data-pliego]');
+    if (!pliego) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    const UMBRAL = 5;
+    let inicio: { x: number; scroll: number; id: number } | null = null;
+    let arrastrando = false;
+
+    pliego.addEventListener('pointerdown', (ev) => {
+      if (ev.pointerType !== 'mouse' || ev.button !== 0) return;
+      inicio = { x: ev.clientX, scroll: pliego.scrollLeft, id: ev.pointerId };
+      arrastrando = false;
+    });
+
+    pliego.addEventListener('pointermove', (ev) => {
+      if (!inicio || ev.pointerId !== inicio.id) return;
+      const dx = ev.clientX - inicio.x;
+      if (!arrastrando) {
+        if (Math.abs(dx) < UMBRAL) return;
+        arrastrando = true;
+        pliego.classList.add('arrastrando');
+        pliego.setPointerCapture(ev.pointerId);
+      }
+      pliego.scrollLeft = inicio.scroll - dx;
+    });
+
+    const soltar = () => {
+      if (!inicio) return;
+      const hubo = arrastrando;
+      inicio = null;
+      if (!hubo) return;
+      pliego.classList.remove('arrastrando');
+
+      // Asienta en la estampilla más cercana al borde izquierdo del carril.
+      const borde = pliego.getBoundingClientRect().left + (parseFloat(getComputedStyle(pliego).paddingLeft) || 0);
+      let mejor: HTMLElement | null = null;
+      let distancia = Infinity;
+      pliego.querySelectorAll<HTMLElement>('.estampilla-hueco').forEach((hueco) => {
+        const d = Math.abs(hueco.getBoundingClientRect().left - borde);
+        if (d < distancia) {
+          distancia = d;
+          mejor = hueco;
+        }
+      });
+      if (mejor) {
+        const destino = mejor as HTMLElement;
+        pliego.scrollTo({
+          left: pliego.scrollLeft + destino.getBoundingClientRect().left - borde,
+          behavior: 'smooth',
+        });
+      }
+    };
+    pliego.addEventListener('pointerup', soltar);
+    pliego.addEventListener('pointercancel', soltar);
+
+    // El clic que cierra un arrastre no es una navegación.
+    pliego.addEventListener(
+      'click',
+      (ev) => {
+        if (!arrastrando) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        arrastrando = false;
+      },
+      true
+    );
+
+    // Sin esto el navegador arrastra la imagen o el link como archivo.
+    pliego.addEventListener('dragstart', (ev) => ev.preventDefault());
+  }
+
   function initColeccion(raiz: HTMLElement) {
     const foco = crearFoco(raiz);
     const mostrar = crearFichaActiva(raiz);
@@ -1045,6 +1186,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     if (raiz.dataset.disposicion === 'tira' || raiz.dataset.disposicion === 'bucle') {
       initDial(raiz, mostrar);
     }
+    if (raiz.dataset.disposicion === 'tira') initArrastre(raiz);
 
     /* Un solo listener por colección, delegado, en vez de uno por estampilla: con todas
        las entradas del sitio repartidas en treinta carpetas serían cientos de handlers

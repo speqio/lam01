@@ -25,7 +25,7 @@ All routes live in `src/pages/`, one `.astro` file per route (no nested layouts 
 
 - `/` (`index.astro`) — the home page; composes `HeroAnagram` (mobile only — on desktop it lives inside `Header.astro` instead, see below), `HoverRevealHero` (latest número), the "últimas entradas" section (`ColeccionEstampillas.astro`, see below — the 16 latest entradas), `CategoriasCards`, and `ArchivoExplorer`, pulling from all four content collections in one frontmatter block.
 - `/numeros` — grid of all números as **folders** (`CarpetaNumero.astro`, see below), with range-filter chips (inline `<button>`s, not `FilterChip.astro`; no JS filtering logic beyond a small inline toggle script that hides non-matching folders). This page is the only one that loads *every* entrada: it groups them by número with lookup maps built from the three collections, rather than the usual per-item `getEntry` (see "No joins" below) — hundreds of reads for the same handful of autores/categorías is the one case where that pattern doesn't apply.
-- `/[slug]` — **entradas and números share one root route** (`src/pages/[slug].astro`, same URL scheme as the old WordPress site laantorchamagacin.com so links and SEO survive the DNS switch: `/nombre-de-la-entrada`, `/numero-01`; **no** `/entrada/…` or `/numero/…` aliases, one URL per content item). It only picks the view: `src/views/NumeroPagina.astro` / `src/views/EntradaPagina.astro` hold the markup. The build **fails on purpose** if a slug collides with a fixed page (`/archivo`, `/contacto`…), with another slug, or is the internal `sin-numero` (excluded from public routes). Never link to `/entrada/…`; link to `/<slug>`. A número page (`/numero-NN`): one número's detail page: uses `NumeroSequence.astro` for the entry listing (mobile carousel + desktop sequence, see below).
+- `/[slug]` — **entradas and números share one root route** (`src/pages/[slug].astro`, same URL scheme as the old WordPress site laantorchamagacin.com so links and SEO survive the DNS switch: `/nombre-de-la-entrada`, `/numero-01`; **no** `/entrada/…` or `/numero/…` aliases, one URL per content item). It only picks the view: `src/views/NumeroPagina.astro` / `src/views/EntradaPagina.astro` hold the markup. The build **fails on purpose** if a slug collides with a fixed page (`/archivo`, `/contacto`…), with another slug, or is the internal `sin-numero` (excluded from public routes). Never link to `/entrada/…`; link to `/<slug>`. A número page (`/numero-NN`): one número's detail page. Encabezado de texto solo en mobile (fecha, título, subtítulo, descripción). En desktop no hay encabezado: el número va como kicker sobre la ficha del minimapa. Luego el carrusel de estampillas. En mobile es la tira (`ColeccionEstampillas` con `disposicion="tira"`, scroll nativo). En desktop es el minimapa (`MinimapaEstampillas.astro`): una estampilla grande con su ficha a la izquierda, y a la derecha una columna vertical con todas las estampillas en miniatura y un marco de 1 px que marca cuál está al frente. La columna se mueve con la rueda (solo mientras pueda avanzar; en los extremos la rueda vuelve a la página) o con un clic en una miniatura, que la centra en el marco. La página no muestra números anteriores: el bloque quedó guardado en `docs/piezas-guardadas.md`. `NumeroSequence.astro` ya no lo usa esta página (queda en el repo sin uso; ver `docs/piezas-guardadas.md`).
 - `/categorias` — flat list of all categorías as filter pills, each linking to `/category/[slug]`.
 - `/category/[slug]` (English `category`, to match the old site's URLs) — entries filtered by one categoría.
 - `/autores` — list of all autores.
@@ -71,6 +71,8 @@ Each index has its own shape, so none of this is fully automatic: most mark the 
 
 **Two gaps in the números that are correct, not bugs.** `numero-05` **does not exist and must not be created**: the magazine confirmed the issue is extinct, so the jump from `numero-04` to `numero-06` is right. And `numero-27` has no images at all — the magazine has not produced them yet — so it is the one issue with no image zip.
 
+**Títulos con cursiva (`formatearTitulo` en `src/lib/text.ts`).** Keystatic guarda el título como texto plano (es también el campo que genera el slug), así que la cursiva se decide al mostrarlo: un segmento entre comillas (`"…"`, `“…”`, `«…»`) va en `<em>` sin comillas, salvo una cita de entrevista (`Nombre: “frase…”` de 4 o más palabras hasta el final), que se queda entre comillas. `*texto*` fuerza cursiva. Para mostrar el título se usa `set:html={formatearTitulo(t).html}` (o `dangerouslySetInnerHTML` en React); donde el texto no admite HTML (`<title>`, meta, `aria-label`, buscador, `alt`) se usa `.plano`. Los títulos siguen escritos en Keystatic con sus comillas: no hay que migrarlos.
+
 **Content hygiene (migrated from WordPress).** Titles must be plain text: 32 titles once carried `<strong>`/`<em>` tags and they were stripped; if an import brings them back, strip them again (`</?[a-z][^>]*>`). Body text must not contain Keystatic's "Missing image <file>" placeholder lines or bare file names (`.jpg`/`.png`): they appear when an image file is missing at save time and were removed (only the Karl Kraus entry had them). The 75 demo entries and 8 demo autores were deleted before the DNS switch; the 4 WordPress entries in `sin-numero` (introduccion, la-madrugada-de-los-otros, la-construccion-de-una-palabra-…, sobre-tres-iconos-…) are kept and still need a real número/autor.
 
 **Uploading images by hand from Keystatic (works, verified):** files land in `public/images/<collection>/<slug>/…` with the path Keystatic expects (a número's cover, a gallery item as `galeria/0/imagen.jpg`, body images by file name). Resize before uploading (≤1600 px on the long side and under 600 KB): the site serves images as-is, with no optimization step. **You don't have to do it by hand — `node scripts/optimizar-imagenes.mjs` does it** (report only; `--escribir` applies it), and step 6 of `verificar-keystatic.mjs` *fails* on anything over those limits, so an unoptimized upload is caught in the PR instead of reaching production. See "Image weight" below. Fill in the new "texto alternativo (SEO)" fields. Every save is one commit and one deploy, so group several images of the same entry into one save. Once an entry's images are done by hand, run `node scripts/imagenes-pendientes.mjs descartar <slug>` so a later `restaurar` does not add the originals on top (duplicates); `node scripts/imagenes-pendientes.mjs estado [slug]` shows what is still pending overall or for one entry. **Bulk migration of the remaining images is `scripts/migrar-imagenes.mjs`** — three subcommands, and the middle one is a deliberate decision point: `descargar` pulls every original from the old WordPress (still serving: the DNS has not switched) into a **staging directory outside the repo**, `optimizar` runs `optimizar-imagenes.mjs --escribir --raiz <staging>` there and reports the real post-optimization weight, and only `instalar` writes inside the repo — it copies the files into `public/` (never overwriting what is already there) and then calls `imagenes-pendientes.mjs restaurar`, which is what knows how to put each reference back in its original position. Staging is outside the repo on purpose: git history never releases a blob, so the weight is measured *before* anything is committed (that number is what decides repo vs. R2 — see `docs/imagenes-y-cms.md`). No new source material was needed: positions come from `scripts/imagenes-pendientes.json`, URLs from `scripts/migration-report/images-manifest.csv` (`ruta_local` has the same shape as the manifest's `ruta`, so the join is exact — measured: all 2.243 pending references resolve, 1.261 distinct files, 0 gaps). Two traps it already handles: the CSV stores URLs with HTML entities unresolved (`&amp;`), and two `ruta_local` values have no extension because they come from CDN URLs that do not end in a filename (`…/resize/540/540?…` → `540`) — the extension is taken from the response's real `Content-Type` and `instalar` fixes that path in the manifest. `descargar` is resumable and writes an auditable `scripts/migration-report/descarga-imagenes.json`.
@@ -102,11 +104,39 @@ before touching it:
   the pagination dial (`lib/dialNav.ts` classes; the dial's own script lives in the
   component and works on both axes).
 - **`tira` and `bucle` (the número page) do not pull stamps out**: the stamp is a plain link
-  to the entrada, and a *ficha activa* (`data-activa`) beside the carril (left of the `bucle`
-  column on `lg`+, below it otherwise; below the `tira`) shows the front stamp's text and
-  changes with the dial, driven by the same index (`crearFichaActiva`). `bucle` is a native
-  scroll column like `columna` (stamps pegadas, same size, no wheel capture, no difuminado).
-  The foco/stage below is only for `hoja`, `columna` and `grilla`.
+  to the entrada, and a *ficha activa* (`data-activa`) shows the front stamp's text, changing
+  with the dial (`crearFichaActiva`). The `tira` is the número page's carousel at every width:
+  on desktop it spans the full width, the front stamp is the one on the left edge (scroll
+  snap `start`), the ficha sits under it aligned left, and it can be dragged with the mouse
+  (`initArrastre`; the click that ends a drag is cancelled). On mobile the front stamp follows
+  the scroll proportion and the ficha sits below. `bucle` is no longer used by any page; it
+  stays in the component (see `docs/piezas-guardadas.md`). The foco/stage below is only for
+  `hoja`, `columna` and `grilla`.
+- **Estampillas de número (`MinimapaEstampillas.astro`)**: dos variantes, la página usa una en
+  cada tamaño. La estampilla al frente es la activa: su ficha (kicker, categoría, título, autor,
+  botón) cambia con cada desplazamiento. Las no activas quedan a 0,45 de opacidad. Clic en una
+  que no está al frente: se centra.
+  - Escritorio (`variante="escritorio"`): tres columnas. A la izquierda la información, con el
+    contador `NN / MM` y un separador; al centro la estampilla grande vertical; a la derecha una
+    columna vertical de miniaturas con marco de 1 px. La rueda, desde cualquier punto de la
+    pantalla, desplaza la columna, y deja de capturarla en los extremos. Excepción acotada a
+    "Mobile vs. desktop": `hidden md:block`.
+  - Móvil (`variante="movil"`): primero un carrusel horizontal de estampillas verticales con
+    degradado a izquierda y derecha; debajo la información de la entrada. Sin contador ni
+    separadores. El arrastre horizontal mueve el carrusel; el gesto vertical pasa a la página
+    (`touch-action: pan-y`). Clic en la activa: abre la entrada.
+  - El movimiento es un tween de GSAP con `overwrite`, no un rAF propio.
+- **Página de prueba móvil**: `src/pages/vista-previa-minimapa.astro` (ver nota de las páginas
+  de vista previa). Igual que `vista-previa-boletos`, es una herramienta interna.
+- **Despeje bajo el header**: `tailwind.config.mjs` define `header-clear` en `4.5rem` (antes
+  `9rem`). Es el token único de `md:mt-header-clear` / `md:pt-header-clear` en todas las
+  páginas; el cálculo está en el comentario del token.
+- **Regla de difuminados (todo carrusel de estampillas)**: cada carrusel lleva degradado en
+  los bordes del eje en que se desplaza, y en ningún otro. Horizontal (`tira`, y la `hoja` en
+  mobile) → izquierda y derecha. Vertical (`columna`, `bucle`) → arriba y abajo. `grilla`
+  no lleva, porque no tiene carril. El degradado va por encima de las estampillas (z-index
+  55) y por debajo del telón del foco (60). Al agregar una disposición nueva, este es el
+  criterio, no el que dejó el carrusel anterior.
 - **Choosing a stamp pulls it out of the sheet** (`hoja`, `columna`, `grilla`): it is *moved in the DOM* into a fixed,
   centred stage while the page goes behind a blurred backdrop, with its ficha read beside
   it (below it on small screens) as plain text, no panel. Moving it is required, not

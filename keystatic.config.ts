@@ -99,7 +99,12 @@ export default config({
       path: 'src/content/entradas/*',
       format: { contentField: 'contenido' },
       schema: {
-        titulo: fields.slug({ name: { label: 'Título' } }),
+        titulo: fields.slug({
+          name: {
+            label: 'Título',
+            description: 'Las palabras entre comillas se muestran en cursiva (títulos de obras). Para forzar cursiva sin comillas, escríbela entre asteriscos: *así*. Las citas de entrevista (Nombre: “frase…”) se dejan entre comillas.',
+          },
+        }),
         fecha: fields.date({ label: 'Fecha', validation: { isRequired: true } }),
         numero: fields.relationship({
           label: 'Número',

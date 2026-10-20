@@ -60,31 +60,16 @@ const kicker = `${tituloCompleto} · ${formattedDate}`;
   <section class="md:mt-header-clear">
     {/* Encabezado de texto solo en mobile. En desktop el número va en el kicker del
         minimapa. */}
-    <div class="flex flex-col items-center md:hidden">
-      <p class="font-mono text-xs uppercase tracking-widest text-ink-muted">{formattedDate}</p>
-      <h1 class="mt-1 font-headline leading-[0.9] text-ink text-[2.6rem]">
-        {tituloPagina}
-      </h1>
-      {
-        subtituloPagina && (
-          <p class="mt-1 font-serif italic leading-tight text-ink/70 text-xl">
-            {subtituloPagina}
-          </p>
-        )
-      }
-
-      {
-        numero.data.descripcion && (
-          <p class="mt-6 max-w-md whitespace-pre-line text-center font-serif text-ink-muted">
-            {numero.data.descripcion}
-          </p>
-        )
-      }
+    {/* Mobile: una sola pantalla. Encabezado reducido arriba y el minimapa ocupa el resto, sin
+        scroll de página: el gesto vertical es el que mueve el carrusel. La altura descuenta el
+        padding del main (py-8) y la barra flotante (pb-28). */}
+    <div class="flex flex-col h-[calc(100svh_-_12.5rem)] min-h-0 md:hidden">
+      <div class="mt-1 flex min-h-0 flex-1 flex-col">
+        <MinimapaEstampillas items={items} kicker={kicker} variante="movil" />
+      </div>
     </div>
-
-    {/* Mobile: tira horizontal con scroll nativo. Desktop: minimapa de tres columnas. */}
-    <div class="mt-8 min-w-0 md:hidden">
-      <MinimapaEstampillas items={items} kicker={kicker} variante="movil" />
+    <div class="hidden min-w-0 md:block">
+      <MinimapaEstampillas items={items} kicker={kicker} variante="escritorio" />
     </div>
     <div class="hidden min-w-0 md:block">
       <MinimapaEstampillas items={items} kicker={kicker} variante="escritorio" />

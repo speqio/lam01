@@ -95,9 +95,28 @@ const eje = variante === 'movil' ? 'x' : 'y';
         </>
       ) : (
         <>
-          {/* PRIMERO: número y fecha, y debajo el carrusel horizontal de estampillas verticales. */}
-          <p class="minimapa-kicker minimapa-kicker--movil">{kicker}</p>
-          <div class="minimapa-carrusel" data-ventana>
+          {/* ARRIBA: la información de la entrada al frente. */}
+          <div class="minimapa-info">
+            <div class="minimapa-ficha" data-vista-ficha>
+              {/* Lo llena el script con la ficha de la estampilla al frente. */}
+            </div>
+          </div>
+
+          {/* CENTRO: la estampilla principal, la misma pieza de desktop. */}
+          <div class="minimapa-vista">
+            <p class="minimapa-lateral">{kicker}</p>
+            <a class="minimapa-foto estampilla-perforada" href={`/${primero.slug}`} data-vista-enlace>
+              {primero.coverImage && (
+                <img src={primero.coverImage} alt="" draggable="false" data-vista-img />
+              )}
+              <span class="minimapa-sin-portada" data-vista-sin-portada hidden={!!primero.coverImage}>
+                {primero.title}
+              </span>
+            </a>
+          </div>
+
+          {/* ABAJO: mini carrusel horizontal. El scroll vertical del dedo lo mueve. */}
+          <div class="minimapa-columna" data-ventana>
             <div class="minimapa-pista" data-pista>
               {items.map((item, i) => (
                 <button
@@ -127,13 +146,7 @@ const eje = variante === 'movil' ? 'x' : 'y';
             </div>
             <div class="minimapa-difuminado minimapa-difuminado--inicio" aria-hidden="true" />
             <div class="minimapa-difuminado minimapa-difuminado--fin" aria-hidden="true" />
-          </div>
-
-          {/* DEBAJO: la información de la entrada al frente. Sin contador ni separadores. */}
-          <div class="minimapa-info">
-            <div class="minimapa-ficha" data-vista-ficha>
-              {/* Lo llena el script con la ficha de la estampilla al frente. */}
-            </div>
+            <div class="minimapa-marco" data-marco aria-hidden="true" />
           </div>
         </>
       )}
@@ -356,64 +369,121 @@ const eje = variante === 'movil' ? 'x' : 'y';
   }
 
   /* ─── VARIANTE MÓVIL ───────────────────────────────────────────────────────────────
-     Primero el carrusel de estampillas verticales; debajo, la información. */
+     Una sola pantalla: información arriba, estampilla principal al centro y mini carrusel
+     horizontal abajo. El scroll vertical del dedo mueve el carrusel (ver el script). */
   .minimapa[data-variante='movil'] {
-    --st-h: min(40vh, 360px);
-    --st-w: calc(var(--st-h) * 300 / 460);
-    grid-template-columns: minmax(0, 1fr);
-    height: auto;
-    gap: 0.75rem;
-  }
-  .minimapa-carrusel {
-    position: relative;
-    width: 100%;
-    height: var(--st-h);
-    min-width: 0;
-    overflow: hidden;
-    /* `pan-y`: el gesto vertical queda para la página; el horizontal lo toma el script. */
-    touch-action: pan-y;
-  }
-  .minimapa-carrusel .minimapa-pista {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
     display: flex;
-    align-items: center;
-  }
-  .minimapa-carrusel .minimapa-item {
-    width: var(--st-w);
-    height: var(--st-h);
-  }
-  .minimapa-carrusel .minimapa-difuminado {
-    top: 0;
-    bottom: 0;
-    width: 3.5rem;
-  }
-  .minimapa-carrusel .minimapa-difuminado--inicio {
-    left: 0;
-    background: linear-gradient(to right, rgb(var(--color-canvas)), transparent);
-  }
-  .minimapa-carrusel .minimapa-difuminado--fin {
-    right: 0;
-    background: linear-gradient(to left, rgb(var(--color-canvas)), transparent);
+    flex-direction: column;
+    gap: 0.4rem;
+    grid-template-columns: none;
+    height: 100%;
+    min-height: 0;
   }
   .minimapa[data-variante='movil'] .minimapa-info {
+    flex: 0 0 auto;
     width: 100%;
     align-items: center;
+    gap: 0.25rem;
+    /* Más aire entre el botón de la ficha y la estampilla principal. */
+    padding-bottom: 0.9rem;
     text-align: center;
   }
   .minimapa[data-variante='movil'] .minimapa-ficha {
     align-items: center;
   }
-  .minimapa[data-variante='movil'] .minimapa-kicker {
-    text-align: center;
+  .minimapa[data-variante='movil'] .ficha-categoria {
+    font-size: 0.65rem;
   }
   .minimapa[data-variante='movil'] .ficha-titulo {
-    font-size: 1.4rem;
+    font-size: 1.15rem;
+  }
+  .minimapa[data-variante='movil'] .ficha-autor {
+    font-size: 0.8rem;
   }
   .minimapa[data-variante='movil'] .ficha-entrar {
     align-self: center;
+    margin-top: 0.25rem;
+    padding: 0.45rem 1rem;
+    font-size: 0.72rem;
+  }
+
+  /* Número y fecha en vertical, fijos al lado de la estampilla: no ocupan alto de pantalla. */
+  .minimapa-lateral {
+    display: none;
+  }
+  .minimapa[data-variante='movil'] .minimapa-lateral {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%) rotate(180deg);
+    writing-mode: vertical-rl;
+    white-space: nowrap;
+    font-family: theme('fontFamily.mono');
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* CENTRO (móvil): la estampilla llena el alto que sobra, sin deformarse ni salirse del ancho. */
+  .minimapa[data-variante='movil'] .minimapa-vista {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    position: relative;
+    container-type: size;
+  }
+  .minimapa[data-variante='movil'] .minimapa-foto {
+    height: min(100cqh, calc(100cqw * 460 / 300));
+    max-width: 100%;
+  }
+
+  /* ABAJO (móvil): mini carrusel horizontal, con las miniaturas acostadas de desktop. */
+  .minimapa[data-variante='movil'] .minimapa-columna {
+    flex: 0 0 auto;
+    width: 100%;
+    height: var(--mini-h);
+    /* Más aire entre la estampilla principal y el carrusel mini. */
+    margin-top: 1.75rem;
+    justify-self: stretch;
+    touch-action: pan-y;
+  }
+  .minimapa[data-variante='movil'] .minimapa-columna .minimapa-pista {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: auto;
+    width: max-content;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+  }
+  .minimapa[data-variante='movil'] .minimapa-columna .minimapa-item {
+    width: var(--mini-w);
+    height: 100%;
+    flex: 0 0 auto;
+  }
+  .minimapa[data-variante='movil'] .minimapa-marco {
+    top: 0;
+    bottom: 0;
+    right: auto;
+    height: auto;
+  }
+  .minimapa[data-variante='movil'] .minimapa-difuminado {
+    top: 0;
+    bottom: 0;
+    width: 3rem;
+    height: auto;
+  }
+  .minimapa[data-variante='movil'] .minimapa-difuminado--inicio {
+    left: 0;
+    right: auto;
+    background: linear-gradient(to right, rgb(var(--color-canvas)), transparent);
+  }
+  .minimapa[data-variante='movil'] .minimapa-difuminado--fin {
+    right: 0;
+    left: auto;
+    background: linear-gradient(to left, rgb(var(--color-canvas)), transparent);
   }
 </style>
 
@@ -540,11 +610,12 @@ const eje = variante === 'movil' ? 'x' : 'y';
       { passive: false }
     );
 
-    // TACTO (móvil): el dedo arrastra el carrusel en horizontal. Un gesto más vertical que
-    // horizontal es del scroll de la página y no se captura.
+    // TACTO (móvil): el dedo que sube o baja, en cualquier parte de la pantalla, mueve el
+    // carrusel horizontal. Un gesto más horizontal que vertical no se toma. La página no se
+    // desplaza con este gesto: en los extremos el carrusel simplemente se detiene.
     let tactilX = 0;
     let tactilY = 0;
-    ventana.addEventListener(
+    window.addEventListener(
       'touchstart',
       (ev) => {
         if (!horizontal) return;
@@ -553,7 +624,7 @@ const eje = variante === 'movil' ? 'x' : 'y';
       },
       { passive: true }
     );
-    ventana.addEventListener(
+    window.addEventListener(
       'touchmove',
       (ev) => {
         if (!horizontal || !medir()) return;
@@ -563,22 +634,18 @@ const eje = variante === 'movil' ? 'x' : 'y';
         const dy = y - tactilY;
         tactilX = x;
         tactilY = y;
-        if (Math.abs(dx) <= Math.abs(dy)) return;
-        const puede = dx > 0 ? estado.t < tMax - 0.5 : estado.t > tMin + 0.5;
-        if (!puede) return;
+        if (Math.abs(dy) <= Math.abs(dx)) return;
+        // El gesto vertical nunca mueve la página en esta variante: solo el carrusel.
         ev.preventDefault();
-        mover(objetivo + dx, 0.35);
+        const puede = dy < 0 ? estado.t > tMin + 0.5 : estado.t < tMax - 0.5;
+        if (puede) mover(objetivo + dy, 0.35);
       },
       { passive: false }
     );
 
-    // CLIC: en móvil, la activa abre la entrada. En cualquier otra, se centra.
+    // CLIC: centra la estampilla pulsada. La principal es un enlace y abre la entrada.
     botones.forEach((b, i) => {
       b.addEventListener('click', () => {
-        if (horizontal && i === activa && b.dataset.slug) {
-          window.location.href = `/${b.dataset.slug}`;
-          return;
-        }
         if (!medir()) return;
         mover(ind - i * paso, 1.1);
       });

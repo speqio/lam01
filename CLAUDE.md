@@ -121,10 +121,7 @@ before touching it:
     columna vertical de miniaturas con marco de 1 px. La rueda, desde cualquier punto de la
     pantalla, desplaza la columna, y deja de capturarla en los extremos. Excepción acotada a
     "Mobile vs. desktop": `hidden md:block`.
-  - Móvil (`variante="movil"`): primero un carrusel horizontal de estampillas verticales con
-    degradado a izquierda y derecha; debajo la información de la entrada. Sin contador ni
-    separadores. El arrastre horizontal mueve el carrusel; el gesto vertical pasa a la página
-    (`touch-action: pan-y`). Clic en la activa: abre la entrada.
+  - Móvil (`variante="movil"`): una sola pantalla, sin scroll de página. Arriba la información de la entrada; al centro la estampilla principal (la misma pieza de desktop); abajo el mini carrusel horizontal de miniaturas. El scroll vertical del dedo, en cualquier parte de la pantalla, mueve el carrusel; cuando llega a un extremo el gesto vuelve a la página (`touch-action: pan-y`). Sin contador ni separadores. El encabezado de número y fecha (de la página) se reduce para que todo quepa.
   - El movimiento es un tween de GSAP con `overwrite`, no un rAF propio.
 - **Página de prueba móvil**: `src/pages/vista-previa-minimapa.astro` (ver nota de las páginas
   de vista previa). Igual que `vista-previa-boletos`, es una herramienta interna.

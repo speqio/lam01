@@ -18,3 +18,22 @@ export const navItems: NavItem[] = [
   },
   { name: 'Archivo', url: '/archivo', icon: 'M3 4h18v4H3z M5 8v11h14V8 M10 12h4' },
 ];
+
+/**
+ * Qué ítem de la nav corresponde a la página actual. Una página de número (`/numero-31`) o
+ * de categoría (`/category/…`) pertenece a su sección aunque su URL no sea la del ítem. Las
+ * entradas y los autores no son ninguna sección de la nav, así que no marcan nada.
+ */
+export function navItemActivo(item: NavItem, pathname: string): boolean {
+  const ruta = pathname.replace(/\/+$/, '') || '/';
+  switch (item.url) {
+    case '/':
+      return ruta === '/';
+    case '/numeros':
+      return ruta === '/numeros' || /^\/numero-\d+$/.test(ruta);
+    case '/categorias':
+      return ruta === '/categorias' || ruta.startsWith('/category/');
+    default:
+      return ruta === item.url;
+  }
+}

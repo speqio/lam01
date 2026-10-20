@@ -2,7 +2,9 @@
 import SearchModal from './ui/SearchModal.tsx';
 import ThemeToggle from './ThemeToggle.astro';
 import HeroAnagram from './HeroAnagram.astro';
-import { navItems } from '../data/navItems';
+import { navItems, navItemActivo } from '../data/navItems';
+
+const currentPath = Astro.url.pathname;
 ---
 
 <header class="pointer-events-none fixed inset-x-0 top-0 z-20 hidden md:block" data-header>
@@ -18,12 +20,27 @@ import { navItems } from '../data/navItems';
 
       <nav class="flex items-center justify-center gap-6 font-mono text-xs uppercase tracking-widest text-ink">
         {
-          navItems.map((item) => (
-            <a href={item.url} class="group relative text-ink transition-colors hover:text-accent">
-              {item.name}
-              <span class="absolute -bottom-1 left-0 h-px w-0 bg-accent transition-all duration-300 group-hover:w-full" />
-            </a>
-          ))
+          navItems.map((item) => {
+            const activo = navItemActivo(item, currentPath);
+            return (
+              <a
+                href={item.url}
+                aria-current={activo ? 'page' : undefined}
+                class:list={[
+                  'group relative transition-colors hover:text-accent',
+                  activo ? 'text-accent' : 'text-ink',
+                ]}
+              >
+                {item.name}
+                <span
+                  class:list={[
+                    'absolute -bottom-1 left-0 h-px bg-accent transition-all duration-300',
+                    activo ? 'w-full' : 'w-0 group-hover:w-full',
+                  ]}
+                />
+              </a>
+            );
+          })
         }
       </nav>
 

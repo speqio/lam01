@@ -1,7 +1,7 @@
 ---
 import SearchModal from './ui/SearchModal.tsx';
 import ThemeToggle from './ThemeToggle.astro';
-import { navItems } from '../data/navItems';
+import { navItems, navItemActivo } from '../data/navItems';
 
 const currentPath = Astro.url.pathname;
 ---
@@ -13,7 +13,7 @@ const currentPath = Astro.url.pathname;
 >
   {
     navItems.map((item) => {
-      const isActive = currentPath === item.url;
+      const isActive = navItemActivo(item, currentPath);
       return (
         <a
           href={item.url}

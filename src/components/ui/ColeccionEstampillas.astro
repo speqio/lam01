@@ -480,9 +480,14 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     height: min(66vh, 560px);
     overflow-x: hidden;
     overflow-y: auto;
-    scroll-snap-type: y proximity;
+    /* Obligatorio y encastrado al inicio: el scroll siempre termina con una estampilla
+       alineada arriba, así la ficha activa coincide con la que se ve primero. */
+    scroll-snap-type: y mandatory;
     scrollbar-width: none;
     padding: 0.5rem 0;
+  }
+  .coleccion--bucle .estampilla-hueco {
+    scroll-snap-align: start;
   }
   .coleccion--bucle .coleccion-pliego::-webkit-scrollbar {
     display: none;
@@ -972,6 +977,26 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     if (vertical) thumb.style.height = `${100 / total}%`;
     else thumb.style.width = `${100 / total}%`;
 
+    const huecos = Array.from(raiz.querySelectorAll<HTMLElement>('.estampilla-hueco'));
+    /* En la columna, la estampilla de arriba es la que tiene que calzar con la ficha: se
+       toma la más cercana al borde superior del carril. Una proporción del scroll no sirve
+       aquí: cae entre dos estampillas cuando el scroll no llegó a asentarse, y la ficha
+       mostraba el texto de la vecina. */
+    const indiceArriba = () => {
+      const borde =
+        pliego.getBoundingClientRect().top + (parseFloat(getComputedStyle(pliego).paddingTop) || 0);
+      let mejor = 0;
+      let distancia = Infinity;
+      huecos.forEach((hueco, i) => {
+        const d = Math.abs(hueco.getBoundingClientRect().top - borde);
+        if (d < distancia) {
+          distancia = d;
+          mejor = i;
+        }
+      });
+      return mejor;
+    };
+
     let pedido = 0;
     const actualizar = () => {
       pedido = 0;
@@ -984,7 +1009,8 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
       const largoThumb = largoPista / total;
       const avance = razon * (largoPista - largoThumb);
 
-      mostrar(Math.round(razon * (total - 1)));
+      const indice = vertical ? indiceArriba() : Math.round(razon * (total - 1));
+      mostrar(indice);
 
       gsap.to(thumb, {
         [vertical ? 'y' : 'x']: avance,
@@ -994,7 +1020,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
       });
 
       if (contador) {
-        const activa = Math.round(razon * (total - 1)) + 1;
+        const activa = indice + 1;
         contador.textContent = `${String(activa).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
       }
     };

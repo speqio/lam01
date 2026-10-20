@@ -101,7 +101,13 @@ before touching it:
   (one horizontal row at every width) or `columna` (one vertical row). The last two render
   the pagination dial (`lib/dialNav.ts` classes; the dial's own script lives in the
   component and works on both axes).
-- **Choosing a stamp pulls it out of the sheet**: it is *moved in the DOM* into a fixed,
+- **`tira` and `bucle` (the número page) do not pull stamps out**: the stamp is a plain link
+  to the entrada, and a *ficha activa* (`data-activa`) beside the carril (left of the `bucle`
+  column on `lg`+, below it otherwise; below the `tira`) shows the front stamp's text and
+  changes with the dial, driven by the same index (`crearFichaActiva`). `bucle` is a native
+  scroll column like `columna` (stamps pegadas, same size, no wheel capture, no difuminado).
+  The foco/stage below is only for `hoja`, `columna` and `grilla`.
+- **Choosing a stamp pulls it out of the sheet** (`hoja`, `columna`, `grilla`): it is *moved in the DOM* into a fixed,
   centred stage while the page goes behind a blurred backdrop, with its ficha read beside
   it (below it on small screens) as plain text, no panel. Moving it is required, not
   decorative: a `fixed` element inside a transformed ancestor resolves against that

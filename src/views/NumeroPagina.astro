@@ -145,7 +145,7 @@ const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : 
 
       {/* Más grande que las de abajo, a propósito: es el número que se está mirando, y
           las anteriores son la invitación a seguir. */}
-      <div class="mt-7 w-56 sm:w-64 lg:w-72">
+      <div class="mt-7 hidden w-56 sm:w-64 lg:w-72 md:block">
         <CarpetaNumero
           numero={indiceNumero}
           titulo={tituloPagina}
@@ -168,10 +168,9 @@ const tituloCompleto = subtituloPagina ? `${tituloPagina} ${subtituloPagina}` : 
       }
     </div>
 
-    {/* El carrusel: tira horizontal con scroll nativo en pantallas chicas, bucle vertical
-        con la rueda en desktop. Son dos colecciones y no una que se adapte porque el
-        bucle captura la rueda, y un gesto capturado sin escape no puede ir a un teléfono
-        (ver "Mobile vs. desktop" en CLAUDE.md). */}
+    {/* El carrusel: tira horizontal en pantallas chicas y columna vertical en desktop. Las
+        dos usan scroll nativo, así que no capturan ningún gesto. Son dos colecciones y no
+        una que se adapte porque la columna necesita su propio eje y su propio dial. */}
     <div class="mt-10 flex min-w-0 items-center md:col-start-2 md:row-span-2 md:row-start-1 md:mt-0">
       <div class="w-full md:hidden">
         <ColeccionEstampillas items={items} disposicion="tira" />

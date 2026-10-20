@@ -87,7 +87,10 @@ interface Props {
    * mobile y hasta 5 en pantallas grandes. Sin carril ni gesto: nunca hay scroll
    * horizontal que capturar. Es lo que usa el buscador del archivo en el home.
    *
-   * `bucle`: columna VERTICAL EN BUCLE con las estampillas de pie, movida con la
+   * `bucle`: columna VERTICAL con las estampillas de pie, pegadas y del mismo tamaño,
+   * con scroll nativo y la ficha activa al costado. Antes era un bucle con la rueda; ahora
+   * es igual que `columna`, sin gesto capturado. Lo que sigue es el texto anterior, por
+   * referencia: columna VERTICAL EN BUCLE con las estampillas de pie, movida con la
    * rueda y con el dial al costado. Es lo que usa la página de un número en desktop:
    * la lista no tiene principio ni fin, se sigue girando y vuelve a empezar. Es la
    * única disposición con gesto capturado, y por eso es solo de desktop —en mobile esa
@@ -111,6 +114,9 @@ const { items, columnas = 4, disposicion = 'hoja', filtrable = false } = Astro.p
    corren de arriba abajo--, horizontal en la tira. */
 const dialVertical = disposicion === 'columna' || disposicion === 'bucle';
 const conDial = disposicion === 'tira' || dialVertical;
+/* La ficha de la estampilla al frente, siempre visible junto al carril (tira y bucle).
+   Se llena por script; sin JS queda vacía y oculta, y cada hueco muestra su propia ficha. */
+const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
 
 /* Una entrada sin `portada` muestra la estampilla vacía, con su título como única
    marca. Es a propósito: rellenar con la tapa de un número sería mostrar una imagen que
@@ -136,6 +142,10 @@ const conDial = disposicion === 'tira' || dialVertical;
       (vw) y el breakpoint vigente, sin repetir ninguna medida en el JS. */}
   <span class="coleccion-medida" data-medida aria-hidden="true"></span>
 
+  {/* Carril y dial agrupados: en el bucle la ficha activa se acomoda a su lado (desktop
+      grande) o debajo (pantallas medianas). En las demás disposiciones es display: contents
+      y no cambia nada. */}
+  <div class="coleccion-cuerpo">
   <div class="coleccion-pliego" data-pliego>
     {
       items.map((item, i) => (
@@ -212,7 +222,7 @@ const conDial = disposicion === 'tira' || dialVertical;
   }
 
   {
-    disposicion !== 'grilla' && items.length > 1 && (
+    disposicion !== 'grilla' && disposicion !== 'bucle' && items.length > 1 && (
       /* Difuminado en los dos extremos del carril, mismo criterio (y mismo degradado al
          canvas) que las máscaras de la rueda de categorías: sin esto, la estampilla que
          entra o sale del carril se corta contra un borde recto y duro. En la columna va
@@ -225,6 +235,10 @@ const conDial = disposicion === 'tira' || dialVertical;
       </>
     )
   }
+
+  </div>
+
+  {conFichaActiva && <div class="coleccion-activa" data-activa></div>}
 
   {/* Telón y escenario del foco: cuelgan de la raíz, que no tiene transform propio —
       dentro del pliego, un `fixed` se resolvería contra el ancestro transformado. */}
@@ -348,8 +362,7 @@ const conDial = disposicion === 'tira' || dialVertical;
   }
 
   /* En la columna el carril corre de arriba abajo: el mismo degradado, girado. */
-  .coleccion--columna .coleccion-difuminado,
-  .coleccion--bucle .coleccion-difuminado {
+  .coleccion--columna .coleccion-difuminado {
     top: auto;
     bottom: auto;
     left: 0;
@@ -357,13 +370,11 @@ const conDial = disposicion === 'tira' || dialVertical;
     width: auto;
     height: 3.5rem;
   }
-  .coleccion--columna .coleccion-difuminado--inicio,
-  .coleccion--bucle .coleccion-difuminado--inicio {
+  .coleccion--columna .coleccion-difuminado--inicio {
     top: 0;
     background: linear-gradient(to bottom, rgb(var(--color-canvas)), transparent);
   }
-  .coleccion--columna .coleccion-difuminado--fin,
-  .coleccion--bucle .coleccion-difuminado--fin {
+  .coleccion--columna .coleccion-difuminado--fin {
     bottom: 0;
     background: linear-gradient(to top, rgb(var(--color-canvas)), transparent);
   }
@@ -375,7 +386,8 @@ const conDial = disposicion === 'tira' || dialVertical;
       display: none;
     }
   }
-  .coleccion--columna .estampilla-hueco {
+  .coleccion--columna .estampilla-hueco,
+  .coleccion--bucle .estampilla-hueco {
     margin: 0 auto;
   }
 
@@ -389,59 +401,94 @@ const conDial = disposicion === 'tira' || dialVertical;
      debajo de otra y cada una link a su entrada. Lo que NO se hace es nacer con
      opacity: 0 esperando al script: si el script falla, la seccion entera queda en
      blanco. Mejor un primer frame apilado que una pagina vacia. */
+  .coleccion-cuerpo {
+    display: contents;
+  }
+
+  /* FICHA ACTIVA (tira y bucle): la ficha de la estampilla al frente, al costado o debajo
+     del carril. Se llena por script y se oculta mientras está vacía (sin JS). */
+  .coleccion-activa {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-width: 34ch;
+    margin: 0;
+    padding-top: 0.5rem;
+    text-align: left;
+  }
+  /* En la tira, la ficha arranca en el mismo margen que la primera estampilla (el
+     padding del carril), así el texto queda alineado a la izquierda del carrusel. */
+  .coleccion--lineal .coleccion-activa {
+    margin-left: 1rem;
+  }
+  .coleccion-activa:empty {
+    display: none;
+  }
+  .coleccion--lineal .coleccion-activa {
+    min-height: 9rem;
+  }
+
+  /* El difuminado de la tira solo cubre la altura del carril de estampillas (su padding
+     superior, la estampilla y el inferior), no el dial ni la ficha que están debajo. */
+  .coleccion--lineal .coleccion-difuminado {
+    bottom: auto;
+    height: calc(3.5rem + var(--est-h));
+  }
+
   .coleccion--bucle {
     position: relative;
     display: flex;
+    flex-direction: column;
     align-items: stretch;
     gap: 1rem;
   }
+  .coleccion--bucle .coleccion-cuerpo {
+    display: flex;
+    align-items: stretch;
+    gap: 1rem;
+    position: relative;
+    min-width: 0;
+  }
+  @media (min-width: 1024px) {
+    .coleccion--bucle {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 2.5rem;
+    }
+    .coleccion--bucle .coleccion-cuerpo {
+      flex: 1;
+    }
+    .coleccion--bucle .coleccion-activa {
+      order: -1;
+      flex: 0 0 22rem;
+      max-width: none;
+      align-self: flex-start;
+      margin: 0;
+    }
+  }
+  /* BUCLE: columna de scroll nativo, igual que la disposición `columna`. Estampillas del
+     mismo tamaño y pegadas borde con borde; sin escala, sin opacidad y sin difuminado de
+     las vecinas. La ficha activa y el dial siguen el scroll (initDial). */
   .coleccion--bucle .coleccion-pliego {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--aire);
-    /* `flex: 1` o el carril no mide nada: la raiz es una fila (carril + dial al costado)
-       y sus estampillas estan en posicion absoluta, asi que no hay contenido en flujo
-       que le de ancho. Sin esto el carril queda en cero y las estampillas se apilan
-       fuera de la vista. */
     flex: 1;
     min-width: 0;
     height: min(66vh, 560px);
+    overflow-x: hidden;
     overflow-y: auto;
+    scroll-snap-type: y proximity;
     scrollbar-width: none;
-    padding: 0;
+    padding: 0.5rem 0;
   }
-  :global(html.js) .coleccion--bucle .coleccion-pliego {
-    display: block;
-    overflow: hidden;
+  .coleccion--bucle .coleccion-pliego::-webkit-scrollbar {
+    display: none;
   }
-  /* El difuminado del bucle va POR ENCIMA de las estampillas. En los demas carriles
-     alcanza con z-index 5 porque sus estampillas estan en flujo, sin apilado propio;
-     acá el script les reparte hasta 50 para ordenar la profundidad, y con 5 el degradado
-     quedaba debajo: las estampillas entraban y salian cortadas contra un borde recto en
-     vez de fundirse con el fondo. 55 las tapa y sigue por debajo del telon del foco
-     (60), que tiene que cubrirlo todo.
-
-     Y mas alto que en los demas: 3,5rem tapaba apenas un cuarto de una estampilla
-     acostada de ~190 px, asi que el corte seguia a la vista. */
-  .coleccion--bucle .coleccion-difuminado {
-    z-index: 55;
-    height: 7rem;
-  }
-
-  /* El dial va POR ENCIMA del difuminado (55): el degradado de arriba y abajo cubre el
-     ancho entero de la colección, dial incluido, y con z-index 6 la paginación quedaba
-     atenuada, como si estuviera deshabilitada. Sigue por debajo del telón del foco (60). */
   .coleccion--bucle [data-dial] {
     position: relative;
-    z-index: 58;
-  }
-  :global(html.js) .coleccion--bucle .estampilla-hueco {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    margin: 0;
   }
 
   .dial-vertical {
@@ -737,11 +784,8 @@ const conDial = disposicion === 'tira' || dialVertical;
 
 <script>
   import { gsap } from 'gsap';
-  // Observer solo lo usa el bucle (disposicion `bucle`, desktop de la pagina de un
-  // numero); el resto de las disposiciones no captura ningun gesto.
-  import { Observer } from 'gsap/Observer';
 
-  gsap.registerPlugin(Observer);
+  // Ninguna disposición captura el gesto: todas se mueven con el scroll nativo del carril.
 
   /* RETIRO AL FOCO. La estampilla se MUDA al escenario (contenedor fijo, centrado en la
      ventana) y vuelve a su hueco al cerrar. Mudarla es necesario, no un capricho: dentro
@@ -885,10 +929,36 @@ const conDial = disposicion === 'tira' || dialVertical;
     focoActivo = null;
   });
 
+  /* LA FICHA ACTIVA (tira y bucle). Lleva la ficha de la estampilla que está al frente y
+     la cambia cada vez que cambia esa estampilla. La cuenta sale de la misma posición que
+     mueve el dial, así que la ficha y "03 / 14" nunca discrepan. Copia la ficha que ya
+     viene en el hueco (igual que crearFoco), en vez de armarla de nuevo en JS. */
+  function crearFichaActiva(raiz: HTMLElement) {
+    const destino = raiz.querySelector<HTMLElement>('[data-activa]');
+    const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let mostrada = -1;
+
+    return (i: number) => {
+      if (!destino || i === mostrada) return;
+      const hueco = raiz.querySelectorAll<HTMLElement>('.estampilla-hueco')[i];
+      const datos = hueco?.querySelector('[data-datos]');
+      if (!datos) return;
+      mostrada = i;
+      destino.replaceChildren(datos.cloneNode(true));
+      if (!reducido) {
+        gsap.fromTo(
+          destino,
+          { autoAlpha: 0, y: 6 },
+          { autoAlpha: 1, y: 0, duration: 0.25, ease: 'power2.out', overwrite: true }
+        );
+      }
+    };
+  }
+
   /* El dial: refleja el scroll nativo de la tira, no lo controla. Misma mecánica que
      NumeroSequence.astro y la galería de la entrada — el ancho del segmento es 1/total y
      su posición sale de la proporción de scroll recorrida. */
-  function initDial(raiz: HTMLElement) {
+  function initDial(raiz: HTMLElement, mostrar: (i: number) => void) {
     const pliego = raiz.querySelector<HTMLElement>('[data-pliego]');
     const thumb = raiz.querySelector<HTMLElement>('[data-dial-thumb]');
     const contador = raiz.querySelector<HTMLElement>('[data-dial-count]');
@@ -898,7 +968,7 @@ const conDial = disposicion === 'tira' || dialVertical;
     const pista = thumb.parentElement as HTMLElement;
     // El mismo dial en los dos ejes: cambia qué medida del carril se mira y en qué
     // dirección se mueve el segmento.
-    const vertical = raiz.dataset.disposicion === 'columna';
+    const vertical = raiz.dataset.disposicion === 'columna' || raiz.dataset.disposicion === 'bucle';
     if (vertical) thumb.style.height = `${100 / total}%`;
     else thumb.style.width = `${100 / total}%`;
 
@@ -913,6 +983,8 @@ const conDial = disposicion === 'tira' || dialVertical;
       const largoPista = vertical ? pista.clientHeight : pista.clientWidth;
       const largoThumb = largoPista / total;
       const avance = razon * (largoPista - largoThumb);
+
+      mostrar(Math.round(razon * (total - 1)));
 
       gsap.to(thumb, {
         [vertical ? 'y' : 'x']: avance,
@@ -938,103 +1010,15 @@ const conDial = disposicion === 'tira' || dialVertical;
     actualizar();
   }
 
-  /* EL BUCLE: columna vertical infinita movida con la rueda. Es la misma mecánica que
-     tenía la secuencia de boletos de NumeroSequence.astro —un solo `desplazamiento`, la
-     posición de cada estampilla sale de su índice módulo el total, y el dial lee esa
-     cuenta— con las estampillas en su lugar. El gesto se captura (preventDefault en la
-     rueda), por eso esta disposición es solo de desktop: ahí alcanza con mover el mouse
-     fuera del carril para recuperar el scroll de la página. */
-  function initBucle(raiz: HTMLElement) {
-    const pliego = raiz.querySelector<HTMLElement>('[data-pliego]');
-    const huecos = Array.from(raiz.querySelectorAll<HTMLElement>('.estampilla-hueco'));
-    if (!pliego || huecos.length === 0) return;
-
-    const thumb = raiz.querySelector<HTMLElement>('[data-dial-thumb]');
-    const contador = raiz.querySelector<HTMLElement>('[data-dial-count]');
-    const total = huecos.length;
-    const pista = thumb?.parentElement ?? null;
-    if (thumb) thumb.style.height = `${100 / total}%`;
-
-    /* El paso se mide del alto real del hueco y no de un numero fijo, porque la
-       estampilla cambia de tamanio por breakpoint. Si todavia no esta medido (primer
-       frame, o la seccion aun oculta) cae en un valor razonable en vez de en cero, que
-       dejaria todas las estampillas en el mismo punto. */
-    const paso = () => {
-      const alto = huecos[0].getBoundingClientRect().height;
-      return (alto > 0 ? alto : 150) * 1.12;
-    };
-
-    let desplazamiento = 0;
-    let indiceDial = -1;
-
-    /* CON TOPE EN LAS DOS PUNTAS. El recorrido va de la primera estampilla a la ultima y
-       ahi se planta: no vuelve a empezar. Dar la vuelta parecia mas vivo pero deja al
-       lector sin saber donde esta --en una lista de catorce piezas, pasar de la ultima a
-       la primera sin aviso se lee como que algo fallo--, y el dial, que cuenta "03 / 14",
-       estaria diciendo una posicion de una lista que no tiene principio. El tope se
-       aplica al acumular, no al dibujar: asi la rueda no sigue sumando contra el limite y
-       soltarla no deja un saldo guardado que despues se descuente solo. */
-    const tope = () => Math.max(0, (total - 1) * paso());
-
-    Observer.create({
-      target: pliego,
-      type: 'wheel',
-      preventDefault: true,
-      onChange: (self) => {
-        desplazamiento = Math.min(tope(), Math.max(0, desplazamiento + self.deltaY * 0.5));
-      },
-    });
-
-    const dibujar = () => {
-      const SALTO = paso();
-      /* Un cambio de tamanio (girar el telefono, cambiar de breakpoint) mueve el paso, y
-         con el el tope: si el desplazamiento quedo mas alla, se recorta aca. */
-      const limite = Math.max(0, (total - 1) * SALTO);
-      if (desplazamiento > limite) desplazamiento = limite;
-
-      huecos.forEach((hueco, i) => {
-        const avance = i * SALTO - desplazamiento;
-        const lejania = Math.abs(avance) / (SALTO * 2.1);
-        gsap.set(hueco, {
-          xPercent: -50,
-          yPercent: -50,
-          y: avance,
-          scale: Math.max(0.74, 1 - lejania * 0.26),
-          opacity: Math.max(0, 1 - lejania * 0.95),
-          /* Entre 1 y 50, nunca fuera: negativo manda el hueco DETRAS del fondo de su
-             contexto de apilado (desaparece aunque su opacidad sea 1), y por encima de
-             60 le pasaria por delante al telon y al escenario del foco, tapando la
-             ficha que se acaba de abrir. La informacion pedida gana siempre. */
-          zIndex: Math.max(1, Math.round(50 - Math.abs(avance) / 20)),
-        });
-      });
-
-      const activa = Math.min(total - 1, Math.max(0, Math.round(desplazamiento / SALTO)));
-      if (activa === indiceDial) return;
-      indiceDial = activa;
-
-      if (contador) {
-        contador.textContent = `${String(activa + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
-      }
-      if (thumb && pista) {
-        const largoPista = pista.clientHeight;
-        gsap.to(thumb, {
-          y: (activa / total) * largoPista,
-          duration: 0.3,
-          ease: 'power2.out',
-          overwrite: true,
-        });
-      }
-    };
-
-    gsap.ticker.add(dibujar);
-
-  }
-
   function initColeccion(raiz: HTMLElement) {
     const foco = crearFoco(raiz);
-    if (raiz.dataset.disposicion === 'tira') initDial(raiz);
-    if (raiz.dataset.disposicion === 'bucle') initBucle(raiz);
+    const mostrar = crearFichaActiva(raiz);
+    // Primera ficha antes de cualquier movimiento: con una sola entrada los inicializadores
+    // de abajo no llegan a dibujarla.
+    mostrar(0);
+    if (raiz.dataset.disposicion === 'tira' || raiz.dataset.disposicion === 'bucle') {
+      initDial(raiz, mostrar);
+    }
 
     /* Un solo listener por colección, delegado, en vez de uno por estampilla: con todas
        las entradas del sitio repartidas en treinta carpetas serían cientos de handlers
@@ -1052,6 +1036,9 @@ const conDial = disposicion === 'tira' || dialVertical;
 
       const abrir = objetivo.closest('[data-abrir]');
       if (!abrir) return;
+      // En la tira y el bucle la estampilla es un link directo al texto: su ficha ya se lee
+      // al costado, así que no hace falta sacarla al foco antes de entrar.
+      if (raiz.dataset.disposicion === 'tira' || raiz.dataset.disposicion === 'bucle') return;
       ev.preventDefault();
       const est = abrir.closest<HTMLElement>('[data-estampilla]');
       if (!est) return;

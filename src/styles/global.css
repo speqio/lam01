@@ -10,6 +10,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Escala de desktop: el tamaño base sube de 16 px a 19,2 px (+20%). Todo lo que está en
+   rem (tipografía, espaciados, cards) escala con él. En mobile queda en 16 px. */
+@media (min-width: 768px) {
+  html {
+    font-size: 19.2px;
+  }
+}
+
 @layer base {
   /* Modo oscuro es el default (sin atributo, o data-theme="dark" explícito) — la
      paleta original del sitio. data-theme="light" (alternado desde ThemeToggle.astro,

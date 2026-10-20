@@ -63,13 +63,10 @@ const kicker = `${tituloCompleto} · ${formattedDate}`;
     {/* Mobile: una sola pantalla. Encabezado reducido arriba y el minimapa ocupa el resto, sin
         scroll de página: el gesto vertical es el que mueve el carrusel. La altura descuenta el
         padding del main (py-8) y la barra flotante (pb-28). */}
-    <div class="flex flex-col h-[calc(100svh_-_12.5rem)] min-h-0 md:hidden">
+    <div class="flex flex-col h-[calc(100svh_-_10.5rem)] min-h-0 md:hidden">
       <div class="mt-1 flex min-h-0 flex-1 flex-col">
         <MinimapaEstampillas items={items} kicker={kicker} variante="movil" />
       </div>
-    </div>
-    <div class="hidden min-w-0 md:block">
-      <MinimapaEstampillas items={items} kicker={kicker} variante="escritorio" />
     </div>
     <div class="hidden min-w-0 md:block">
       <MinimapaEstampillas items={items} kicker={kicker} variante="escritorio" />

@@ -380,30 +380,34 @@ const eje = variante === 'movil' ? 'x' : 'y';
     min-height: 0;
   }
   .minimapa[data-variante='movil'] .minimapa-info {
+    /* Caja de alto fijo (cabe un título de 4 líneas): la ficha no mueve la estampilla. */
     flex: 0 0 auto;
+    height: 9rem;
+    justify-content: flex-start;
     width: 100%;
     align-items: center;
     gap: 0.25rem;
     /* Más aire entre el botón de la ficha y la estampilla principal. */
-    padding-bottom: 0.9rem;
+    padding-bottom: 0.6rem;
     text-align: center;
   }
   .minimapa[data-variante='movil'] .minimapa-ficha {
     align-items: center;
   }
   .minimapa[data-variante='movil'] .ficha-categoria {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
   }
   .minimapa[data-variante='movil'] .ficha-titulo {
-    font-size: 1.15rem;
+    font-size: 1rem;
+    line-height: 1.2;
   }
   .minimapa[data-variante='movil'] .ficha-autor {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
   .minimapa[data-variante='movil'] .ficha-entrar {
     align-self: center;
     margin-top: 0.25rem;
-    padding: 0.45rem 1rem;
+    padding: 0.35rem 0.9rem;
     font-size: 0.72rem;
   }
 

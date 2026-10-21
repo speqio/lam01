@@ -7,9 +7,10 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description?: string;
+  sinFooter?: boolean;
 }
 
-const { title, description = 'Un blog de literatura: cuento, poesía y ensayo.' } = Astro.props;
+const { title, description = 'Un blog de literatura: cuento, poesía y ensayo.', sinFooter = false } = Astro.props;
 ---
 
 <!DOCTYPE html>
@@ -49,7 +50,7 @@ const { title, description = 'Un blog de literatura: cuento, poesía y ensayo.' 
     >
       <slot />
     </main>
-    <Footer />
+    {!sinFooter && <Footer />}
     <MobileFloatingNav />
   </body>
 </html>

@@ -84,3 +84,15 @@ const kicker = `${tituloCompleto} · ${formattedDate}`;
     )
   }
 </BaseLayout>
+
+<style is:global>
+  /* Móvil: la página de número es una sola pantalla; sin scroll ni barra vertical, el gesto
+     del dedo solo mueve el carrusel. */
+  @media (max-width: 767px) {
+    html,
+    body {
+      height: 100svh;
+      overflow: hidden;
+    }
+  }
+</style>

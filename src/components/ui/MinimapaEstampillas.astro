@@ -293,9 +293,20 @@ const eje = variante === 'movil' ? 'x' : 'y';
     position: absolute;
     left: 0;
     right: 0;
-    border: 1px solid rgb(var(--color-ink));
+    /* El trazo (un <svg> que dibuja el script) sigue la silueta dentada de la estampilla. */
+    color: rgb(var(--color-ink));
     pointer-events: none;
     z-index: 3;
+  }
+  /* En el tema claro el marco resalta con el acento (rojo), no con el negro del texto. */
+  :global(:root[data-theme='light']) .minimapa-marco {
+    color: rgb(var(--color-accent));
+  }
+  .minimapa-marco svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
   }
   .minimapa-columna .minimapa-difuminado {
     left: 0;
@@ -524,7 +535,41 @@ const eje = variante === 'movil' ? 'x' : 'y';
     let objetivo = 0;
     let activa = -1;
     let iniciado = false;
+    const uid = Math.random().toString(36).slice(2, 8);
     const estado = { t: 0 };
+
+    // Trazo del marco con la misma silueta que la estampilla: el rectángulo con las muescas
+    // semicirculares de `.estampilla-perforada` (global.css: radio 5px, paso 15px; si cambian
+    // allá, cambian acá). El borde recto se oculta dentro de cada muesca y el arco de la muesca
+    // se recorta al rectángulo.
+    const DIENTE_R = 5;
+    const DIENTE_PASO = 15;
+    const dibujarMarco = () => {
+      if (!marco) return;
+      const w = marco.offsetWidth;
+      const h = marco.offsetHeight;
+      if (w <= 0 || h <= 0) return;
+      const ns = 'http://www.w3.org/2000/svg';
+      const circulos: Array<[number, number]> = [];
+      for (let y = DIENTE_R; y < h + DIENTE_R; y += DIENTE_PASO) {
+        circulos.push([0, y], [w, y]);
+      }
+      for (let x = DIENTE_R; x < w + DIENTE_R; x += DIENTE_PASO) {
+        circulos.push([x, 0], [x, h]);
+      }
+      const c = (cx: number, cy: number, extra: string) =>
+        `<circle cx="${cx}" cy="${cy}" r="${DIENTE_R}" ${extra}/>`;
+      marco.innerHTML =
+        `<svg xmlns="${ns}" viewBox="0 0 ${w} ${h}" aria-hidden="true">` +
+        `<defs><mask id="m-${uid}" maskUnits="userSpaceOnUse" x="-2" y="-2" width="${w + 4}" height="${h + 4}">` +
+        `<rect x="-2" y="-2" width="${w + 4}" height="${h + 4}" fill="white"/>` +
+        circulos.map(([cx, cy]) => c(cx, cy, 'fill="black"')).join('') +
+        `</mask><clipPath id="r-${uid}"><rect width="${w}" height="${h}"/></clipPath></defs>` +
+        `<rect x="1.5" y="1.5" width="${w - 3}" height="${h - 3}" fill="none" stroke="currentColor" stroke-width="3" mask="url(#m-${uid})"/>` +
+        `<g clip-path="url(#r-${uid})" fill="none" stroke="currentColor" stroke-width="3">` +
+        circulos.map(([cx, cy]) => c(cx, cy, '')).join('') +
+        `</g></svg>`;
+    };
 
     const medir = () => {
       const r = botones[0].getBoundingClientRect();
@@ -542,6 +587,7 @@ const eje = variante === 'movil' ? 'x' : 'y';
       }
       tMax = ind;
       tMin = ind - (botones.length - 1) * paso;
+      dibujarMarco();
       return true;
     };
 

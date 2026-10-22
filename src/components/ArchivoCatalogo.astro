@@ -1,7 +1,9 @@
 ---
 import EntradaTicket from './ui/EntradaTicket.astro';
 import ColeccionEstampillas from './ui/ColeccionEstampillas.astro';
-import { normalizeTitleText } from '../lib/text';
+import OrbitaEstampillas from './ui/OrbitaEstampillas.astro';
+import { cardBadge } from '../lib/cardStyles';
+import { formatearTitulo, normalizeTitleText } from '../lib/text';
 
 /**
  * Catálogo completo del archivo, con filtros — único componente de /archivo.astro
@@ -74,8 +76,10 @@ interface Props {
    * `estampillas` es la hoja de estampillas verticales que usa el home. El mecanismo de
    * filtrado es el mismo en las dos: los `data-*` por item y classList.toggle('hidden').
    * ColeccionEstampillas los cuelga de cada hueco con su prop `filtrable`.
+   * `tunel` pone la órbita de estampillas (OrbitaEstampillas, escritorio y móvil) y
+   * lee el resultado del filtro por el evento `catalogo:filtrado`. No renderiza boletos.
    */
-  vista?: 'tickets' | 'estampillas';
+  vista?: 'tickets' | 'estampillas' | 'tunel';
   /**
    * Qué controles de filtro se ofrecen. `dropdowns` es el juego completo
    * (año/categoría/número + buscador de autor) de /archivo y del home.
@@ -95,27 +99,11 @@ const {
   controles = 'dropdowns',
 } = Astro.props;
 
-/* Cuántas entradas tiene cada categoría, para el contador del chip. Solo se calcula
-   cuando hay chips. */
-const conteoPorCategoria = new Map<string, number>();
-if (controles === 'chips-categoria') {
-  for (const item of items) {
-    conteoPorCategoria.set(item.categoriaSlug, (conteoPorCategoria.get(item.categoriaSlug) ?? 0) + 1);
-  }
-}
-
-/* Mismas clases que FilterChip.astro, que es un <a> a la página ya filtrada: acá el
-   chip es un <button> porque filtra en cliente, sin navegar. El estado activo lo pinta
-   .archivo-catalogo-chip[data-active='true'] en global.css, junto a los otros chips del
-   sitio, para que los tres se vean igual en tema oscuro y claro. */
-const chipClass =
-  'archivo-catalogo-chip inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-widest text-ink transition-colors border-ink/20 hover:border-ink/40 data-[active=true]:border-transparent';
-
 const triggerClass =
-  'archivo-catalogo-trigger inline-flex items-center gap-2 rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-ink-muted transition-colors hover:border-ink/40 aria-expanded:border-accent aria-expanded:text-ink focus:outline-none md:text-sm';
+  'archivo-catalogo-trigger inline-flex items-center gap-2 rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs lowercase tracking-widest text-ink-muted transition-colors hover:border-ink/40 aria-expanded:border-accent aria-expanded:text-ink focus:outline-none md:text-sm';
 
 const inputClass =
-  'archivo-catalogo-autor rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs uppercase tracking-widest text-ink-muted placeholder:text-ink-muted/70 transition-colors hover:border-ink/40 focus:border-accent focus:outline-none md:text-sm';
+  'archivo-catalogo-autor w-full md:w-auto rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs lowercase tracking-widest text-ink-muted placeholder:text-ink-muted/70 transition-colors hover:border-ink/40 focus:border-accent focus:outline-none md:text-sm';
 
 const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones: FiltroOpcion[] }> = [
   { key: 'anio', label: 'Año', ariaLabel: 'Filtrar por año', opciones: anios },
@@ -166,43 +154,53 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
   items.length > 0 && (
     <div class="archivo-catalogo mt-12 md:mt-16">
       {controles === 'chips-categoria' ? (
-        /* El contenedor lleva data-dropdown="categoria" y data-value para que
-           aplicarFiltros() —compartido con la variante de dropdowns— lo lea igual, sin
-           un segundo mecanismo de filtrado. */
-        <div
-          class="archivo-catalogo-filtros mb-10 flex flex-wrap justify-center gap-3"
-          data-dropdown="categoria"
-          data-value="all"
-          role="group"
-          aria-label="Filtrar por categoría"
-        >
-          <button
-            type="button"
-            class={chipClass}
-            data-chip
-            data-value="all"
-            data-active="true"
-            aria-pressed="true"
-          >
-            Todas
-            <span class="opacity-60">({items.length})</span>
-          </button>
-          {categorias.map((categoria) => (
-            <button
-              type="button"
-              class={chipClass}
-              data-chip
-              data-value={categoria.slug}
-              aria-pressed="false"
+        /* /categorias: un solo buscador de categorías. El placeholder no es un atributo sino
+           una instancia del anagrama del header (HeroAnagram, vía data-anagrama) puesta
+           encima del campo; el contenedor recorta las letras que vuelan al reordenarse. */
+        <div class="archivo-catalogo-filtros mb-10 flex justify-center" role="search">
+          <div class="relative w-64 overflow-hidden rounded-full md:w-72">
+            <input
+              type="search"
+              class={`${inputClass.replace('md:w-auto', 'md:w-full').replace('border-ink/20', 'border-ink/40').replace('hover:border-ink/40', 'hover:border-ink/70')} peer cursor-text pl-11`}
+              data-buscador-categoria
+              aria-label="Buscar por categoría"
+              autocomplete="off"
+            />
+            <svg
+              class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted transition-colors peer-focus:text-accent"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
             >
-              {categoria.label}
-              <span class="opacity-60">({conteoPorCategoria.get(categoria.slug) ?? 0})</span>
-            </button>
-          ))}
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="M20 20l-3.5-3.5"></path>
+            </svg>
+            <div
+              class="pointer-events-none absolute inset-y-0 left-11 right-5 flex items-center"
+              data-buscador-placeholder
+              aria-hidden="true"
+            >
+              <span
+                class="hero-anagram-title relative block min-h-[1.25rem] w-full whitespace-nowrap text-left font-mono text-xs leading-none lowercase tracking-widest text-ink-muted md:text-sm"
+                data-anagrama={JSON.stringify([
+                  'lee más',
+                  ...categorias
+                    .filter((categoria) => categoria.slug !== 'sin-categoria')
+                    .map((categoria) => categoria.label.toLowerCase()),
+                ])}
+              />
+            </div>
+          </div>
         </div>
       ) : (
       <div
-        class="archivo-catalogo-filtros mb-10 flex flex-wrap justify-center gap-3 md:justify-start"
+        class={`archivo-catalogo-filtros flex flex-wrap justify-center gap-3 md:justify-start ${vista === 'tunel' ? 'mb-2 md:mb-10' : 'mb-10'}`}
         role="group"
         aria-label="Filtrar el archivo"
       >
@@ -281,14 +279,14 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
           </div>
         ))}
 
-        <div class="relative" data-autor-combo data-autores={JSON.stringify(autorNombres)}>
+        <div class="relative order-first w-56 md:order-none md:w-auto" data-autor-combo data-autores={JSON.stringify(autorNombres)}>
           <input
             type="search"
             id="archivo-filtro-autor"
             name="archivo-filtro-autor"
             class={inputClass}
             data-filtro-autor
-            placeholder="Autor"
+            placeholder="Autoría"
             aria-label="Buscar por autor"
             autocomplete="off"
             role="combobox"
@@ -326,6 +324,41 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
           }))}
         />
       ) : (
+      <>
+      {vista === 'tunel' && (
+        <>
+          {/* Datos de cada entrada para el túnel (desktop) y la órbita (móvil): nunca se ven. La
+              clase `hidden` de cada uno la alterna aplicarFiltros(); ellos leen el resultado. */}
+          <div hidden aria-hidden="true">
+            {items.map((item) => (
+              <div
+                data-catalogo-item
+                data-tunel-dato
+                data-anio={item.anio}
+                data-categoria={item.categoriaSlug}
+                data-autor-nombre={item.authorName.toLocaleLowerCase('es')}
+                data-numero={item.numeroSlug}
+                data-slug={item.slug}
+                data-src={item.coverImage ?? ''}
+                data-alt={item.coverAlt ?? ''}
+                data-titulo={item.title}
+              >
+                <template>
+                  {item.categoryName && <span class="ficha-categoria">{item.categoryName}</span>}
+                  <h3 class="ficha-titulo" set:html={formatearTitulo(item.title).html} />
+                  {item.authorName && <p class="ficha-autor">Por {item.authorName}</p>}
+                  {item.translatorName && <p class="ficha-autor">Traducción de {item.translatorName}</p>}
+                  <a class={`${cardBadge} ficha-entrar`} href={`/${item.slug}`}>
+                    Entrar al texto
+                  </a>
+                </template>
+              </div>
+            ))}
+          </div>
+          <OrbitaEstampillas />
+        </>
+      )}
+      {vista !== 'tunel' && (
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" data-catalogo-grid>
         {items.map((item) => (
           <div
@@ -349,6 +382,8 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
           </div>
         ))}
       </div>
+      )}
+      </>
       )}
 
       <p class="hidden py-12 text-center font-sans text-ink-muted" data-catalogo-vacio>
@@ -399,7 +434,7 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
     border-radius: 0.5rem;
     font-family: var(--font-mono, monospace);
     font-size: 0.75rem;
-    text-transform: uppercase;
+    text-transform: lowercase;
     letter-spacing: 0.08em;
     color: rgb(var(--color-ink-muted));
     background: transparent;
@@ -481,7 +516,7 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
     font-family: var(--font-mono, monospace);
     font-size: 0.65rem;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
+    text-transform: lowercase;
     color: rgb(var(--color-ink-muted));
   }
 </style>
@@ -493,12 +528,15 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
      trigger/menú más abajo sale solo cuando esas partes no están. */
   const dropdowns = Array.from(document.querySelectorAll<HTMLElement>('[data-dropdown]'));
   const autorInput = document.querySelector<HTMLInputElement>('[data-filtro-autor]');
+  const buscadorCategoria = document.querySelector<HTMLInputElement>('[data-buscador-categoria]');
   const items = Array.from(document.querySelectorAll<HTMLElement>('[data-catalogo-item]'));
   const vacioMsg = document.querySelector<HTMLElement>('[data-catalogo-vacio]');
 
   function aplicarFiltros() {
     const filtros = new Map(dropdowns.map((dropdown) => [dropdown.dataset.dropdown, dropdown.dataset.value ?? 'all']));
     const busquedaAutor = (autorInput?.value ?? '').trim().toLocaleLowerCase('es');
+
+    const busquedaCategoria = sinTildes(buscadorCategoria?.value ?? '').trim();
 
     let visibles = 0;
     items.forEach((item) => {
@@ -508,14 +546,32 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
       });
       const coincideAutor =
         busquedaAutor === '' || (item.dataset.autorNombre ?? '').includes(busquedaAutor);
-      const coincide = coincideDropdowns && coincideAutor;
+      const coincideCategoriaTexto =
+        busquedaCategoria === '' || sinTildes(item.dataset.categoriaNombre ?? '').includes(busquedaCategoria);
+      const coincide = coincideDropdowns && coincideAutor && coincideCategoriaTexto;
 
       item.classList.toggle('hidden', !coincide);
       if (coincide) visibles += 1;
     });
 
     vacioMsg?.classList.toggle('hidden', visibles > 0);
+    // Avisa a quien dibuje el resultado por su cuenta (el túnel de estampillas).
+    document.dispatchEvent(new CustomEvent('catalogo:filtrado'));
   }
+
+  /* Quita todos los filtros (lo pide la grilla de resultados de la órbita móvil). */
+  document.addEventListener('catalogo:limpiar', () => {
+    dropdowns.forEach((dropdown) => {
+      dropdown.dataset.value = 'all';
+      const label = dropdown.querySelector<HTMLElement>('[data-dropdown-label]');
+      if (label && dropdown.dataset.etiquetaBase) label.textContent = dropdown.dataset.etiquetaBase;
+      dropdown
+        .querySelectorAll('.archivo-catalogo-dropdown-option')
+        .forEach((o) => o.setAttribute('aria-selected', 'false'));
+    });
+    if (autorInput) autorInput.value = '';
+    aplicarFiltros();
+  });
 
   /* Cuántas opciones muestra un menú a la vez. Sin tope, cada número nuevo alargaba la
      lista con scroll; con el tope el menú tiene siempre el mismo alto y el resto se
@@ -600,6 +656,7 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
     // La etiqueta de origen ("Año", "Categoría", "Número") se guarda antes de cualquier
     // elección: es lo que vuelve a mostrarse al quitar el filtro.
     const etiquetaBase = label.textContent ?? '';
+    dropdown.dataset.etiquetaBase = etiquetaBase;
 
     const elegir = (option: HTMLButtonElement) => {
       // Tocar otra vez la opción ya elegida quita el filtro. Así no hace falta una fila
@@ -657,24 +714,6 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
     }
   });
 
-  /* Chips de categoría (/categorias): escriben el mismo data-value que elegiría el
-     dropdown de categoría. Un solo listener delegado en el grupo. */
-  const grupoChips = document.querySelector<HTMLElement>('.archivo-catalogo-filtros[data-dropdown]');
-  if (grupoChips) {
-    const chips = Array.from(grupoChips.querySelectorAll<HTMLButtonElement>('[data-chip]'));
-    grupoChips.addEventListener('click', (event) => {
-      const chip = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-chip]');
-      if (!chip) return;
-      grupoChips.dataset.value = chip.dataset.value ?? 'all';
-      chips.forEach((c) => {
-        if (c === chip) c.dataset.active = 'true';
-        else delete c.dataset.active;
-        c.setAttribute('aria-pressed', String(c === chip));
-      });
-      aplicarFiltros();
-    });
-  }
-
   document.addEventListener('click', (event) => {
     if (!(event.target instanceof Node)) return;
     dropdowns.forEach((dropdown) => {
@@ -684,6 +723,13 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeAllDropdowns();
+  });
+
+  // Buscador de categorías (/categorias): filtra al escribir y esconde el placeholder animado.
+  const placeholderBuscador = document.querySelector<HTMLElement>('[data-buscador-placeholder]');
+  buscadorCategoria?.addEventListener('input', () => {
+    placeholderBuscador?.classList.toggle('hidden', buscadorCategoria.value !== '');
+    aplicarFiltros();
   });
 
   // Sugerencias de autor: aparecen solo al escribir, máximo MAX_SUGERENCIAS, sin lista larga.

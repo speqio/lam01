@@ -1,0 +1,595 @@
+---
+/**
+ * ÓRBITA DE ESTAMPILLAS — /archivo en móvil. Un anillo 3D de estampillas que gira: el dedo lo
+ * arrastra en horizontal (el gesto vertical sigue siendo de la página, `touch-action: pan-y`) y
+ * en reposo da vueltas despacio. Toque en una: pasa al centro con el fondo difuminado y su
+ * ficha debajo (`lib/focoEstampilla.ts`).
+ *
+ * Adaptado del "Orbit Carousel 3D" de Framer: perspectiva corta con el punto de vista alto, el
+ * anillo inclinado en Z y los paneles de frente a la cámara. Las tiras curvas del original se
+ * cambian por paneles planos: las tiras partirían los dientes de la estampilla en cada costura.
+ *
+ * TODAS LAS ENTRADAS, CON POCAS RANURAS: el anillo tiene K ranuras (12 como máximo) y el
+ * catálogo M entradas. El contenido de cada ranura es función solo del ángulo del anillo:
+ *   vuelta = floor((k·paso + θ + 180) / 360)   →   entrada = (k + vuelta·K) mod M
+ * Una ranura cambia de entrada justo cuando cruza los 180° (la parte de atrás del cilindro),
+ * donde `backface-visibility: hidden` la oculta, así que el cambio no se ve. Cada vuelta del
+ * anillo muestra K entradas nuevas, hacia adelante o hacia atrás, sin guardar estado. La
+ * siguiente tanda se precarga antes de que llegue al frente.
+ *
+ * FILTROS: no hay lógica acá. Lee los nodos de datos de ArchivoCatalogo (`data-tunel-dato`) y
+ * se rearma con el evento `catalogo:filtrado`. GSAP únicamente (CLAUDE.md).
+ */
+---
+
+<div class="orbita -mt-14 md:mt-0" data-orbita>
+  <div class="orbita-caja" data-caja>
+  <div class="orbita-escena" data-escena role="group" aria-label="Estampillas del archivo">
+      <div class="orbita-inclina">
+        <div class="orbita-anillo" data-anillo></div>
+      </div>
+    </div>
+    <span class="orbita-borde orbita-borde-izq" aria-hidden="true"></span>
+    <span class="orbita-borde orbita-borde-der" aria-hidden="true"></span>
+  </div>
+  <div class="orbita-grilla" data-grilla hidden></div>
+</div>
+
+<style is:global>
+  .orbita-escena {
+    position: relative;
+    height: clamp(24rem, 62svh, 33rem);
+    overflow: hidden;
+    perspective: 760px;
+    perspective-origin: 50% 14%;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  /* Con filtros activos el anillo se vuelve grilla: más fácil de recorrer entre pocos resultados. */
+  .orbita-grilla {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem 0.6rem;
+    padding: 0.25rem 0 1rem;
+  }
+  .orbita-grilla[hidden] {
+    display: none;
+  }
+  .orbita-grilla-barra {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-family: theme('fontFamily.mono');
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: lowercase;
+    color: rgb(var(--color-ink-muted));
+  }
+  .orbita-grilla-quitar {
+    text-transform: lowercase;
+    border: 1px solid rgb(var(--color-ink));
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    font: inherit;
+    color: rgb(var(--color-ink));
+    background: transparent;
+    cursor: pointer;
+  }
+  :root[data-theme='light'] .orbita-grilla-quitar {
+    text-transform: lowercase;
+    border-color: rgb(var(--color-accent));
+    color: rgb(var(--color-accent));
+  }
+  .orbita-grilla-est {
+    display: block;
+    aspect-ratio: 300 / 460;
+  }
+  .orbita-caja {
+    position: relative;
+  }
+  /* Difuminado lateral: dos degradados al color del fondo por encima del anillo. */
+  .orbita-borde {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 22%;
+    z-index: 20;
+    pointer-events: none;
+  }
+  .orbita-borde-izq {
+    left: 0;
+    background: linear-gradient(to right, rgb(var(--color-canvas)) 0%, rgb(var(--color-canvas) / 0) 100%);
+  }
+  .orbita-borde-der {
+    right: 0;
+    background: linear-gradient(to left, rgb(var(--color-canvas)) 0%, rgb(var(--color-canvas) / 0) 100%);
+  }
+  .orbita-inclina {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transform: translateY(-4%) rotateZ(-12deg);
+  }
+  .orbita-anillo {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+  .orbita-est {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: block;
+    width: var(--orbita-ancho, 130px);
+    aspect-ratio: 300 / 460;
+    margin: calc(var(--orbita-ancho, 130px) * -0.7667) 0 0 calc(var(--orbita-ancho, 130px) / -2);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .orbita-cara {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: rgb(var(--color-surface));
+  }
+  .orbita-cara img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+  }
+  .orbita-sin-portada {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.6rem;
+    line-height: 1.2;
+    color: rgb(var(--color-ink-muted));
+  }
+  /* Escritorio: el mismo anillo, más grande, y la grilla filtrada con más columnas. */
+  @media (min-width: 768px) {
+    .orbita {
+      --orbita-ancho: 165px;
+      /* De lado a lado de la pantalla, salvándose de la columna centrada de la página. */
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+    }
+    /* Con filtros activos hay grilla de resultados: vuelve a la columna de la página. */
+    .orbita.orbita-filtrada {
+      width: auto;
+      margin-left: 0;
+    }
+    body {
+      overflow-x: clip;
+    }
+    html.orbita-sin-scroll,
+    html.orbita-sin-scroll body {
+      height: 100svh;
+      overflow: hidden;
+    }
+    .orbita-escena {
+      height: clamp(34rem, 78svh, 48rem);
+      perspective: 2200px;
+      cursor: grab;
+    }
+    .orbita-borde {
+      width: 14%;
+    }
+    .orbita-inclina {
+      transform: translateY(-8%) rotateZ(-7deg);
+    }
+    .orbita-grilla {
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1.25rem 1rem;
+    }
+  }
+
+  /* ─── Foco: telón difuminado + estampilla al centro con su información ─── */
+  .tunel-telon {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3.5rem;
+    padding: 2rem;
+    background: rgb(var(--color-canvas) / 0.55);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+  /* Móvil: la ficha va debajo de la estampilla. */
+  @media (max-width: 767px) {
+    .tunel-telon {
+      flex-direction: column;
+      gap: 1.25rem;
+      padding: 1.5rem 1.25rem;
+      overflow-y: auto;
+    }
+    .tunel-foco-est {
+      height: min(52vh, 24rem);
+    }
+    .tunel-telon .tunel-foco-ficha {
+      width: min(24rem, 100%);
+      text-align: center;
+      align-items: center;
+    }
+    .tunel-telon .tunel-foco-ficha .ficha-titulo {
+      font-size: 1.5rem;
+    }
+    .tunel-telon .tunel-foco-ficha .ficha-entrar {
+      align-self: center;
+    }
+  }
+  .tunel-foco-est {
+    flex: 0 0 auto;
+    /* .tunel-cara trae width/height 100%: aquí manda el alto y el ancho sale de la proporción. */
+    width: auto;
+    height: min(72vh, 36rem);
+    aspect-ratio: 300 / 460;
+    transform-origin: 0 0;
+  }
+  .tunel-foco-ficha {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: min(24rem, 34vw);
+  }
+  .tunel-foco-ficha .ficha-categoria {
+    font-family: theme('fontFamily.mono');
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    color: rgb(var(--color-marmol) / 0.35);
+    font-weight: 300;
+  }
+  .tunel-foco-ficha .ficha-titulo {
+    font-family: theme('fontFamily.headline');
+    font-size: clamp(1.6rem, 2.4vw, 2.4rem);
+    line-height: 1.1;
+    color: rgb(var(--color-ink));
+  }
+  .tunel-foco-ficha .ficha-autor {
+    font-family: theme('fontFamily.sans');
+    font-size: 0.95rem;
+    line-height: 1.35;
+    color: rgb(var(--color-ink-muted));
+  }
+  /* cardBadge es absoluto (pensado para tapar la imagen de una tarjeta): acá va en el flujo. */
+  .tunel-foco-ficha .ficha-entrar {
+    position: relative;
+    left: auto;
+    top: auto;
+    align-self: flex-start;
+    margin-top: 0.75rem;
+    border-radius: 999px;
+    padding: 0.6rem 1.3rem;
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap';
+  import { abrirFoco } from '../../lib/focoEstampilla';
+
+  const MAX_RANURAS = 12;
+  const MAX_RANURAS_ESCRITORIO = 30; // anillo más ancho: ocupa casi todo el ancho de la pantalla
+  const ANCHO_MOVIL = 130; // px, el de .orbita-est en móvil
+  const ANCHO_ESCRITORIO = 165; // px, el de .orbita-est desde 768px
+  const GRADOS_POR_PX = 0.4;
+  const DERIVA = 7; // grados por segundo en reposo
+
+  const raiz = document.querySelector<HTMLElement>('[data-orbita]');
+  const escena = raiz?.querySelector<HTMLElement>('[data-escena]') ?? null;
+  const anillo = raiz?.querySelector<HTMLElement>('[data-anillo]') ?? null;
+
+  if (raiz && escena && anillo) iniciar(escena, anillo);
+
+  function iniciar(escena: HTMLElement, anillo: HTMLElement) {
+    const raiz = escena.closest<HTMLElement>('[data-orbita]')!;
+    const escritorio = () => window.matchMedia('(min-width: 768px)').matches;
+    const ancho = () => (escritorio() ? ANCHO_ESCRITORIO : ANCHO_MOVIL);
+    let escritorioAntes = escritorio();
+    const sinMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const grilla = raiz.querySelector<HTMLElement>('[data-grilla]')!;
+    const datos = Array.from(document.querySelectorAll<HTMLElement>('[data-tunel-dato]'));
+
+    type Ranura = { el: HTMLAnchorElement; img: HTMLImageElement | null; texto: HTMLElement | null; k: number; i: number };
+    let vivos: HTMLElement[] = [];
+    let ranuras: Ranura[] = [];
+    let paso = 0;
+    // base: lo que mueven el dedo y la inercia. deriva: el giro lento en reposo.
+    const estado = { base: 0, deriva: 0 };
+    let visible = true;
+    let abierto = false;
+    const precargadas = new Set<string>();
+
+    const mod = (a: number, n: number) => ((a % n) + n) % n;
+
+    function precargar(dato: HTMLElement | undefined) {
+      const src = dato?.dataset.src;
+      if (!src || precargadas.has(src)) return;
+      precargadas.add(src);
+      const im = new Image();
+      im.decoding = 'async';
+      im.src = src;
+    }
+
+    function pintar(r: Ranura, i: number) {
+      r.i = i;
+      const dato = vivos[i];
+      r.el.href = `/${dato.dataset.slug ?? ''}`;
+      r.el.setAttribute('aria-label', dato.dataset.titulo ?? '');
+      const cara = r.el.firstElementChild as HTMLElement;
+      cara.replaceChildren();
+      const src = dato.dataset.src;
+      if (src) {
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = dato.dataset.alt ?? '';
+        img.draggable = false;
+        img.decoding = 'async';
+        cara.appendChild(img);
+      } else {
+        const t = document.createElement('span');
+        t.className = 'orbita-sin-portada';
+        t.textContent = dato.dataset.titulo ?? '';
+        cara.appendChild(t);
+      }
+      // La tanda que viene detrás de esta, lista antes de que llegue al frente.
+      precargar(vivos[mod(i + ranuras.length, vivos.length)]);
+    }
+
+    function dibujar() {
+      const m = vivos.length;
+      if (m === 0) return;
+      const theta = estado.base + estado.deriva;
+      anillo.style.transform = `rotateY(${theta.toFixed(2)}deg)`;
+      // Con más entradas que ranuras, cada ranura toma la que le toca según su vuelta.
+      if (m > ranuras.length) {
+        const kk = ranuras.length;
+        ranuras.forEach((r) => {
+          const vuelta = Math.floor((r.k * paso + theta + 180) / 360);
+          const i = mod(r.k + vuelta * kk, m);
+          if (i !== r.i) pintar(r, i);
+        });
+      }
+    }
+
+    // Escritorio con el anillo visible: una sola pantalla, sin scroll de página. El anillo toma
+    // el alto que queda bajo los filtros. Con grilla de resultados el scroll vuelve.
+    let modoFiltrado = false;
+    function ajustar() {
+      const html = document.documentElement;
+      const activo = escritorio() && !modoFiltrado && vivos.length > 0;
+      if (!activo) {
+        html.classList.remove('orbita-sin-scroll');
+        escena.style.height = '';
+        return;
+      }
+      html.classList.add('orbita-sin-scroll');
+      window.scrollTo(0, 0);
+      escena.style.height = '';
+      const libre = window.innerHeight - escena.getBoundingClientRect().top - 12;
+      if (libre < 320) {
+        html.classList.remove('orbita-sin-scroll'); // pantalla demasiado baja: se deja el scroll
+        return;
+      }
+      escena.style.height = `${Math.floor(libre)}px`;
+    }
+
+    function armar() {
+      anillo.replaceChildren();
+      ranuras = [];
+      vivos = datos.filter((d) => !d.classList.contains('hidden'));
+      const m = vivos.length;
+      gsap.killTweensOf(estado);
+      estado.base = 0;
+      estado.deriva = 0;
+      grilla.replaceChildren();
+      // Hay filtros activos cuando sobreviven menos entradas que el total: grilla en vez de anillo.
+      const filtrado = m < datos.length;
+      (escena.parentElement as HTMLElement).style.display = filtrado ? 'none' : '';
+      grilla.hidden = !filtrado;
+      raiz.classList.toggle('-mt-14', !filtrado);
+      raiz.classList.toggle('orbita-filtrada', filtrado);
+      modoFiltrado = filtrado;
+      ajustar();
+      if (m === 0) return;
+      if (filtrado) {
+        const barra = document.createElement('div');
+        barra.className = 'orbita-grilla-barra';
+        const cuenta = document.createElement('span');
+        cuenta.textContent = m === 1 ? '1 resultado' : `${m} resultados`;
+        const quitar = document.createElement('button');
+        quitar.type = 'button';
+        quitar.className = 'orbita-grilla-quitar';
+        quitar.textContent = 'Quitar filtros';
+        quitar.addEventListener('click', () => document.dispatchEvent(new CustomEvent('catalogo:limpiar')));
+        barra.append(cuenta, quitar);
+        grilla.appendChild(barra);
+        vivos.forEach((dato, i) => {
+          const a = document.createElement('a');
+          a.className = 'orbita-grilla-est';
+          a.href = `/${dato.dataset.slug ?? ''}`;
+          a.setAttribute('aria-label', dato.dataset.titulo ?? '');
+          a.dataset.i = String(i);
+          const cara = document.createElement('span');
+          cara.className = 'orbita-cara estampilla-perforada';
+          if (dato.dataset.src) {
+            const img = document.createElement('img');
+            img.src = dato.dataset.src;
+            img.alt = dato.dataset.alt ?? '';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            img.draggable = false;
+            cara.appendChild(img);
+          } else {
+            const t = document.createElement('span');
+            t.className = 'orbita-sin-portada';
+            t.textContent = dato.dataset.titulo ?? '';
+            cara.appendChild(t);
+          }
+          a.appendChild(cara);
+          grilla.appendChild(a);
+        });
+        return;
+      }
+
+      const kk = Math.min(escritorio() ? MAX_RANURAS_ESCRITORIO : MAX_RANURAS, m);
+      paso = 360 / kk;
+      // Radio para que los paneles vecinos casi se toquen (apotema del polígono regular).
+      const radio = kk === 1 ? 0 : Math.max(0, (ancho() / 2) / Math.tan(Math.PI / kk)) + 6;
+      for (let k = 0; k < kk; k++) {
+        const a = document.createElement('a');
+        a.className = 'orbita-est';
+        a.style.transform = `rotateY(${(k * paso).toFixed(3)}deg) translateZ(${radio.toFixed(1)}px)`;
+        const cara = document.createElement('span');
+        cara.className = 'orbita-cara estampilla-perforada';
+        a.appendChild(cara);
+        anillo.appendChild(a);
+        const r: Ranura = { el: a, img: null, texto: null, k, i: -1 };
+        ranuras.push(r);
+        pintar(r, k);
+      }
+      // Además de la primera tanda, la segunda, para que el primer giro no muestre huecos.
+      for (let j = 0; j < kk; j++) precargar(vivos[mod(j + kk, m)]);
+      dibujar();
+    }
+
+    // ─── Arrastre horizontal con inercia ───
+    let arrastre: { x: number; movido: number; vel: number; t: number } | null = null;
+    escena.addEventListener('pointerdown', (e) => {
+      if (abierto) return;
+      gsap.killTweensOf(estado);
+      arrastre = { x: e.clientX, movido: 0, vel: 0, t: performance.now() };
+    });
+    escena.addEventListener('pointermove', (e) => {
+      if (!arrastre) return;
+      const dx = e.clientX - arrastre.x;
+      arrastre.x = e.clientX;
+      arrastre.movido += Math.abs(dx);
+      const ahora = performance.now();
+      const dt = Math.max(ahora - arrastre.t, 1);
+      arrastre.t = ahora;
+      arrastre.vel = (dx * GRADOS_POR_PX) / dt; // grados por ms
+      if (arrastre.movido > 6 && !escena.hasPointerCapture(e.pointerId)) escena.setPointerCapture(e.pointerId);
+      estado.base += dx * GRADOS_POR_PX;
+      dibujar();
+    });
+    const soltar = (e: PointerEvent) => {
+      if (!arrastre) return;
+      if (escena.hasPointerCapture(e.pointerId)) escena.releasePointerCapture(e.pointerId);
+      if (arrastre.movido > 6) {
+        // El toque que termina un arrastre no abre nada.
+        escena.addEventListener('click', (ev) => ev.stopPropagation(), { capture: true, once: true });
+        gsap.to(estado, {
+          base: estado.base + arrastre.vel * 380,
+          duration: 1.3,
+          ease: 'power3.out',
+          overwrite: true,
+          onUpdate: dibujar,
+        });
+      }
+      arrastre = null;
+    };
+    escena.addEventListener('pointerup', soltar);
+    escena.addEventListener('pointercancel', soltar);
+
+    // Escritorio: con el anillo a pantalla completa no hay scroll de página, y la rueda desde
+    // cualquier punto gira el anillo (como el dedo en móvil). Si la pantalla es tan baja que
+    // el bloqueo no se aplica, solo gira con el cursor encima. Los menús de filtro con su
+    // propia lista y el foco abierto quedan fuera.
+    let objetivo = 0;
+    document.addEventListener(
+      'wheel',
+      (e) => {
+        if (!escritorio() || abierto || modoFiltrado || ranuras.length < 2) return;
+        const t = e.target as HTMLElement;
+        if (t.closest('.archivo-catalogo-dropdown-menu, [role="dialog"]')) return;
+        const bloqueado = document.documentElement.classList.contains('orbita-sin-scroll');
+        if (!bloqueado && !escena.contains(t)) return;
+        e.preventDefault();
+        if (!gsap.isTweening(estado)) objetivo = estado.base;
+        objetivo -= (e.deltaY + e.deltaX) * 0.12;
+        gsap.to(estado, { base: objetivo, duration: 0.7, ease: 'power3.out', overwrite: true, onUpdate: dibujar });
+      },
+      { passive: false }
+    );
+    escena.addEventListener('dragstart', (e) => e.preventDefault());
+
+    // Giro lento en reposo: solo si la órbita se ve y no hay nada abierto ni en el dedo.
+    if (!sinMovimiento) {
+      gsap.ticker.add((_t, deltaMs) => {
+        if (!visible || abierto || arrastre || ranuras.length < 2) return;
+        estado.deriva += (DERIVA * deltaMs) / 1000;
+        dibujar();
+      });
+    }
+    new IntersectionObserver((es) => {
+      visible = es.some((x) => x.isIntersecting);
+    }).observe(escena);
+
+    // ─── Toque: foco ───
+    escena.addEventListener('click', (e) => {
+      if (abierto) return;
+      const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('.orbita-est');
+      if (!a) return;
+      e.preventDefault();
+      const r = ranuras.find((x) => x.el === a);
+      const cara = a.querySelector<HTMLElement>('.orbita-cara');
+      if (!r || !cara) return;
+      abierto = true;
+      abrirFoco({
+        cara,
+        origen: a,
+        dato: vivos[r.i],
+        alCerrar: () => {
+          abierto = false;
+        },
+      });
+    });
+
+    grilla.addEventListener('click', (e) => {
+      if (abierto) return;
+      const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('.orbita-grilla-est');
+      const cara = a?.querySelector<HTMLElement>('.orbita-cara');
+      const dato = a ? vivos[Number(a.dataset.i)] : undefined;
+      if (!a || !cara || !dato) return;
+      e.preventDefault();
+      abierto = true;
+      abrirFoco({ cara, origen: a, dato, alCerrar: () => (abierto = false) });
+    });
+
+    // ─── Filtros y tamaño ───
+    document.addEventListener('catalogo:filtrado', () => {
+      if (!abierto) armar();
+    });
+    window.addEventListener('resize', () => {
+      ajustar();
+      // Al cruzar los 768px cambia el tamaño de los paneles: se arma de nuevo con el radio justo.
+      const ahora = escritorio();
+      if (ahora !== escritorioAntes && !abierto) {
+        escritorioAntes = ahora;
+        armar();
+      }
+    });
+
+    armar();
+  }
+</script>

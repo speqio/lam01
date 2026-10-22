@@ -41,6 +41,7 @@ export default {
         // detrás cambia según el atributo data-theme en <html>. El patrón
         // "rgb(var(--x) / <alpha-value>)" conserva los modificadores de opacidad
         // (ink/60, surface/95, etc.) que ya se usan en todo el código.
+        marmol: 'rgb(var(--color-marmol) / <alpha-value>)',
         canvas: 'rgb(var(--color-canvas) / <alpha-value>)',
         surface: 'rgb(var(--color-surface) / <alpha-value>)',
         ink: 'rgb(var(--color-ink) / <alpha-value>)',

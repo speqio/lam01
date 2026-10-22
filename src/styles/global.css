@@ -27,22 +27,26 @@
      rgb(...)) para que el patrón rgb(var(--x) / <alpha-value>) de tailwind.config.mjs
      pueda aplicarles opacidad. */
   :root {
-    --color-canvas: 18 18 18;
-    --color-surface: 41 41 41;
+    --color-canvas: 8 8 8;
+    --color-surface: 26 26 26;
     --color-ink: 255 255 255;
     --color-ink-muted: 160 160 160;
     --color-bone: 208 208 208;
     --color-accent: 166 41 74;
+    /* Texto de los tags sobre los títulos: blanco mármol en oscuro, tinta en claro; el
+       sitio lo usa siempre con opacidad reducida (font-light text-marmol/35). */
+    --color-marmol: 232 229 222;
     color-scheme: dark;
   }
 
   :root[data-theme='light'] {
-    --color-canvas: 245 244 240;
-    --color-surface: 255 255 255;
+    --color-canvas: 232 229 222;
+    --color-surface: 243 241 236;
     --color-ink: 18 18 18;
     --color-ink-muted: 90 90 90;
     --color-bone: 51 51 51;
     --color-accent: 166 41 74;
+    --color-marmol: 18 18 18;
     color-scheme: light;
   }
 
@@ -50,6 +54,26 @@
     @apply bg-canvas text-ink font-sans antialiased;
     letter-spacing: -0.015em;
     transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  /* Textura de ruido sobre todo el sitio, en los dos modos: un velo fijo de turbulencia
+     fractal (SVG en línea, sin imagen que descargar). Va por encima del contenido pero no
+     recibe clics. En oscuro suma luz tenue; en claro oscurece con multiply, que da el
+     grano de piedra del mármol. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    pointer-events: none;
+    opacity: 0.07;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 -0.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 220px 220px;
+  }
+  :root[data-theme='light'] body::before {
+    opacity: 0.16;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.33 0 0 0 0 0.3 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   /* Color de selección de texto (Ctrl/Cmd+A, arrastrar el mouse sobre un párrafo) —
@@ -104,12 +128,22 @@
      (pedido explícito, reemplaza el acento rojo + texto casi negro que tenía antes);
      en modo claro se conserva acento sólido + texto canvas, que ahí no tenía problema
      de contraste. */
+  /* Tags de categoría sobre las portadas: blanco mármol translúcido con letra negra, en los
+     dos modos (el mismo criterio que el resto de los tags del sitio: mármol con opacidad
+     reducida). El botón "Entrar al texto" también usa .card-badge pero no es un tag: conserva
+     el relleno sólido de antes. */
   .card-badge {
+    background: rgb(232 229 222 / 0.6);
+    color: #000000;
+  }
+  .card-badge.ficha-entrar,
+  .card-badge.ticket-cta {
     background: #ffffff;
     color: #000000;
   }
 
-  :root[data-theme='light'] .card-badge {
+  :root[data-theme='light'] .card-badge.ficha-entrar,
+  :root[data-theme='light'] .card-badge.ticket-cta {
     background: rgb(var(--color-accent));
     color: rgb(var(--color-canvas));
   }

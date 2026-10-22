@@ -1,0 +1,380 @@
+---
+/**
+ * TÚNEL DE ESTAMPILLAS — /archivo en desktop. Las estampillas flotan en un túnel 3D y vienen
+ * hacia la cámara; la rueda y el arrastre del mouse mueven la profundidad (loop infinito) y,
+ * en reposo, avanzan despacio. Clic en una: pasa al centro, el fondo se difumina y su
+ * información queda al lado.
+ *
+ * Solo desktop (`hidden md:block`; el script también se apaga en móvil): en el teléfono va
+ * OrbitaEstampillas, que lee los mismos datos.
+ *
+ * FILTROS: no hay lógica de filtrado acá. ArchivoCatalogo emite un nodo de datos oculto por
+ * entrada (`data-tunel-dato`, con los mismos `data-*` de los filtros), `aplicarFiltros()` los
+ * marca con la clase `hidden` y el túnel los lee. Al terminar avisa con el evento
+ * `catalogo:filtrado` y el túnel rearma su escena con las primeras MAX_ESTAMPILLAS que sobrevivieron (el catálogo llega ordenado de más nueva a
+ * más vieja): 339 imágenes en 3D no se mueven bien.
+ *
+ * GSAP únicamente (CLAUDE.md): el movimiento es un tween con `overwrite` más el ticker de GSAP
+ * para el avance en reposo. Sin hover: todo ocurre al clic.
+ */
+---
+
+<div class="tunel hidden md:block" data-tunel>
+  <div class="tunel-escena" data-escena role="group" aria-label="Estampillas del archivo">
+    <div class="tunel-mundo" data-mundo></div>
+  </div>
+</div>
+
+<style is:global>
+  .tunel-escena {
+    position: relative;
+    height: clamp(26rem, calc(100vh - 21rem), 40rem);
+    overflow: hidden;
+    perspective: 900px;
+    perspective-origin: 50% 50%;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    /* Niebla de los bordes: las estampillas se pierden hacia afuera, como en un túnel. */
+    -webkit-mask-image: radial-gradient(ellipse closest-side at center, #000 55%, transparent 100%);
+    mask-image: radial-gradient(ellipse closest-side at center, #000 55%, transparent 100%);
+  }
+  .tunel-escena[data-arrastrando] {
+    cursor: grabbing;
+  }
+  .tunel-mundo {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+  }
+  .tunel-est {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: block;
+    width: 120px;
+    aspect-ratio: 300 / 460;
+    margin: -92px 0 0 -60px;
+    will-change: transform, opacity;
+  }
+  .tunel-cara {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: rgb(var(--color-surface));
+  }
+  .tunel-cara img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+  }
+  .tunel-sin-portada {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.6rem;
+    line-height: 1.2;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* ─── Foco: telón difuminado + estampilla al centro con su información ─── */
+  .tunel-telon {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3.5rem;
+    padding: 2rem;
+    background: rgb(var(--color-canvas) / 0.55);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+  /* Móvil: la ficha va debajo de la estampilla. */
+  @media (max-width: 767px) {
+    .tunel-telon {
+      flex-direction: column;
+      gap: 1.25rem;
+      padding: 1.5rem 1.25rem;
+      overflow-y: auto;
+    }
+    .tunel-foco-est {
+      height: min(52vh, 24rem);
+    }
+    .tunel-telon .tunel-foco-ficha {
+      width: min(24rem, 100%);
+      text-align: center;
+      align-items: center;
+    }
+    .tunel-telon .tunel-foco-ficha .ficha-titulo {
+      font-size: 1.5rem;
+    }
+    .tunel-telon .tunel-foco-ficha .ficha-entrar {
+      align-self: center;
+    }
+  }
+  .tunel-foco-est {
+    flex: 0 0 auto;
+    /* .tunel-cara trae width/height 100%: aquí manda el alto y el ancho sale de la proporción. */
+    width: auto;
+    height: min(72vh, 36rem);
+    aspect-ratio: 300 / 460;
+    transform-origin: 0 0;
+  }
+  .tunel-foco-ficha {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: min(24rem, 34vw);
+  }
+  .tunel-foco-ficha .ficha-categoria {
+    font-family: theme('fontFamily.mono');
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    color: rgb(var(--color-marmol) / 0.35);
+    font-weight: 300;
+  }
+  .tunel-foco-ficha .ficha-titulo {
+    font-family: theme('fontFamily.headline');
+    font-size: clamp(1.6rem, 2.4vw, 2.4rem);
+    line-height: 1.1;
+    color: rgb(var(--color-ink));
+  }
+  .tunel-foco-ficha .ficha-autor {
+    font-family: theme('fontFamily.sans');
+    font-size: 0.95rem;
+    line-height: 1.35;
+    color: rgb(var(--color-ink-muted));
+  }
+  /* cardBadge es absoluto (pensado para tapar la imagen de una tarjeta): acá va en el flujo. */
+  .tunel-foco-ficha .ficha-entrar {
+    position: relative;
+    left: auto;
+    top: auto;
+    align-self: flex-start;
+    margin-top: 0.75rem;
+    border-radius: 999px;
+    padding: 0.6rem 1.3rem;
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap';
+  import { abrirFoco } from '../../lib/focoEstampilla';
+
+  const MAX_ESTAMPILLAS = 60;
+  // Profundidad del túnel (px de espacio, con perspective: 900px): del fondo a casi la cámara.
+  const Z_LEJOS = -2200;
+  const Z_CERCA = 500;
+  const LARGO = Z_CERCA - Z_LEJOS;
+  const DERIVA = 28; // px/s de avance en reposo
+
+  const raiz = document.querySelector<HTMLElement>('[data-tunel]');
+  const escena = raiz?.querySelector<HTMLElement>('[data-escena]') ?? null;
+  const mundo = raiz?.querySelector<HTMLElement>('[data-mundo]') ?? null;
+
+  if (raiz && escena && mundo) iniciar(raiz, escena, mundo);
+
+  function iniciar(raiz: HTMLElement, escena: HTMLElement, mundo: HTMLElement) {
+    const escritorio = () => window.matchMedia('(min-width: 768px)').matches;
+    const sinMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const datos = Array.from(raiz.querySelectorAll<HTMLElement>('[data-tunel-dato]'));
+
+    type Est = { el: HTMLElement; dato: HTMLElement; x: number; y: number; desfase: number };
+    let ests: Est[] = [];
+    let ancho = 0;
+    let alto = 0;
+    // base: lo que mueven la rueda y el arrastre (con tween). deriva: el avance en reposo.
+    const estado = { base: 0, deriva: 0 };
+    let visible = true;
+    let abierto = false;
+
+    const mod = (a: number, n: number) => ((a % n) + n) % n;
+    const acotar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+    function colocar() {
+      ancho = escena.clientWidth;
+      alto = escena.clientHeight;
+      const n = ests.length;
+      ests.forEach((e, i) => {
+        // Reparto en espiral áurea: cubre el anillo sin alinearse y deja el centro más libre.
+        const ang = i * 2.399963;
+        const radio = 0.5 + 0.5 * mod(i * 0.618034, 1);
+        e.x = Math.cos(ang) * ancho * 0.52 * radio;
+        e.y = Math.sin(ang) * alto * 0.5 * radio;
+        e.desfase = (i * LARGO) / Math.max(n, 1);
+      });
+    }
+
+    function dibujar() {
+      if (ancho === 0) return;
+      const avance = estado.base + estado.deriva;
+      ests.forEach((e) => {
+        const z = Z_LEJOS + mod(e.desfase + avance, LARGO);
+        const entra = acotar((z - Z_LEJOS) / 500, 0, 1);
+        const sale = acotar((Z_CERCA - z) / 350, 0, 1);
+        const opacidad = entra * sale;
+        e.el.style.transform = `translate3d(${e.x.toFixed(1)}px, ${e.y.toFixed(1)}px, ${z.toFixed(1)}px)`;
+        e.el.style.opacity = opacidad.toFixed(3);
+        e.el.style.zIndex = String(Math.round(z + 3000));
+        e.el.style.pointerEvents = opacidad < 0.2 ? 'none' : '';
+      });
+    }
+
+    function armar() {
+      mundo.replaceChildren();
+      ests = [];
+      const vivos = datos.filter((d) => !d.classList.contains('hidden')).slice(0, MAX_ESTAMPILLAS);
+      for (const dato of vivos) {
+        const a = document.createElement('a');
+        a.className = 'tunel-est';
+        a.href = `/${dato.dataset.slug ?? ''}`;
+        a.setAttribute('aria-label', dato.dataset.titulo ?? '');
+        const cara = document.createElement('span');
+        cara.className = 'tunel-cara estampilla-perforada';
+        if (dato.dataset.src) {
+          const img = document.createElement('img');
+          img.src = dato.dataset.src;
+          img.alt = dato.dataset.alt ?? '';
+          img.draggable = false;
+          // Todas se piden de una vez (son pocas): con lazy aparecían cargando al avanzar.
+          img.decoding = 'async';
+          cara.appendChild(img);
+        } else {
+          const t = document.createElement('span');
+          t.className = 'tunel-sin-portada';
+          t.textContent = dato.dataset.titulo ?? '';
+          cara.appendChild(t);
+        }
+        a.appendChild(cara);
+        mundo.appendChild(a);
+        ests.push({ el: a, dato, x: 0, y: 0, desfase: 0 });
+      }
+      gsap.killTweensOf(estado);
+      estado.base = 0;
+      colocar();
+      dibujar();
+    }
+
+    // ─── Movimiento: rueda y arrastre ───
+    function empujar(delta: number) {
+      gsap.to(estado, {
+        base: `+=${delta}`,
+        duration: 0.9,
+        ease: 'power3.out',
+        overwrite: 'auto',
+        onUpdate: dibujar,
+      });
+    }
+
+    escena.addEventListener(
+      'wheel',
+      (e) => {
+        if (!escritorio() || abierto) return;
+        e.preventDefault();
+        empujar(acotar(e.deltaY, -160, 160) * 2.2);
+      },
+      { passive: false }
+    );
+
+    let arrastre: { y: number; movido: number } | null = null;
+    escena.addEventListener('pointerdown', (e) => {
+      if (!escritorio() || abierto || e.button !== 0) return;
+      arrastre = { y: e.clientY, movido: 0 };
+    });
+    escena.addEventListener('pointermove', (e) => {
+      if (!arrastre) return;
+      const dy = e.clientY - arrastre.y;
+      arrastre.y = e.clientY;
+      arrastre.movido += Math.abs(dy);
+      // Se captura el puntero solo cuando ya es un arrastre: capturarlo desde el pointerdown
+      // hace que el clic llegue a la escena y no a la estampilla.
+      if (arrastre.movido > 6 && !escena.hasPointerCapture(e.pointerId)) {
+        escena.dataset.arrastrando = '';
+        escena.setPointerCapture(e.pointerId);
+      }
+      gsap.killTweensOf(estado);
+      estado.base -= dy * 3;
+      dibujar();
+    });
+    const soltar = (e: PointerEvent) => {
+      if (!arrastre) return;
+      delete escena.dataset.arrastrando;
+      if (escena.hasPointerCapture(e.pointerId)) escena.releasePointerCapture(e.pointerId);
+      // El clic que termina un arrastre no abre nada.
+      if (arrastre.movido > 6) {
+        const frenar = (ev: Event) => ev.stopPropagation();
+        escena.addEventListener('click', frenar, { capture: true, once: true });
+      }
+      arrastre = null;
+    };
+    escena.addEventListener('pointerup', soltar);
+    escena.addEventListener('pointercancel', soltar);
+
+    // Avance en reposo: despacio, y solo mientras el túnel se ve y nada está en foco.
+    if (!sinMovimiento) {
+      gsap.ticker.add((_t, deltaMs) => {
+        if (!visible || abierto || arrastre || ests.length === 0 || !escritorio()) return;
+        estado.deriva += (DERIVA * deltaMs) / 1000;
+        dibujar();
+      });
+    }
+    new IntersectionObserver((entradas) => {
+      visible = entradas.some((x) => x.isIntersecting);
+    }).observe(escena);
+
+    // ─── Foco: la estampilla pasa al centro, el fondo se difumina ───
+    escena.addEventListener('click', (e) => {
+      if (!escritorio() || abierto) return;
+      const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('.tunel-est');
+      if (!a) return;
+      e.preventDefault();
+      const est = ests.find((x) => x.el === a);
+      if (est) abrir(est);
+    });
+
+    function abrir(est: Est) {
+      const cara = est.el.querySelector<HTMLElement>('.tunel-cara');
+      if (!cara) return;
+      abierto = true;
+      abrirFoco({
+        cara,
+        origen: est.el,
+        dato: est.dato,
+        alCerrar: () => {
+          abierto = false;
+        },
+      });
+    }
+
+    // ─── Filtros y tamaño ───
+    document.addEventListener('catalogo:filtrado', () => {
+      if (escritorio() && !abierto) armar();
+    });
+    window.addEventListener('resize', () => {
+      if (!escritorio()) return;
+      if (ests.length === 0 && datos.some((d) => !d.classList.contains('hidden'))) armar();
+      else {
+        colocar();
+        dibujar();
+      }
+    });
+
+    if (escritorio()) armar();
+  }
+</script>

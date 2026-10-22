@@ -155,6 +155,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
           data-catalogo-item={filtrable ? '' : undefined}
           data-anio={filtrable ? item.anio : undefined}
           data-categoria={filtrable ? item.categoriaSlug : undefined}
+          data-categoria-nombre={filtrable ? (item.categoryName ?? '') : undefined}
           data-numero={filtrable ? item.numeroSlug : undefined}
           data-autor-nombre={
             filtrable ? (item.authorName ?? '').toLocaleLowerCase('es') : undefined
@@ -596,10 +597,25 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     scroll-snap-align: center;
   }
 
-  /* Sin efecto de hover a propósito: las estampillas de la hoja no se mueven ni crecen
-     al pasar por encima. Lo único que sale del conjunto es la que se elige, y sale del
-     todo (ver el foco más abajo); un hover que además las levantaba competía con eso y
-     deshacía la lectura de hoja continua. */
+  /* Hover de la hoja (el home): las estampillas no se mueven ni crecen, solo cambian de
+     opacidad. En escritorio todas están atenuadas y la que tiene el cursor encima vuelve a
+     1; en pantallas chicas la que está al centro de la tira es la activa (data-inactiva,
+     lo pone el script) y las demás se atenúan. Va sobre `.estampilla-hueco > .estampilla`
+     para no tocar a la que se retira al foco. */
+  .coleccion:not(.coleccion--lineal):not(.coleccion--grilla):not(.coleccion--bucle) .estampilla-hueco > .estampilla {
+    transition: opacity 0.3s ease;
+  }
+  .coleccion:not(.coleccion--lineal):not(.coleccion--grilla):not(.coleccion--bucle) .estampilla-hueco > .estampilla[data-inactiva] {
+    opacity: 0.45;
+  }
+  @media (min-width: 768px) and (hover: hover) {
+    .coleccion:not(.coleccion--lineal):not(.coleccion--grilla):not(.coleccion--bucle) .estampilla-hueco > .estampilla {
+      opacity: 0.45;
+    }
+    .coleccion:not(.coleccion--lineal):not(.coleccion--grilla):not(.coleccion--bucle) .estampilla-hueco:hover > .estampilla {
+      opacity: 1;
+    }
+  }
 
   .estampilla {
     position: relative;
@@ -734,8 +750,9 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     font-family: theme('fontFamily.mono');
     font-size: 0.72rem;
     letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgb(var(--color-accent));
+    text-transform: lowercase;
+    color: rgb(var(--color-marmol) / 0.35);
+    font-weight: 300;
   }
   .ficha-titulo {
     font-family: theme('fontFamily.headline');
@@ -1177,8 +1194,49 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     pliego.addEventListener('dragstart', (ev) => ev.preventDefault());
   }
 
+  /* LA ACTIVA DE LA HOJA (pantallas chicas). La hoja del home es una tira con encaje al
+     centro: la estampilla más cercana al centro del carril es la activa y las demás se
+     atenúan (ver `[data-inactiva]` en los estilos). En escritorio es una grilla y manda el
+     hover, así que no se marca ninguna. */
+  function initActivaHoja(raiz: HTMLElement) {
+    const pliego = raiz.querySelector<HTMLElement>('[data-pliego]');
+    const estampillas = Array.from(raiz.querySelectorAll<HTMLElement>('[data-estampilla]'));
+    if (!pliego || estampillas.length < 2) return;
+    let pedido = 0;
+    const actualizar = () => {
+      pedido = 0;
+      if (window.matchMedia('(min-width: 768px)').matches) {
+        estampillas.forEach((est) => delete est.dataset.inactiva);
+        return;
+      }
+      const r = pliego.getBoundingClientRect();
+      const centro = r.left + r.width / 2;
+      let mejor = 0;
+      let distancia = Infinity;
+      estampillas.forEach((est, i) => {
+        const e = est.getBoundingClientRect();
+        const d = Math.abs(e.left + e.width / 2 - centro);
+        if (d < distancia) {
+          distancia = d;
+          mejor = i;
+        }
+      });
+      estampillas.forEach((est, i) => {
+        if (i === mejor) delete est.dataset.inactiva;
+        else est.dataset.inactiva = '';
+      });
+    };
+    const pedirActualizar = () => {
+      if (!pedido) pedido = requestAnimationFrame(actualizar);
+    };
+    pliego.addEventListener('scroll', pedirActualizar, { passive: true });
+    window.addEventListener('resize', pedirActualizar);
+    actualizar();
+  }
+
   function initColeccion(raiz: HTMLElement) {
     const foco = crearFoco(raiz);
+    if (raiz.dataset.disposicion === 'hoja') initActivaHoja(raiz);
     const mostrar = crearFichaActiva(raiz);
     // Primera ficha antes de cualquier movimiento: con una sola entrada los inicializadores
     // de abajo no llegan a dibujarla.

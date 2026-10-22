@@ -348,3 +348,13 @@ Y en el marcado, después del carrusel:
   )
 }
 ```
+
+## Túnel 3D de estampillas de `/archivo` (`TunelEstampillas.astro`)
+
+Salió de `/archivo` el 2026-10-22: en escritorio lo reemplazó la órbita (`OrbitaEstampillas.astro`),
+que ya servía en móvil y es más liviana (12 ranuras en vez de hasta 60 estampillas). El componente
+queda en el repositorio sin uso. Para volver: en `ArchivoCatalogo.astro` importarlo y renderizar
+`<TunelEstampillas />` junto a la órbita (el túnel lleva `hidden md:block`; la órbita tendría que
+volver a `md:hidden`). Lee los mismos nodos `data-tunel-dato` y el evento `catalogo:filtrado`, y
+usa el foco de `lib/focoEstampilla.ts`, cuyos estilos (`.tunel-telon`…) ahora viven en
+`OrbitaEstampillas.astro`: hay que dejarlos en pie. Los boletos tampoco se ven ya en `/archivo`.

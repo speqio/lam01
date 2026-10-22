@@ -20,7 +20,7 @@ export const cardImageWrap = 'relative h-full w-2/5 shrink-0 bg-surface';
 // solo lugar controla el color en todos los badges del sitio (cards de categoría,
 // EntradasCarousel3D, ArchivoCascade, CategoriasCards, /numeros).
 const cardBadgeBase =
-  'card-badge absolute left-2 top-2 font-mono font-black uppercase drop-shadow-[0_0_1.2px_rgba(0,0,0,0.95)]';
+  'card-badge absolute left-2 top-2 font-mono font-black lowercase drop-shadow-[0_0_1.2px_rgba(0,0,0,0.95)]';
 export const cardBadge = `${cardBadgeBase} px-3 py-2 text-[12px] tracking-[0.2em] md:text-sm`;
 
 // Variante compacta para nombres largos (p. ej. "Galería Rectángulo de Plata"): con el

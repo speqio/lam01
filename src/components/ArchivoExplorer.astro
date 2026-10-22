@@ -101,7 +101,7 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
   </div>
 
   <div class="mb-6 hidden text-center md:block">
-    <span class="mb-2 block font-mono text-xs uppercase tracking-widest text-ink/50">
+    <span class="mb-2 block font-mono text-xs lowercase tracking-widest font-light text-marmol/35">
       Explora el archivo
     </span>
     <h2 class="font-headline text-4xl leading-none tracking-tight text-ink lg:text-6xl">
@@ -121,13 +121,13 @@ const slugsAzar = entradas.map((entrada) => entrada.id);
           aria-label={filtro.titulo}
         >
           <div class="archivo-explorer-collapsed absolute inset-0 flex items-center justify-start px-6 md:justify-center md:px-0">
-            <span class="font-mono text-xs uppercase tracking-[0.3em] text-ink/60 whitespace-nowrap">
+            <span class="font-mono text-xs lowercase tracking-[0.3em] font-light text-marmol/35 whitespace-nowrap">
               {'labelColapsado' in filtro ? filtro.labelColapsado : filtro.label}
             </span>
           </div>
 
           <div class="archivo-explorer-expanded pointer-events-none absolute inset-0 flex flex-col justify-center gap-3 p-6 opacity-0 md:p-10">
-            <span class="font-mono text-xs uppercase tracking-widest text-ink/50">{filtro.label}</span>
+            <span class="font-mono text-xs lowercase tracking-widest font-light text-marmol/35">{filtro.label}</span>
             <h3 class="font-headline text-3xl leading-none tracking-tight text-ink lg:text-4xl">
               {normalizeTitleText(filtro.titulo)}
             </h3>

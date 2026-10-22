@@ -44,7 +44,7 @@ const todasLasCategorias = await getCollection('categorias');
       y /archivo): antes este header no tenía ningún despeje del masthead flotante de
       Header.astro en desktop. */}
   <header class="mb-8 mt-8 text-center md:mt-header-clear">
-    <p class="font-sans text-sm uppercase tracking-widest text-accent">Categoría</p>
+    <p class="font-sans text-sm lowercase tracking-widest font-light text-marmol/35">Categoría</p>
     <h1 class="mt-2 font-headline text-5xl text-ink md:text-6xl">{categoria.data.nombre}</h1>
   </header>
 

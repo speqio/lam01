@@ -78,6 +78,22 @@ const enlaceInicio = variant === 'header' ? { href: '/', 'aria-label': 'La Antor
   const titles = document.querySelectorAll<HTMLElement>('.hero-anagram-title');
 
   titles.forEach((title) => {
+    // Otras páginas reusan la animación con sus propias frases (p. ej. el buscador de
+    // /categorias): las leen de data-anagrama como JSON. Sin atributo, las del sitio.
+    let frases = options;
+    const propias = title.dataset['anagrama'];
+    if (propias) {
+      try {
+        const lista = JSON.parse(propias);
+        if (Array.isArray(lista) && lista.length > 0) frases = lista.map(String);
+      } catch {
+        /* JSON inválido: se queda con las frases del sitio */
+      }
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        title.textContent = frases[0];
+        return;
+      }
+    }
     const nameMap: Record<string, string> = { ' ': 'space', '.': 'dot' };
     const charMap: Record<string, string> = { ' ': '&nbsp;' };
 
@@ -196,7 +212,7 @@ const enlaceInicio = variant === 'header' ? { href: '/', 'aria-label': 'La Antor
 
         tl.add(() => {
           step++;
-          setTitle(options[step % options.length]);
+          setTitle(frases[step % frases.length]);
         }, '+=1');
       };
 
@@ -214,7 +230,7 @@ const enlaceInicio = variant === 'header' ? { href: '/', 'aria-label': 'La Antor
 
     async function start() {
       await document.fonts.ready;
-      setTitle(options[0]);
+      setTitle(frases[0]);
     }
 
     start();

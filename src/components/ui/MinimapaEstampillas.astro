@@ -4,7 +4,7 @@
  *
  * - `escritorio` (por defecto): tres columnas. A la izquierda la información de la entrada
  *   al centro; al centro la estampilla grande (vertical); a la derecha una columna vertical
- *   de miniaturas con un marco fijo de 1 px que marca cuál está al frente. La rueda del
+ *   de miniaturas sin marco: la que está al frente tiene opacidad 1. La rueda del
  *   mouse, desde cualquier punto de la pantalla, desplaza la columna; deja de capturarla en
  *   los extremos.
  * - `movil`: primero un carrusel horizontal de estampillas verticales con degradado a ambos
@@ -64,7 +64,7 @@ const eje = variante === 'movil' ? 'x' : 'y';
             </a>
           </div>
 
-          {/* DERECHA: columna vertical de miniaturas con el marco. */}
+          {/* DERECHA: columna vertical de miniaturas. */}
           <div class="minimapa-columna" data-ventana>
             <div class="minimapa-pista" data-pista>
               {items.map((item, i) => (
@@ -90,7 +90,6 @@ const eje = variante === 'movil' ? 'x' : 'y';
             </div>
             <div class="minimapa-difuminado minimapa-difuminado--inicio" aria-hidden="true" />
             <div class="minimapa-difuminado minimapa-difuminado--fin" aria-hidden="true" />
-            <div class="minimapa-marco" data-marco aria-hidden="true" />
           </div>
         </>
       ) : (
@@ -146,7 +145,6 @@ const eje = variante === 'movil' ? 'x' : 'y';
             </div>
             <div class="minimapa-difuminado minimapa-difuminado--inicio" aria-hidden="true" />
             <div class="minimapa-difuminado minimapa-difuminado--fin" aria-hidden="true" />
-            <div class="minimapa-marco" data-marco aria-hidden="true" />
           </div>
         </>
       )}
@@ -177,7 +175,7 @@ const eje = variante === 'movil' ? 'x' : 'y';
        página. 14rem = header + padding del main + footer. */
     --banda: clamp(22rem, calc(100vh - 14rem), 42rem);
     display: grid;
-    grid-template-columns: minmax(15rem, 22rem) minmax(0, 1fr) var(--mini-w);
+    grid-template-columns: minmax(15rem, 1fr) auto minmax(15rem, 1fr);
     gap: 2.5rem;
     height: var(--banda);
     align-items: center;
@@ -190,12 +188,13 @@ const eje = variante === 'movil' ? 'x' : 'y';
     align-items: flex-start;
     gap: 1rem;
     min-width: 0;
+    max-width: 22rem;
   }
   .minimapa-kicker {
     font-family: theme('fontFamily.mono');
     font-size: 0.7rem;
     letter-spacing: 0.2em;
-    text-transform: uppercase;
+    text-transform: lowercase;
     color: rgb(var(--color-ink-muted));
   }
   /* FICHA */
@@ -212,8 +211,9 @@ const eje = variante === 'movil' ? 'x' : 'y';
     font-family: theme('fontFamily.mono');
     font-size: 0.72rem;
     letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgb(var(--color-accent));
+    text-transform: lowercase;
+    color: rgb(var(--color-marmol) / 0.35);
+    font-weight: 300;
   }
   .ficha-titulo {
     font-family: theme('fontFamily.headline');
@@ -253,6 +253,7 @@ const eje = variante === 'movil' ? 'x' : 'y';
     position: relative;
     display: block;
     height: calc(var(--banda) * 0.86);
+    width: calc(var(--banda) * 0.86 * 300 / 460);
     max-width: 100%;
     aspect-ratio: 300 / 460;
     overflow: hidden;
@@ -289,25 +290,6 @@ const eje = variante === 'movil' ? 'x' : 'y';
     width: 100%;
     height: var(--mini-h);
   }
-  .minimapa-marco {
-    position: absolute;
-    left: 0;
-    right: 0;
-    /* El trazo (un <svg> que dibuja el script) sigue la silueta dentada de la estampilla. */
-    color: rgb(var(--color-ink));
-    pointer-events: none;
-    z-index: 3;
-  }
-  /* En el tema claro el marco resalta con el acento (rojo), no con el negro del texto. */
-  :global(:root[data-theme='light']) .minimapa-marco {
-    color: rgb(var(--color-accent));
-  }
-  .minimapa-marco svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-  }
   .minimapa-columna .minimapa-difuminado {
     left: 0;
     right: 0;
@@ -333,10 +315,6 @@ const eje = variante === 'movil' ? 'x' : 'y';
     border: 0;
     background: none;
     cursor: pointer;
-    transition: opacity 0.3s ease;
-  }
-  .minimapa-item[data-inactiva] {
-    opacity: 0.45;
   }
   .minimapa-cara {
     display: block;
@@ -391,6 +369,7 @@ const eje = variante === 'movil' ? 'x' : 'y';
     min-height: 0;
   }
   .minimapa[data-variante='movil'] .minimapa-info {
+    max-width: none;
     /* Caja de alto fijo (cabe un título de 4 líneas): la ficha no mueve la estampilla. */
     flex: 0 0 auto;
     height: 9rem;
@@ -478,12 +457,6 @@ const eje = variante === 'movil' ? 'x' : 'y';
     height: 100%;
     flex: 0 0 auto;
   }
-  .minimapa[data-variante='movil'] .minimapa-marco {
-    top: 0;
-    bottom: 0;
-    right: auto;
-    height: auto;
-  }
   .minimapa[data-variante='movil'] .minimapa-difuminado {
     top: 0;
     bottom: 0;
@@ -510,7 +483,6 @@ const eje = variante === 'movil' ? 'x' : 'y';
   function iniciarCarrusel(raiz: HTMLElement) {
     const ventana = raiz.querySelector<HTMLElement>('[data-ventana]');
     const pista = raiz.querySelector<HTMLElement>('[data-pista]');
-    const marco = raiz.querySelector<HTMLElement>('[data-marco]');
     const botones = Array.from(raiz.querySelectorAll<HTMLButtonElement>('[data-item]'));
     const plantillas = Array.from(raiz.querySelectorAll<HTMLTemplateElement>('[data-ficha-fuente]'));
     const img = raiz.querySelector<HTMLImageElement>('[data-vista-img]');
@@ -538,56 +510,13 @@ const eje = variante === 'movil' ? 'x' : 'y';
     const uid = Math.random().toString(36).slice(2, 8);
     const estado = { t: 0 };
 
-    // Trazo del marco con la misma silueta que la estampilla: el rectángulo con las muescas
-    // semicirculares de `.estampilla-perforada` (global.css: radio 5px, paso 15px; si cambian
-    // allá, cambian acá). El borde recto se oculta dentro de cada muesca y el arco de la muesca
-    // se recorta al rectángulo.
-    const DIENTE_R = 5;
-    const DIENTE_PASO = 15;
-    const dibujarMarco = () => {
-      if (!marco) return;
-      const w = marco.offsetWidth;
-      const h = marco.offsetHeight;
-      if (w <= 0 || h <= 0) return;
-      const ns = 'http://www.w3.org/2000/svg';
-      const circulos: Array<[number, number]> = [];
-      for (let y = DIENTE_R; y < h + DIENTE_R; y += DIENTE_PASO) {
-        circulos.push([0, y], [w, y]);
-      }
-      for (let x = DIENTE_R; x < w + DIENTE_R; x += DIENTE_PASO) {
-        circulos.push([x, 0], [x, h]);
-      }
-      const c = (cx: number, cy: number, extra: string) =>
-        `<circle cx="${cx}" cy="${cy}" r="${DIENTE_R}" ${extra}/>`;
-      marco.innerHTML =
-        `<svg xmlns="${ns}" viewBox="0 0 ${w} ${h}" aria-hidden="true">` +
-        `<defs><mask id="m-${uid}" maskUnits="userSpaceOnUse" x="-2" y="-2" width="${w + 4}" height="${h + 4}">` +
-        `<rect x="-2" y="-2" width="${w + 4}" height="${h + 4}" fill="white"/>` +
-        circulos.map(([cx, cy]) => c(cx, cy, 'fill="black"')).join('') +
-        `</mask><clipPath id="r-${uid}"><rect width="${w}" height="${h}"/></clipPath></defs>` +
-        `<rect x="1.5" y="1.5" width="${w - 3}" height="${h - 3}" fill="none" stroke="currentColor" stroke-width="3" mask="url(#m-${uid})"/>` +
-        `<g clip-path="url(#r-${uid})" fill="none" stroke="currentColor" stroke-width="3">` +
-        circulos.map(([cx, cy]) => c(cx, cy, '')).join('') +
-        `</g></svg>`;
-    };
-
     const medir = () => {
       const r = botones[0].getBoundingClientRect();
       paso = horizontal ? r.width : r.height;
       if (paso <= 0) return false; // oculta (la otra variante está visible)
       ind = ((horizontal ? ventana.clientWidth : ventana.clientHeight) - paso) / 2;
-      if (marco) {
-        if (horizontal) {
-          marco.style.left = `${ind}px`;
-          marco.style.width = `${paso}px`;
-        } else {
-          marco.style.top = `${ind}px`;
-          marco.style.height = `${paso}px`;
-        }
-      }
       tMax = ind;
       tMin = ind - (botones.length - 1) * paso;
-      dibujarMarco();
       return true;
     };
 
@@ -595,11 +524,6 @@ const eje = variante === 'movil' ? 'x' : 'y';
       if (i === activa) return;
       activa = i;
       const b = botones[i];
-      botones.forEach((el, j) => {
-        if (j === i) delete el.dataset.inactiva;
-        else el.dataset.inactiva = '';
-      });
-
       const src = b.dataset.src ?? '';
       if (img) {
         if (src) img.src = src;
@@ -629,8 +553,14 @@ const eje = variante === 'movil' ? 'x' : 'y';
         ? `translateX(${estado.t}px)`
         : `translateY(${estado.t}px)`;
       // La estampilla al frente es la más cercana a la posición central de la ventana.
-      const idx = clamp(Math.round((ind - estado.t) / paso), 0, botones.length - 1);
+      const pos = (ind - estado.t) / paso;
+      const idx = clamp(Math.round(pos), 0, botones.length - 1);
       mostrar(idx);
+      // Sin marco: la estampilla al frente está a opacidad 1 y las demás la pierden según su
+      // distancia, así que el movimiento se lee al pasar de una a otra.
+      botones.forEach((el, j) => {
+        el.style.opacity = String(1 - 0.55 * Math.min(1, Math.abs(pos - j)));
+      });
     };
 
     const mover = (destino: number, duracion: number) => {

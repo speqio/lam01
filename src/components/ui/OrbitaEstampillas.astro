@@ -22,7 +22,7 @@
  */
 ---
 
-<div class="orbita -mt-14 md:mt-0" data-orbita>
+<div class="orbita" data-orbita>
   <div class="orbita-caja" data-caja>
   <div class="orbita-escena" data-escena role="group" aria-label="Estampillas del archivo">
       <div class="orbita-inclina">
@@ -111,7 +111,7 @@
     position: absolute;
     inset: 0;
     transform-style: preserve-3d;
-    transform: translateY(-4%) rotateZ(-12deg);
+    transform: translateY(-16%) rotateZ(-12deg);
   }
   .orbita-anillo {
     position: absolute;
@@ -406,7 +406,6 @@
       const filtrado = m < datos.length;
       (escena.parentElement as HTMLElement).style.display = filtrado ? 'none' : '';
       grilla.hidden = !filtrado;
-      raiz.classList.toggle('-mt-14', !filtrado);
       raiz.classList.toggle('orbita-filtrada', filtrado);
       modoFiltrado = filtrado;
       ajustar();

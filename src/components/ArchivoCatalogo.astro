@@ -157,7 +157,7 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
         /* /categorias: un solo buscador de categorías. El placeholder no es un atributo sino
            una instancia del anagrama del header (HeroAnagram, vía data-anagrama) puesta
            encima del campo; el contenedor recorta las letras que vuelan al reordenarse. */
-        <div class="archivo-catalogo-filtros mb-10 flex justify-center" role="search">
+        <div class="archivo-catalogo-filtros relative z-10 mb-10 flex justify-center" role="search">
           <div class="relative w-64 overflow-hidden rounded-full md:w-72">
             <input
               type="search"
@@ -200,7 +200,7 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
         </div>
       ) : (
       <div
-        class={`archivo-catalogo-filtros flex flex-wrap justify-center gap-3 md:justify-start ${vista === 'tunel' ? 'mb-2 md:mb-10' : 'mb-10'}`}
+        class={`archivo-catalogo-filtros relative z-10 flex flex-wrap justify-center gap-3 md:justify-start ${vista === 'tunel' ? 'mb-2 md:mb-10' : 'mb-10'}`}
         role="group"
         aria-label="Filtrar el archivo"
       >

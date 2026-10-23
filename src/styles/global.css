@@ -6,9 +6,36 @@
 @import '@fontsource/lekton/400-italic.css';
 @import '@fontsource/lekton/700.css';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* Tokens de Tailwind (v4 no lee tailwind.config.mjs: todo vive aquí). Los colores leen las
+   variables "R G B" de :root y :root[data-theme='light'] (más abajo) con `inline`, así que
+   el cambio claro/oscuro sigue funcionando por atributo y los modificadores de opacidad
+   (text-marmol/35, bg-surface/90…) siguen funcionando sin tocar las clases. */
+@theme inline {
+  --color-marmol: rgb(var(--rgb-marmol));
+  --color-canvas: rgb(var(--rgb-canvas));
+  --color-surface: rgb(var(--rgb-surface));
+  --color-ink: rgb(var(--rgb-ink));
+  --color-ink-muted: rgb(var(--rgb-ink-muted));
+  --color-bone: rgb(var(--rgb-bone));
+  --color-accent: rgb(var(--rgb-accent));
+
+  /* Una sola familia (Lekton, monoespaciada) para todo el sitio. Los tokens se conservan
+     porque el resto del código sigue usando font-sans/serif/mono/headline como roles
+     semánticos. Fallback "monospace" para que, si Lekton no llega a cargar, el navegador
+     elija un sustituto con métricas parecidas. */
+  --font-sans: Lekton, monospace;
+  --font-serif: Lekton, monospace;
+  --font-mono: Lekton, monospace;
+  --font-headline: Lekton, monospace;
+
+  /* Despeje bajo el header fijo (Header.astro, md+ solamente). Cálculo: <main> aporta py-8
+     (2rem) arriba, así que 2rem + 4.5rem = 6.5rem desde el borde superior, contra una barra
+     de 5rem: ~1.5rem de aire libre. Uso: md:mt-header-clear / md:pt-header-clear. */
+  --spacing-header-clear: 4.5rem;
+}
 
 /* Escala de desktop: el tamaño base sube de 16 px a 19,2 px (+20%). Todo lo que está en
    rem (tipografía, espaciados, cards) escala con él. En mobile queda en 16 px. */
@@ -27,27 +54,34 @@
      rgb(...)) para que el patrón rgb(var(--x) / <alpha-value>) de tailwind.config.mjs
      pueda aplicarles opacidad. */
   :root {
-    --color-canvas: 8 8 8;
-    --color-surface: 26 26 26;
-    --color-ink: 255 255 255;
-    --color-ink-muted: 160 160 160;
-    --color-bone: 208 208 208;
-    --color-accent: 166 41 74;
+    --rgb-canvas: 8 8 8;
+    --rgb-surface: 26 26 26;
+    --rgb-ink: 255 255 255;
+    --rgb-ink-muted: 160 160 160;
+    --rgb-bone: 208 208 208;
+    --rgb-accent: 166 41 74;
     /* Texto de los tags sobre los títulos: blanco mármol en oscuro, tinta en claro; el
        sitio lo usa siempre con opacidad reducida (font-light text-marmol/35). */
-    --color-marmol: 232 229 222;
+    --rgb-marmol: 232 229 222;
     color-scheme: dark;
   }
 
   :root[data-theme='light'] {
-    --color-canvas: 232 229 222;
-    --color-surface: 243 241 236;
-    --color-ink: 18 18 18;
-    --color-ink-muted: 90 90 90;
-    --color-bone: 51 51 51;
-    --color-accent: 166 41 74;
-    --color-marmol: 18 18 18;
+    --rgb-canvas: 232 229 222;
+    --rgb-surface: 243 241 236;
+    --rgb-ink: 18 18 18;
+    --rgb-ink-muted: 90 90 90;
+    --rgb-bone: 51 51 51;
+    --rgb-accent: 166 41 74;
+    --rgb-marmol: 18 18 18;
     color-scheme: light;
+  }
+
+  /* Tailwind 4 dejó de poner el cursor de mano en los botones (v3 sí). Se restaura a mano
+     para que los controles del sitio sigan indicando que son clicables. */
+  button,
+  [role='button'] {
+    cursor: pointer;
   }
 
   body {
@@ -82,20 +116,29 @@
      canvas ya se invierte solo (oscuro→casi negro, claro→casi blanco), así que el
      contraste queda resuelto igual que en cualquier otro uso de estos dos tokens. */
   ::selection {
-    background: rgb(var(--color-accent));
-    color: rgb(var(--color-canvas));
+    background: rgb(var(--rgb-accent));
+    color: rgb(var(--rgb-canvas));
   }
 
+  /* CSS plano, no @apply: en Tailwind 4 `leading-*`/`tracking-*` escriben --tw-leading /
+     --tw-tracking, y las utilidades `text-5xl`, `text-xl`… leen --tw-leading antes que su
+     propio interlineado, así que un @apply aquí apretaba todos los títulos con clase text-*.
+     Con propiedades normales, una utilidad en la clase del elemento sigue ganando, como en v3. */
   h1,
   h2,
   h3 {
-    @apply font-headline font-normal leading-[0.95] tracking-[-0.04em];
+    font-family: var(--font-headline);
+    font-weight: 400;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
   }
 
   h4,
   h5,
   h6 {
-    @apply font-sans font-normal tracking-wide;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    letter-spacing: 0.025em;
   }
 
   .font-headline,
@@ -144,8 +187,8 @@
 
   :root[data-theme='light'] .card-badge.ficha-entrar,
   :root[data-theme='light'] .card-badge.ticket-cta {
-    background: rgb(var(--color-accent));
-    color: rgb(var(--color-canvas));
+    background: rgb(var(--rgb-accent));
+    color: rgb(var(--rgb-canvas));
   }
 
   /* Hover del botón "leer entrada"/"ver número" del boleto (ticketCta en
@@ -155,11 +198,11 @@
      pedido explícito, por eso es una regla aparte y no una variante más de
      .card-badge (que sirve a otros badges del sitio sin este hover). */
   .ticket-cta:hover {
-    color: rgb(var(--color-accent));
+    color: rgb(var(--rgb-accent));
   }
 
   :root[data-theme='light'] .ticket-cta:hover {
-    color: rgb(var(--color-ink));
+    color: rgb(var(--rgb-ink));
   }
 
   /* Estado inicial (oculto) de las cards con reveal-on-scroll (EntryCard.tsx).
@@ -206,8 +249,8 @@
   :root[data-theme='light'] .filter-chip-active,
   :root[data-theme='light'] .archivo-catalogo-chip[data-active='true'],
   :root[data-theme='light'] .numeros-chip[data-active='true'] {
-    background: rgb(var(--color-accent));
-    color: rgb(var(--color-canvas));
+    background: rgb(var(--rgb-accent));
+    color: rgb(var(--rgb-canvas));
   }
 
   /* Silueta tipo boleto (nace en EntradaTicket.astro, ver ticketNotchedEdges en

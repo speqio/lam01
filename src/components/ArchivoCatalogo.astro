@@ -100,10 +100,10 @@ const {
 } = Astro.props;
 
 const triggerClass =
-  'archivo-catalogo-trigger inline-flex items-center gap-2 rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs lowercase tracking-widest text-ink-muted transition-colors hover:border-ink/40 aria-expanded:border-accent aria-expanded:text-ink focus:outline-none md:text-sm';
+  'archivo-catalogo-trigger inline-flex items-center gap-2 rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs lowercase tracking-widest text-ink-muted transition-colors hover:border-ink/40 aria-expanded:border-accent aria-expanded:text-ink focus:outline-hidden md:text-sm';
 
 const inputClass =
-  'archivo-catalogo-autor w-full md:w-auto rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs lowercase tracking-widest text-ink-muted placeholder:text-ink-muted/70 transition-colors hover:border-ink/40 focus:border-accent focus:outline-none md:text-sm';
+  'archivo-catalogo-autor w-full md:w-auto rounded-full border border-ink/20 bg-transparent px-5 py-2.5 font-mono text-xs lowercase tracking-widest text-ink-muted placeholder:text-ink-muted/70 transition-colors hover:border-ink/40 focus:border-accent focus:outline-hidden md:text-sm';
 
 const dropdowns: Array<{ key: string; label: string; ariaLabel: string; opciones: FiltroOpcion[] }> = [
   { key: 'anio', label: 'Año', ariaLabel: 'Filtrar por año', opciones: anios },
@@ -419,8 +419,8 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
     top: calc(100% + 0.5rem);
     z-index: 20;
     min-width: 100%;
-    background: rgb(var(--color-surface));
-    border: 1px solid rgb(var(--color-ink) / 0.15);
+    background: rgb(var(--rgb-surface));
+    border: 1px solid rgb(var(--rgb-ink) / 0.15);
     border-radius: 0.75rem;
     padding: 0.35rem;
     box-shadow: 0 12px 32px rgb(0 0 0 / 0.35);
@@ -436,20 +436,20 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
     font-size: 0.75rem;
     text-transform: lowercase;
     letter-spacing: 0.08em;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
     background: transparent;
     white-space: nowrap;
   }
 
   .archivo-catalogo-dropdown-option:hover,
   .archivo-catalogo-dropdown-option:focus-visible {
-    background: rgb(var(--color-ink) / 0.08);
-    color: rgb(var(--color-ink));
+    background: rgb(var(--rgb-ink) / 0.08);
+    color: rgb(var(--rgb-ink));
     outline: none;
   }
 
   .archivo-catalogo-dropdown-option[aria-selected='true'] {
-    color: rgb(var(--color-accent));
+    color: rgb(var(--rgb-accent));
   }
 
   /* Buscador del menú de Año/Categoría/Número. Sin tope de alto: el menú no crece con el
@@ -465,7 +465,7 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
     font-family: var(--font-mono, monospace);
     font-size: 0.75rem;
     letter-spacing: 0.08em;
-    color: rgb(var(--color-ink));
+    color: rgb(var(--rgb-ink));
   }
 
   .archivo-catalogo-dropdown-buscar:focus {
@@ -483,13 +483,13 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
     font-family: var(--font-mono, monospace);
     font-size: 0.75rem;
     letter-spacing: 0.08em;
-    color: rgb(var(--color-ink));
+    color: rgb(var(--rgb-ink));
     background: transparent;
   }
 
   .archivo-catalogo-dropdown-grupo:hover,
   .archivo-catalogo-dropdown-grupo:focus-visible {
-    background: rgb(var(--color-ink) / 0.08);
+    background: rgb(var(--rgb-ink) / 0.08);
     outline: none;
   }
 
@@ -508,7 +508,7 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
   }
 
   .archivo-catalogo-dropdown-buscar::placeholder {
-    color: rgb(var(--color-ink-muted) / 0.7);
+    color: rgb(var(--rgb-ink-muted) / 0.7);
   }
 
   .archivo-catalogo-dropdown-pista {
@@ -517,7 +517,7 @@ function filasDe(key: string, opciones: FiltroOpcion[]): FilaMenu[] {
     font-size: 0.65rem;
     letter-spacing: 0.08em;
     text-transform: lowercase;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
 </style>
 

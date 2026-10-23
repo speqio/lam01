@@ -176,7 +176,7 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-[10vh] backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-[10vh] backdrop-blur-xs"
             onClick={() => setOpen(false)}
           >
           <div
@@ -205,7 +205,7 @@ export default function SearchModal({ variant = 'default' }: SearchModalProps) {
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={handleInputKeyDown}
                 placeholder="Buscar entrada, autor, categoría o número..."
-                className="flex-1 bg-transparent font-sans text-ink outline-none placeholder:text-ink-muted/60"
+                className="flex-1 bg-transparent font-sans text-ink outline-hidden placeholder:text-ink-muted/60"
               />
               <button
                 type="button"

@@ -18,7 +18,7 @@ const dir = path.join(root, 'src', 'content', 'numeros');
 const registro = path.join(root, 'scripts', 'portadas-provisionales.json');
 const dryRun = process.argv.includes('--dry-run');
 
-// Colores del sistema de diseño (tailwind.config.mjs): canvas, surface, ink, ink-muted, accent.
+// Colores del sistema de diseño (src/styles/global.css, @theme): canvas, surface, ink, ink-muted, accent.
 const C = { canvas: '#121212', surface: '#292929', ink: '#ffffff', muted: '#a0a0a0', accent: '#a6294a' };
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 

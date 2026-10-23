@@ -161,12 +161,12 @@ const { categorias, compact = false } = Astro.props;
 
   .categorias-wheel-fade--left {
     left: 0;
-    background: linear-gradient(to right, rgb(var(--color-canvas)), transparent);
+    background: linear-gradient(to right, rgb(var(--rgb-canvas)), transparent);
   }
 
   .categorias-wheel-fade--right {
     right: 0;
-    background: linear-gradient(to left, rgb(var(--color-canvas)), transparent);
+    background: linear-gradient(to left, rgb(var(--rgb-canvas)), transparent);
   }
 
   /* Igual criterio que left/right pero en el borde inferior de la escena, donde las
@@ -178,7 +178,7 @@ const { categorias, compact = false } = Astro.props;
     height: 35%;
     pointer-events: none;
     z-index: 5;
-    background: linear-gradient(to bottom, transparent, rgb(var(--color-canvas)) 90%);
+    background: linear-gradient(to bottom, transparent, rgb(var(--rgb-canvas)) 90%);
   }
 
   .categorias-wheel-info {
@@ -195,7 +195,7 @@ const { categorias, compact = false } = Astro.props;
     font-weight: 400;
     font-size: 1.05rem;
     line-height: 1.1;
-    color: rgb(var(--color-ink));
+    color: rgb(var(--rgb-ink));
     text-transform: uppercase;
     letter-spacing: 0.02em;
   }

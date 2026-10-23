@@ -63,7 +63,7 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: rgb(var(--color-surface));
+    background-color: rgb(var(--rgb-surface));
   }
   .tunel-cara img {
     position: absolute;
@@ -84,7 +84,7 @@
     text-align: center;
     font-size: 0.6rem;
     line-height: 1.2;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
 
   /* ─── Foco: telón difuminado + estampilla al centro con su información ─── */
@@ -97,7 +97,7 @@
     justify-content: center;
     gap: 3.5rem;
     padding: 2rem;
-    background: rgb(var(--color-canvas) / 0.55);
+    background: rgb(var(--rgb-canvas) / 0.55);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
   }
@@ -139,24 +139,24 @@
     width: min(24rem, 34vw);
   }
   .tunel-foco-ficha .ficha-categoria {
-    font-family: theme('fontFamily.mono');
+    font-family: var(--font-mono);
     font-size: 0.72rem;
     letter-spacing: 0.18em;
     text-transform: lowercase;
-    color: rgb(var(--color-marmol) / 0.35);
+    color: rgb(var(--rgb-marmol) / 0.35);
     font-weight: 300;
   }
   .tunel-foco-ficha .ficha-titulo {
-    font-family: theme('fontFamily.headline');
+    font-family: var(--font-headline);
     font-size: clamp(1.6rem, 2.4vw, 2.4rem);
     line-height: 1.1;
-    color: rgb(var(--color-ink));
+    color: rgb(var(--rgb-ink));
   }
   .tunel-foco-ficha .ficha-autor {
-    font-family: theme('fontFamily.sans');
+    font-family: var(--font-sans);
     font-size: 0.95rem;
     line-height: 1.35;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
   /* cardBadge es absoluto (pensado para tapar la imagen de una tarjeta): acá va en el flujo. */
   .tunel-foco-ficha .ficha-entrar {

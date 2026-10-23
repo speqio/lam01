@@ -191,11 +191,11 @@ const eje = variante === 'movil' ? 'x' : 'y';
     max-width: 22rem;
   }
   .minimapa-kicker {
-    font-family: theme('fontFamily.mono');
+    font-family: var(--font-mono);
     font-size: 0.7rem;
     letter-spacing: 0.2em;
     text-transform: lowercase;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
   /* FICHA */
   .minimapa-ficha {
@@ -208,24 +208,24 @@ const eje = variante === 'movil' ? 'x' : 'y';
     display: none;
   }
   .ficha-categoria {
-    font-family: theme('fontFamily.mono');
+    font-family: var(--font-mono);
     font-size: 0.72rem;
     letter-spacing: 0.18em;
     text-transform: lowercase;
-    color: rgb(var(--color-marmol) / 0.35);
+    color: rgb(var(--rgb-marmol) / 0.35);
     font-weight: 300;
   }
   .ficha-titulo {
-    font-family: theme('fontFamily.headline');
+    font-family: var(--font-headline);
     font-size: clamp(1.4rem, 2vw, 2rem);
     line-height: 1.1;
-    color: rgb(var(--color-ink));
+    color: rgb(var(--rgb-ink));
   }
   .ficha-autor {
-    font-family: theme('fontFamily.sans');
+    font-family: var(--font-sans);
     font-size: 0.9rem;
     line-height: 1.35;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
   /* El botón viene de cardBadge, que es absoluto (pensado para tapar la imagen de una
      tarjeta). Aquí va dentro del texto, así que vuelve al flujo normal. */
@@ -257,7 +257,7 @@ const eje = variante === 'movil' ? 'x' : 'y';
     max-width: 100%;
     aspect-ratio: 300 / 460;
     overflow: hidden;
-    background-color: rgb(var(--color-surface));
+    background-color: rgb(var(--rgb-surface));
   }
   .minimapa-foto img {
     position: absolute;
@@ -297,11 +297,11 @@ const eje = variante === 'movil' ? 'x' : 'y';
   }
   .minimapa-columna .minimapa-difuminado--inicio {
     top: 0;
-    background: linear-gradient(to bottom, rgb(var(--color-canvas)), transparent);
+    background: linear-gradient(to bottom, rgb(var(--rgb-canvas)), transparent);
   }
   .minimapa-columna .minimapa-difuminado--fin {
     bottom: 0;
-    background: linear-gradient(to top, rgb(var(--color-canvas)), transparent);
+    background: linear-gradient(to top, rgb(var(--rgb-canvas)), transparent);
   }
 
   /* COMUNES: pista, estampillas y degradados. */
@@ -322,7 +322,7 @@ const eje = variante === 'movil' ? 'x' : 'y';
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: rgb(var(--color-surface));
+    background-color: rgb(var(--rgb-surface));
   }
   .minimapa-cara img {
     position: absolute;
@@ -345,7 +345,7 @@ const eje = variante === 'movil' ? 'x' : 'y';
     text-align: center;
     font-size: 0.6rem;
     line-height: 1.2;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
   .minimapa-cara .minimapa-sin-portada {
     position: absolute;
@@ -413,10 +413,10 @@ const eje = variante === 'movil' ? 'x' : 'y';
     transform: translateY(-50%) rotate(180deg);
     writing-mode: vertical-rl;
     white-space: nowrap;
-    font-family: theme('fontFamily.mono');
+    font-family: var(--font-mono);
     font-size: 0.62rem;
     letter-spacing: 0.12em;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
 
   /* CENTRO (móvil): la estampilla llena el alto que sobra, sin deformarse ni salirse del ancho. */
@@ -466,12 +466,12 @@ const eje = variante === 'movil' ? 'x' : 'y';
   .minimapa[data-variante='movil'] .minimapa-difuminado--inicio {
     left: 0;
     right: auto;
-    background: linear-gradient(to right, rgb(var(--color-canvas)), transparent);
+    background: linear-gradient(to right, rgb(var(--rgb-canvas)), transparent);
   }
   .minimapa[data-variante='movil'] .minimapa-difuminado--fin {
     right: 0;
     left: auto;
-    background: linear-gradient(to left, rgb(var(--color-canvas)), transparent);
+    background: linear-gradient(to left, rgb(var(--rgb-canvas)), transparent);
   }
 </style>
 

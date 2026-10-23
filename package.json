@@ -3,6 +3,9 @@
   "type": "module",
   "version": "0.0.1",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
@@ -21,13 +24,13 @@
     "@keystatic/astro": "^6.0.0",
     "@keystatic/core": "^0.6.9",
     "@tailwindcss/typography": "^0.5.20",
+    "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.3.2",
-    "autoprefixer": "^10.4.20",
     "glitched-writer": "^2.0.29",
     "gsap": "^3.15.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tailwindcss": "^3.4.19"
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
@@ -36,5 +39,8 @@
     "turndown": "^7.2.4",
     "typescript": "^5.7.2",
     "wrangler": "^4.131.0"
+  },
+  "overrides": {
+    "postcss-selector-parser": "^7.1.6"
   }
 }

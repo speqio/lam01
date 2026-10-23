@@ -356,11 +356,11 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
   }
   .coleccion-difuminado--inicio {
     left: 0;
-    background: linear-gradient(to right, rgb(var(--color-canvas)), transparent);
+    background: linear-gradient(to right, rgb(var(--rgb-canvas)), transparent);
   }
   .coleccion-difuminado--fin {
     right: 0;
-    background: linear-gradient(to left, rgb(var(--color-canvas)), transparent);
+    background: linear-gradient(to left, rgb(var(--rgb-canvas)), transparent);
   }
 
   /* En la columna el carril corre de arriba abajo: el mismo degradado, girado. */
@@ -376,12 +376,12 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
   .coleccion--columna .coleccion-difuminado--inicio,
   .coleccion--bucle .coleccion-difuminado--inicio {
     top: 0;
-    background: linear-gradient(to bottom, rgb(var(--color-canvas)), transparent);
+    background: linear-gradient(to bottom, rgb(var(--rgb-canvas)), transparent);
   }
   .coleccion--columna .coleccion-difuminado--fin,
   .coleccion--bucle .coleccion-difuminado--fin {
     bottom: 0;
-    background: linear-gradient(to top, rgb(var(--color-canvas)), transparent);
+    background: linear-gradient(to top, rgb(var(--rgb-canvas)), transparent);
   }
 
   /* La hoja solo tiene carril en pantallas chicas: en desktop es grilla a todo el ancho
@@ -557,11 +557,11 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
   }
   .dial-vertical-cuenta {
     flex-shrink: 0;
-    font-family: theme('fontFamily.mono');
+    font-family: var(--font-mono);
     font-size: 0.7rem;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.18em;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
     /* La CUENTA se lee en horizontal aunque la pista sea vertical. Estuvo girada con
        `writing-mode: vertical-rl` para ocupar menos, pero un numero de costado hay que
        descifrarlo: lo unico que tiene que girar es la pista, que es la que representa el
@@ -575,7 +575,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     flex: 1 1 auto;
     overflow: hidden;
     border-radius: 999px;
-    background-color: rgb(var(--color-ink) / 0.15);
+    background-color: rgb(var(--rgb-ink) / 0.15);
   }
   .dial-vertical-thumb {
     position: absolute;
@@ -583,7 +583,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     right: 0;
     left: 0;
     border-radius: 999px;
-    background-color: rgb(var(--color-accent));
+    background-color: rgb(var(--rgb-accent));
   }
 
   .estampilla-hueco {
@@ -702,7 +702,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     position: absolute;
     inset: 0;
     overflow: hidden;
-    background-color: rgb(var(--color-surface));
+    background-color: rgb(var(--rgb-surface));
   }
   .estampilla-cara img {
     display: block;
@@ -725,7 +725,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     text-align: center;
     font-size: 0.78rem;
     line-height: 1.3;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
 
   .estampilla-enlace {
@@ -747,24 +747,24 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
   }
 
   .ficha-categoria {
-    font-family: theme('fontFamily.mono');
+    font-family: var(--font-mono);
     font-size: 0.72rem;
     letter-spacing: 0.18em;
     text-transform: lowercase;
-    color: rgb(var(--color-marmol) / 0.35);
+    color: rgb(var(--rgb-marmol) / 0.35);
     font-weight: 300;
   }
   .ficha-titulo {
-    font-family: theme('fontFamily.headline');
+    font-family: var(--font-headline);
     font-size: 1.1rem;
     line-height: 1.15;
-    color: rgb(var(--color-ink));
+    color: rgb(var(--rgb-ink));
   }
   .ficha-autor {
-    font-family: theme('fontFamily.sans');
+    font-family: var(--font-sans);
     font-size: 0.9rem;
     line-height: 1.35;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
   .ficha-entrar {
     align-self: flex-start;
@@ -787,7 +787,7 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
   }
   .coleccion-telon {
     z-index: 60;
-    background-color: rgb(var(--color-canvas) / 0.72);
+    background-color: rgb(var(--rgb-canvas) / 0.72);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
   }
@@ -842,11 +842,11 @@ const conFichaActiva = disposicion === 'tira' || disposicion === 'bucle';
     padding: 0.4rem 0.6rem;
     font-size: 1rem;
     line-height: 1;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
     transition: color 0.2s;
   }
   .coleccion-cerrar:hover {
-    color: rgb(var(--color-ink));
+    color: rgb(var(--rgb-ink));
   }
 
   .coleccion-escenario .estampilla {

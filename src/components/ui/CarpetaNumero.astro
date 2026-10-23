@@ -140,7 +140,7 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
     /* Un filo tenue para que la silueta se despegue del fondo del sitio, que también es
        oscuro: en la referencia la carpeta negra se recorta contra blanco. */
     box-shadow:
-      inset 0 0 0 1px rgb(var(--color-ink) / 0.07),
+      inset 0 0 0 1px rgb(var(--rgb-ink) / 0.07),
       0 14px 30px rgb(0 0 0 / 0.5);
     transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
@@ -189,19 +189,19 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
     gap: 0.15rem;
   }
   .carpeta-fecha {
-    font-family: theme('fontFamily.mono');
+    font-family: var(--font-mono);
     font-size: 0.65rem;
     letter-spacing: 0.18em;
     color: rgb(255 255 255 / 0.65);
   }
   .carpeta-titulo {
-    font-family: theme('fontFamily.headline');
+    font-family: var(--font-headline);
     font-size: 1rem;
     line-height: 1.15;
     color: rgb(255 255 255);
   }
   .carpeta-subtitulo {
-    font-family: theme('fontFamily.serif');
+    font-family: var(--font-serif);
     font-size: 0.78rem;
     font-style: italic;
     color: rgb(255 255 255 / 0.75);
@@ -217,7 +217,7 @@ const asoman = soloTapa ? [] : items.slice(0, 3);
     position: absolute;
     inset: 0;
     overflow: hidden;
-    background-color: rgb(var(--color-surface));
+    background-color: rgb(var(--rgb-surface));
     /* `drop-shadow` y no `box-shadow`: la sombra tiene que seguir la silueta dentada,
        no la caja rectangular que hay debajo de la máscara. */
     filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.5));

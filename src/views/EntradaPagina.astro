@@ -129,7 +129,7 @@ const { orientacion, maxAncho } = datosPortada(portada);
 
   <div
     id="entrada-progress-badge"
-    class="not-prose pointer-events-none fixed right-4 z-50 hidden rounded-full border border-ink/15 bg-surface/90 px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-ink backdrop-blur"
+    class="not-prose pointer-events-none fixed right-4 z-50 hidden rounded-full border border-ink/15 bg-surface/90 px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-ink backdrop-blur-sm"
     style="top: 5.5rem;"
   >
   </div>
@@ -137,7 +137,7 @@ const { orientacion, maxAncho } = datosPortada(portada);
   <button
     type="button"
     id="entrada-exit-reading"
-    class="not-prose fixed left-4 z-50 hidden items-center gap-2 rounded-full border border-ink/15 bg-surface/90 px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-ink backdrop-blur transition-colors hover:border-accent hover:text-accent"
+    class="not-prose fixed left-4 z-50 hidden items-center gap-2 rounded-full border border-ink/15 bg-surface/90 px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-widest text-ink backdrop-blur-sm transition-colors hover:border-accent hover:text-accent"
     style="top: 5.5rem;"
   >
     ✕ Salir del modo lectura
@@ -532,7 +532,7 @@ const { orientacion, maxAncho } = datosPortada(portada);
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgb(var(--color-canvas));
+    background: rgb(var(--rgb-canvas));
     padding: 2rem;
   }
 
@@ -568,7 +568,7 @@ const { orientacion, maxAncho } = datosPortada(portada);
     font-family: 'Lekton', monospace;
     font-size: clamp(1.05rem, 2.4vw, 1.35rem);
     line-height: 1.7;
-    color: rgb(var(--color-bone));
+    color: rgb(var(--rgb-bone));
   }
 
   /* Poesía: verso centrado, un poco más grande. */
@@ -578,7 +578,7 @@ const { orientacion, maxAncho } = datosPortada(portada);
     font-style: italic;
     font-size: clamp(1.2rem, 4vw, 2rem);
     line-height: 1.6;
-    color: rgb(var(--color-ink));
+    color: rgb(var(--rgb-ink));
   }
 
   #entrada-content.is-reading-mode hr {
@@ -589,7 +589,7 @@ const { orientacion, maxAncho } = datosPortada(portada);
 
   #entrada-content.is-reading-mode hr::before {
     content: '✦  ✦  ✦';
-    color: rgb(var(--color-accent));
+    color: rgb(var(--rgb-accent));
     letter-spacing: 0.5em;
     font-size: 0.75rem;
   }

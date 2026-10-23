@@ -7,7 +7,7 @@ import FotoAntigua from './FotoAntigua.astro';
  * Galería de una entrada: una "cinta" horizontal con scroll-snap NATIVO (mismo patrón que
  * NumeroSequence.astro — nada de Draggable/Observer controlando el carril, ver el comentario
  * ahí). Sin botones de navegación: en los extremos hay un degradado del color de fondo de la
- * página (`--color-canvas`, así también funciona en el tema claro) que funde las imágenes con
+ * página (`--rgb-canvas`, así también funciona en el tema claro) que funde las imágenes con
  * el fondo y avisa que hay más a ese lado; cada degradado solo aparece cuando hay contenido
  * por ver hacia ese lado.
  *
@@ -158,12 +158,12 @@ const altDe = (item: GaleriaItem) => item.alt || item.leyenda || titulo;
 
   .entrada-galeria-fade--izq {
     left: 0;
-    background: linear-gradient(to right, rgb(var(--color-canvas)), rgb(var(--color-canvas) / 0));
+    background: linear-gradient(to right, rgb(var(--rgb-canvas)), rgb(var(--rgb-canvas) / 0));
   }
 
   .entrada-galeria-fade--der {
     right: 0;
-    background: linear-gradient(to left, rgb(var(--color-canvas)), rgb(var(--color-canvas) / 0));
+    background: linear-gradient(to left, rgb(var(--rgb-canvas)), rgb(var(--rgb-canvas) / 0));
   }
 
   /* Una leyenda larga no debe ensanchar la figura más allá de la imagen: con ancho 0 y

@@ -4,12 +4,16 @@ import keystatic from '@keystatic/astro';
 import markdoc from '@astrojs/markdoc';
 import cloudflare from '@astrojs/cloudflare';
 import portadas from './integrations/portadas.mjs';
+import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
   adapter: cloudflare(),
   integrations: [react(), keystatic(), markdoc(), portadas()],
   vite: {
+    // Tailwind 4 se engancha a Vite directamente (ya no por PostCSS). Su configuración vive
+    // en src/styles/global.css (@theme), no en un tailwind.config.mjs.
+    plugins: [tailwindcss()],
     optimizeDeps: {
       // El panel de Keystatic importa react-dom/client de forma dinámica; Vite no lo
       // detecta al escanear dependencias y lo sirve sin transformar (CJS crudo) si no

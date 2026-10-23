@@ -62,26 +62,26 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    font-family: theme('fontFamily.mono');
+    font-family: var(--font-mono);
     font-size: 0.7rem;
     letter-spacing: 0.12em;
     text-transform: lowercase;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
   .orbita-grilla-quitar {
     text-transform: lowercase;
-    border: 1px solid rgb(var(--color-ink));
+    border: 1px solid rgb(var(--rgb-ink));
     border-radius: 999px;
     padding: 0.4rem 0.9rem;
     font: inherit;
-    color: rgb(var(--color-ink));
+    color: rgb(var(--rgb-ink));
     background: transparent;
     cursor: pointer;
   }
   :root[data-theme='light'] .orbita-grilla-quitar {
     text-transform: lowercase;
-    border-color: rgb(var(--color-accent));
-    color: rgb(var(--color-accent));
+    border-color: rgb(var(--rgb-accent));
+    color: rgb(var(--rgb-accent));
   }
   .orbita-grilla-est {
     display: block;
@@ -101,11 +101,11 @@
   }
   .orbita-borde-izq {
     left: 0;
-    background: linear-gradient(to right, rgb(var(--color-canvas)) 0%, rgb(var(--color-canvas) / 0) 100%);
+    background: linear-gradient(to right, rgb(var(--rgb-canvas)) 0%, rgb(var(--rgb-canvas) / 0) 100%);
   }
   .orbita-borde-der {
     right: 0;
-    background: linear-gradient(to left, rgb(var(--color-canvas)) 0%, rgb(var(--color-canvas) / 0) 100%);
+    background: linear-gradient(to left, rgb(var(--rgb-canvas)) 0%, rgb(var(--rgb-canvas) / 0) 100%);
   }
   .orbita-inclina {
     position: absolute;
@@ -136,7 +136,7 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: rgb(var(--color-surface));
+    background-color: rgb(var(--rgb-surface));
   }
   .orbita-cara img {
     position: absolute;
@@ -157,7 +157,7 @@
     text-align: center;
     font-size: 0.6rem;
     line-height: 1.2;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
   /* Escritorio: el mismo anillo, más grande, y la grilla filtrada con más columnas. */
   @media (min-width: 768px) {
@@ -207,7 +207,7 @@
     justify-content: center;
     gap: 3.5rem;
     padding: 2rem;
-    background: rgb(var(--color-canvas) / 0.55);
+    background: rgb(var(--rgb-canvas) / 0.55);
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
   }
@@ -249,24 +249,24 @@
     width: min(24rem, 34vw);
   }
   .tunel-foco-ficha .ficha-categoria {
-    font-family: theme('fontFamily.mono');
+    font-family: var(--font-mono);
     font-size: 0.72rem;
     letter-spacing: 0.18em;
     text-transform: lowercase;
-    color: rgb(var(--color-marmol) / 0.35);
+    color: rgb(var(--rgb-marmol) / 0.35);
     font-weight: 300;
   }
   .tunel-foco-ficha .ficha-titulo {
-    font-family: theme('fontFamily.headline');
+    font-family: var(--font-headline);
     font-size: clamp(1.6rem, 2.4vw, 2.4rem);
     line-height: 1.1;
-    color: rgb(var(--color-ink));
+    color: rgb(var(--rgb-ink));
   }
   .tunel-foco-ficha .ficha-autor {
-    font-family: theme('fontFamily.sans');
+    font-family: var(--font-sans);
     font-size: 0.95rem;
     line-height: 1.35;
-    color: rgb(var(--color-ink-muted));
+    color: rgb(var(--rgb-ink-muted));
   }
   /* cardBadge es absoluto (pensado para tapar la imagen de una tarjeta): acá va en el flujo. */
   .tunel-foco-ficha .ficha-entrar {

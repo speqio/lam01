@@ -185,11 +185,41 @@
       perspective: 2200px;
       cursor: grab;
     }
-    .orbita-borde {
-      width: 14%;
+    /* Anillo frontal: sin inclinación y con la cámara a media altura, así la fila queda recta
+       y horizontal (a 90° de la mirada) en vez de diagonal y arqueada. Solo escritorio; el
+       móvil conserva su inclinación. */
+    .orbita-escena {
+      perspective-origin: 50% 50%;
     }
     .orbita-inclina {
-      transform: translateY(-8%) rotateZ(-7deg);
+      transform: none;
+    }
+    /* Difuminado lateral ancho y suave: sólido en el borde y varias paradas hacia dentro, para
+       que las estampillas se fundan con el fondo en vez de cortarse con una rampa corta. */
+    .orbita-borde {
+      width: 28%;
+    }
+    .orbita-borde-izq {
+      background: linear-gradient(
+        to right,
+        rgb(var(--rgb-canvas)) 0%,
+        rgb(var(--rgb-canvas) / 0.96) 14%,
+        rgb(var(--rgb-canvas) / 0.78) 34%,
+        rgb(var(--rgb-canvas) / 0.46) 58%,
+        rgb(var(--rgb-canvas) / 0.18) 80%,
+        rgb(var(--rgb-canvas) / 0) 100%
+      );
+    }
+    .orbita-borde-der {
+      background: linear-gradient(
+        to left,
+        rgb(var(--rgb-canvas)) 0%,
+        rgb(var(--rgb-canvas) / 0.96) 14%,
+        rgb(var(--rgb-canvas) / 0.78) 34%,
+        rgb(var(--rgb-canvas) / 0.46) 58%,
+        rgb(var(--rgb-canvas) / 0.18) 80%,
+        rgb(var(--rgb-canvas) / 0) 100%
+      );
     }
     .orbita-grilla {
       grid-template-columns: repeat(6, 1fr);
